@@ -5303,10 +5303,10 @@ lru-cache@^6.0.0:
   dependencies:
     yallist "^4.0.0"
 
-lucide-react@^0.487.0:
-  version "0.487.0"
-  resolved "https://registry.yarnpkg.com/lucide-react/-/lucide-react-0.487.0.tgz#c18a463404e8ef106d46a7c9cceddf9fc8b9ff6b"
-  integrity sha512-aKqhOQ+YmFnwq8dWgGjOuLc8V1R9/c/yOd+zDY4+ohsR2Jo05lSGc3WsstYPIzcTpeosN7LoCkLReUUITvaIvw==
+lucide-react@^0.525.0:
+  version "0.525.0"
+  resolved "https://registry.yarnpkg.com/lucide-react/-/lucide-react-0.525.0.tgz#5f7bcecd65e4f9b2b5b6b5d295e3376df032d5e3"
+  integrity sha512-Tm1txJ2OkymCGkvwoHt33Y2JpN5xucVq1slHcgE6Lk0WjDfjgKWor5CdVER8U6DvcfMwh4M8XxmpTiyzfmfDYQ==
 
 magic-string@^0.30.11:
   version "0.30.17"
@@ -7680,7 +7680,7 @@ zod-to-json-schema@^3.24.1:
   resolved "https://registry.yarnpkg.com/zod-to-json-schema/-/zod-to-json-schema-3.24.5.tgz#d1095440b147fb7c2093812a53c54df8d5df50a3"
   integrity sha512-/AuWwMP+YqiPbsJx5D6TfgRTc4kTLjsh5SOcd4bLsfUg2RcEXrFMJl1DGgdHy2aCfsIA/cr/1JM0xcB2GZji8g==
 
-zod@^3.23.8, zod@^3.24.2, zod@^3.24.4:
+zod@^3.23.8, zod@^3.24.2:
   version "3.24.4"
   resolved "https://registry.yarnpkg.com/zod/-/zod-3.24.4.tgz#e2e2cca5faaa012d76e527d0d36622e0a90c315f"
   integrity sha512-OdqJE9UDRPwWsrHjLN2F8bPxvwJBK22EHLWtanu0LSYr5YqzsaaW3RMgmjwr8Rypg5k+meEJdSPXJZXE/yqOMg==
