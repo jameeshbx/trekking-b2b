@@ -35,6 +35,12 @@ enum BusinessType {
   DMC
 }
 
+
+enum ManagerStatus {
+  ACTIVE
+  INACTIVE
+}
+
 // Add the missing File model
 model File {
   id            String      @id @default(uuid())
@@ -46,6 +52,7 @@ model File {
   updatedAt     DateTime    @updatedAt
   agencyLogo    AgencyForm? @relation("AgencyLogo")
   agencyLicense AgencyForm? @relation("AgencyBusinessLicense")
+  managerProfile Manager?   @relation("ManagerProfile") // <-- Added opposite relation
 }
 
 model User {
@@ -95,6 +102,7 @@ model DMC {
 
   @@index([name])
 }
+
 
 model PasswordReset {
   id        String   @id @default(uuid())
@@ -208,4 +216,25 @@ enum PanType {
   COMPANY
   TRUST
   OTHER
+}   
+
+
+model Manager {
+  id         String   @id @default(uuid())
+  name       String
+  phone      String
+  email      String   @unique
+  username   String   @unique
+  password   String
+  profileId  String?  @unique // <-- Add @unique here
+  profile    File?    @relation("ManagerProfile", fields: [profileId], references: [id])
 }
+
+
+
+
+
+
+
+
+
