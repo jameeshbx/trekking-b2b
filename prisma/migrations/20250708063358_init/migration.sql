@@ -11,6 +11,9 @@ CREATE TYPE "BusinessType" AS ENUM ('TEKKING_MYLES', 'AGENCY', 'DMC');
 CREATE TYPE "ManagerStatus" AS ENUM ('ACTIVE', 'INACTIVE');
 
 -- CreateEnum
+CREATE TYPE "DMCStatus" AS ENUM ('ACTIVE', 'DEACTIVE');
+
+-- CreateEnum
 CREATE TYPE "AgencyType" AS ENUM ('PRIVATE_LIMITED', 'PROPRIETORSHIP', 'PARTNERSHIP', 'PUBLIC_LIMITED', 'LLP', 'TOUR_OPERATOR', 'TRAVEL_AGENT', 'DMC', 'OTHER');
 
 -- CreateEnum
@@ -155,6 +158,40 @@ CREATE TABLE "AgencyForm" (
 );
 
 -- CreateTable
+CREATE TABLE "DMCForm" (
+    "id" TEXT NOT NULL,
+    "name" TEXT NOT NULL,
+    "config" JSONB NOT NULL DEFAULT '{}',
+    "contactPerson" TEXT,
+    "designation" TEXT,
+    "phoneNumber" TEXT,
+    "phoneCountryCode" TEXT DEFAULT '+91',
+    "ownerName" TEXT,
+    "email" TEXT,
+    "ownerPhoneNumber" TEXT,
+    "ownerPhoneCode" TEXT DEFAULT '+91',
+    "website" TEXT,
+    "primaryCountry" TEXT,
+    "destinationsCovered" TEXT,
+    "cities" TEXT,
+    "gstRegistered" BOOLEAN DEFAULT true,
+    "gstNumber" TEXT,
+    "yearOfRegistration" TEXT,
+    "panNumber" TEXT,
+    "panType" "PanType",
+    "headquarters" TEXT,
+    "country" TEXT,
+    "yearsOfExperience" TEXT,
+    "registrationCertificateId" TEXT,
+    "createdBy" TEXT NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+    "status" "DMCStatus" NOT NULL DEFAULT 'ACTIVE',
+
+    CONSTRAINT "DMCForm_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
 CREATE TABLE "Manager" (
     "id" TEXT NOT NULL,
     "name" TEXT NOT NULL,
@@ -210,6 +247,15 @@ CREATE INDEX "AgencyForm_name_idx" ON "AgencyForm"("name");
 CREATE INDEX "AgencyForm_email_idx" ON "AgencyForm"("email");
 
 -- CreateIndex
+CREATE UNIQUE INDEX "DMCForm_registrationCertificateId_key" ON "DMCForm"("registrationCertificateId");
+
+-- CreateIndex
+CREATE INDEX "DMCForm_name_idx" ON "DMCForm"("name");
+
+-- CreateIndex
+CREATE INDEX "DMCForm_email_idx" ON "DMCForm"("email");
+
+-- CreateIndex
 CREATE UNIQUE INDEX "Manager_email_key" ON "Manager"("email");
 
 -- CreateIndex
@@ -244,6 +290,9 @@ ALTER TABLE "AgencyForm" ADD CONSTRAINT "AgencyForm_logoId_fkey" FOREIGN KEY ("l
 
 -- AddForeignKey
 ALTER TABLE "AgencyForm" ADD CONSTRAINT "AgencyForm_businessLicenseId_fkey" FOREIGN KEY ("businessLicenseId") REFERENCES "File"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "DMCForm" ADD CONSTRAINT "DMCForm_registrationCertificateId_fkey" FOREIGN KEY ("registrationCertificateId") REFERENCES "File"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "Manager" ADD CONSTRAINT "Manager_profileId_fkey" FOREIGN KEY ("profileId") REFERENCES "File"("id") ON DELETE SET NULL ON UPDATE CASCADE;
