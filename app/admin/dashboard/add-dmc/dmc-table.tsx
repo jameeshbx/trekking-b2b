@@ -1,9 +1,8 @@
 "use client"
 
 import type React from "react"
-
-import { useState } from "react"
-import { Search, Download, MoreVertical, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Edit, Eye, Trash2 } from "lucide-react"
+import { useState, useEffect } from "react"
+import { Search, Download, MoreVertical, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Edit, Eye, Trash2, RefreshCw } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger } from "@/components/ui/select"
@@ -11,13 +10,48 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Badge } from "@/components/ui/badge"
-import { dmcData } from "@/data/add-dmc"
+import { toast } from "@/components/ui/use-toast"
+import { Toaster } from "@/components/ui/toaster"
+
+interface DMCData {
+  id: string
+  name: string
+  primaryContact: string
+  phoneNumber: string
+  designation: string
+  email: string
+  status: string
+  joinSource: string
+  createdAt: string
+  registrationCertificate?: {
+    id: string
+    name: string
+    url: string
+  } | null
+  ownerName: string
+  ownerPhoneNumber: string
+  website: string
+  primaryCountry: string
+  destinationsCovered: string
+  cities: string
+  gstRegistered: boolean
+  gstNumber: string
+  yearOfRegistration: string
+  panNumber: string
+  panType: string
+  headquarters: string
+  country: string
+  yearsOfExperience: string
+}
 
 export function DMCTable() {
   const [searchQuery, setSearchQuery] = useState("")
   const [sortBy, setSortBy] = useState("name")
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc")
-  const [displayedDMCs, setDisplayedDMCs] = useState(dmcData)
+  const [dmcData, setDmcData] = useState<DMCData[]>([])
+  const [displayedDMCs, setDisplayedDMCs] = useState<DMCData[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1)
@@ -28,6 +62,44 @@ export function DMCTable() {
   const indexOfLastItem = currentPage * itemsPerPage
   const indexOfFirstItem = indexOfLastItem - itemsPerPage
   const currentItems = displayedDMCs.slice(indexOfFirstItem, indexOfLastItem)
+
+  // Fetch DMC data from API
+  const fetchDMCData = async () => {
+    try {
+      setLoading(true)
+      setError(null)
+      
+      const response = await fetch('/api/dmc')
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch DMC data')
+      }
+      
+      const result = await response.json()
+      
+      if (result.success) {
+        setDmcData(result.data)
+        setDisplayedDMCs(result.data)
+      } else {
+        throw new Error(result.error || 'Failed to fetch DMC data')
+      }
+    } catch (err: any) {
+      console.error('Error fetching DMC data:', err)
+      setError(err.message || 'Failed to fetch DMC data')
+      toast({
+        title: "Error",
+        description: err.message || "Failed to fetch DMC data",
+        variant: "destructive"
+      })
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // Fetch data on component mount
+  useEffect(() => {
+    fetchDMCData()
+  }, [])
 
   const handleSort = (value: string) => {
     if (value === sortBy) {
@@ -86,6 +158,29 @@ export function DMCTable() {
     }
   }
 
+  if (loading) {
+    return (
+      <div className="mt-12 space-y-4">
+        <div className="flex justify-center items-center py-8">
+          <div className="text-gray-500">Loading DMC data...</div>
+        </div>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="mt-12 space-y-4">
+        <div className="flex justify-center items-center py-8">
+          <div className="text-red-500">Error: {error}</div>
+          <Button onClick={fetchDMCData} className="ml-4">
+            Retry
+          </Button>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="mt-12 space-y-4">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -115,6 +210,9 @@ export function DMCTable() {
           </Select>
           <Button variant="outline" size="icon" className="rounded-full bg-gray-100" onClick={handleDownload}>
             <Download className="h-4 w-4" />
+          </Button>
+          <Button variant="outline" size="icon" className="rounded-full bg-gray-100" onClick={fetchDMCData}>
+            <RefreshCw className="h-4 w-4" />
           </Button>
         </div>
       </div>
@@ -159,10 +257,22 @@ export function DMCTable() {
                     <TableCell className="py-3 hidden md:table-cell">{dmc.designation}</TableCell>
                     <TableCell className="py-3 hidden sm:table-cell">{dmc.email}</TableCell>
                     <TableCell className="py-3 hidden lg:table-cell">
-                      <Button variant="outline" size="sm" className="h-8 px-2 text-xs flex items-center gap-1">
-                        <Download className="h-3 w-3" />
-                        Download
-                      </Button>
+                      {dmc.registrationCertificate ? (
+                        <a
+                          href={dmc.registrationCertificate.url}
+                          download={dmc.registrationCertificate.name}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex"
+                        >
+                          <Button variant="outline" size="sm" className="h-8 px-2 text-xs flex items-center gap-1">
+                            <Download className="h-3 w-3" />
+                            Download
+                          </Button>
+                        </a>
+                      ) : (
+                        <span className="text-gray-400 text-xs">No certificate</span>
+                      )}
                     </TableCell>
                     <TableCell className="py-3 hidden lg:table-cell">{dmc.joinSource || "Direct"}</TableCell>
                     <TableCell className="py-3">
@@ -285,6 +395,7 @@ export function DMCTable() {
           </div>
         )}
       </div>
+      <Toaster />
     </div>
   )
 }

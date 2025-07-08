@@ -35,6 +35,11 @@ enum BusinessType {
   DMC
 }
 
+enum DMCStatus {
+  ACTIVE
+  DEACTIVE
+}
+
 // Add the missing File model
 model File {
   id            String      @id @default(uuid())
@@ -46,6 +51,7 @@ model File {
   updatedAt     DateTime    @updatedAt
   agencyLogo    AgencyForm? @relation("AgencyLogo")
   agencyLicense AgencyForm? @relation("AgencyBusinessLicense")
+  dmcRegistrationCertificate DMCForm? @relation("DMCRegistrationCertificate")
 }
 
 model User {
@@ -186,6 +192,55 @@ model AgencyForm {
   createdAt     DateTime       @default(now())
   updatedAt     DateTime       @updatedAt
   subscriptions Subscription[]
+
+  @@index([name])
+  @@index([email])
+}
+
+model DMCForm {
+  id     String @id @default(uuid())
+  name   String
+  config Json   @default("{}")
+
+  // Basic Information
+  contactPerson    String?
+  designation      String?
+  phoneNumber      String?
+  phoneCountryCode String?     @default("+91")
+
+  // Company Details
+  ownerName        String?
+  email            String?
+  ownerPhoneNumber String?
+  ownerPhoneCode   String? @default("+91")
+  website          String?
+  
+  // Operational Details
+  primaryCountry       String?
+  destinationsCovered  String?
+  cities               String?
+  
+  // GST & Registration Details
+  gstRegistered      Boolean? @default(true)
+  gstNumber          String?
+  yearOfRegistration String?
+  panNumber          String?
+  panType            PanType?
+  headquarters       String?
+  country            String?
+  yearsOfExperience  String?
+
+  // File Storage
+  registrationCertificateId String? @unique
+
+  // Relations
+ registrationCertificate File? @relation("DMCRegistrationCertificate", fields: [registrationCertificateId], references: [id])
+
+  createdBy     String
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  status DMCStatus @default(ACTIVE)
 
   @@index([name])
   @@index([email])
