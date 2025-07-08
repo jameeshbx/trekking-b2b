@@ -12,6 +12,11 @@ import { Label } from "@/components/ui/label"
 import { toast } from "@/components/ui/use-toast"
 import { Toaster } from "@/components/ui/toaster"
 import { countries } from "@/data/add-dmc"
+import { writeFile } from "fs/promises";
+import path from "path";
+import { PrismaClient } from "@prisma/client";
+
+const prisma = new PrismaClient();
 
 interface FormErrors {
   dmcName?: string
@@ -112,6 +117,15 @@ export function DMCRegistrationForm() {
     return undefined
   }
 
+  const validateExperienceYears = (years: string): string | undefined => {
+    if (!years) return "Year of experience is required"
+    const num = parseInt(years)
+    if (isNaN(num) || num < 0 || num > 100) {
+      return "Please enter a valid number of years (0-100)"
+    }
+    return undefined
+  }
+
   const validateFile = (file: File | null): string | undefined => {
     if (!file) return "Registration certificate is required"
     const maxSize = 5 * 1024 * 1024 // 5MB
@@ -162,8 +176,8 @@ export function DMCRegistrationForm() {
     const registrationYearError = validateYear(formData.yearOfRegistration, "Year of registration")
     if (registrationYearError) newErrors.yearOfRegistration = registrationYearError
 
-    const experienceYearError = validateYear(formData.yearOfExperience, "Year of experience")
-    if (experienceYearError) newErrors.yearOfExperience = experienceYearError
+    const experienceYearsError = validateExperienceYears(formData.yearOfExperience)
+    if (experienceYearsError) newErrors.yearOfExperience = experienceYearsError
 
     // File validation
     const fileError = validateFile(formData.registrationCertificate)
@@ -730,7 +744,7 @@ export function DMCRegistrationForm() {
         {/* Year of Experience */}
         <div className="space-y-2 w-full">
           <label htmlFor="yearOfExperience" className="block text-sm font-medium text-gray-700 font-Poppins">
-            Year of Experience
+            Years of Experience
           </label>
           <div className="relative">
             <Input
@@ -741,6 +755,7 @@ export function DMCRegistrationForm() {
               className={`w-full h-12 focus:border-emerald-500 hover:border-emerald-500 transition-colors ${
                 errors.yearOfExperience ? 'border-red-500' : ''
               }`}
+              placeholder="e.g. 5"
             />
             <div className="absolute right-3 top-1/2 transform -translate-y-1/2 bg-gray-100 px-2 py-1 rounded text-sm text-gray-600 font-Poppins">
               Years

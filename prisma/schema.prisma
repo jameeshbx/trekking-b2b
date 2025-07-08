@@ -52,6 +52,8 @@ model File {
   agencyLogo    AgencyForm? @relation("AgencyLogo")
   agencyLicense AgencyForm? @relation("AgencyBusinessLicense")
   dmcRegistrationCertificate DMCForm? @relation("DMCRegistrationCertificate")
+  agencyRequestLogo AgencyRequest? @relation("AgencyRequestLogo")
+  agencyRequestBusinessLicense AgencyRequest? @relation("AgencyRequestBusinessLicense")
 }
 
 model User {
@@ -263,4 +265,72 @@ enum PanType {
   COMPANY
   TRUST
   OTHER
+}
+
+enum AgencyRequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum AgencyRequestType {
+  AGENCY_SIGNUP
+  DMC_SIGNUP
+  SUBSCRIPTION_UPGRADE
+  FEATURE_REQUEST
+}
+
+model AgencyRequest {
+  id          String              @id @default(uuid())
+  requestId   String              @unique @default(cuid())
+  name        String
+  email       String
+  phoneNumber String
+  agencyName  String
+  status      AgencyRequestStatus @default(PENDING)
+  requestType AgencyRequestType   @default(AGENCY_SIGNUP)
+  requestDate DateTime            @default(now())
+  notes       String?
+  
+  // Additional fields for request details
+  contactPerson    String?
+  designation      String?
+  phoneCountryCode String? @default("+91")
+  website          String?
+  
+  // Company details
+  ownerName        String?
+  companyPhone     String?
+  companyPhoneCode String? @default("+91")
+  
+  // GST & Registration details
+  gstRegistered      Boolean? @default(true)
+  gstNumber          String?
+  yearOfRegistration String?
+  panNumber          String?
+  panType            PanType?
+  headquarters       String?
+  country            String? @default("INDIA")
+  yearsOfOperation   String?
+  
+  // File references
+  logoId            String? @unique
+  businessLicenseId String? @unique
+  
+  // Relations
+  logo            File? @relation("AgencyRequestLogo", fields: [logoId], references: [id])
+  businessLicense File? @relation("AgencyRequestBusinessLicense", fields: [businessLicenseId], references: [id])
+  
+  // Admin tracking
+  reviewedBy    String?
+  reviewedAt    DateTime?
+  reviewNotes   String?
+  
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  
+  @@index([status])
+  @@index([requestType])
+  @@index([requestDate])
+  @@index([email])
 }
