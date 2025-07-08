@@ -1,6 +1,7 @@
 "use client"
 
 import type React from "react"
+import axios from "axios"
 import Image from "next/image"
 import { useState, useEffect } from "react"
 import {
@@ -31,6 +32,8 @@ import { toast } from "@/components/ui/use-toast"
 import { Toaster } from "@/components/ui/toaster"
 
 export default function ManagerSection() {
+
+  const [managers, setManagers] = useState<any[]>([])
   const [searchQuery, setSearchQuery] = useState("")
   const [currentPage, setCurrentPage] = useState(1) // Start at page 1 instead of 4
   const [showPassword, setShowPassword] = useState<Record<string, boolean>>({})
@@ -52,6 +55,17 @@ export default function ManagerSection() {
   // Items per page
   const itemsPerPage = 3
   const totalPages = Math.ceil(managers.length / itemsPerPage)
+
+  // ✅ FETCH managers from backend on mount
+  useEffect(() => {
+    axios.get("http://localhost:5000/manager")
+      .then((res) => {
+        setManagers(res.data)
+      })
+      .catch((err) => {
+        console.error(err)
+      })
+  }, [])
 
   // Handle pagination, filtering, and sorting
   useEffect(() => {
@@ -87,7 +101,7 @@ export default function ManagerSection() {
     if (paginatedManagers.length === 0 && filtered.length > 0) {
       setCurrentPage(1)
     }
-  }, [currentPage, searchQuery, sortBy, sortOrder])
+  }, [managers,currentPage, searchQuery, sortBy, sortOrder])
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target
@@ -106,13 +120,36 @@ export default function ManagerSection() {
     }
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
+  // Submit form with Axios POST
+   
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+
+     try {
+      const managerData = {
+        name: formData.name,
+        phone: `${phoneExtension} ${formData.phone}`,
+        email: formData.email,
+        username: formData.username,
+        password: formData.password,
+        // Add profile upload logic if needed — here we’re not sending the file yet!
+      }
+
+      const response = await axios.post("http://localhost:5000/manager", managerData)
+
+      // ✅ Add new manager to local state
+      setManagers((prev) => [...prev, response.data])
+
+
+
     console.log("Form submitted:", formData)
+
     toast({
       title: "Form submitted",
       description: "Manager has been added successfully",
     })
+
+    
     // Reset form after submission
     setFormData({
       name: "",
@@ -123,8 +160,16 @@ export default function ManagerSection() {
       profile: null,
     })
     setUploadedFile(null)
-  }
 
+ } catch (err) {
+      console.error(err)
+      toast({
+        title: "Error",
+        description: "Failed to add manager",
+      })
+    }
+  }
+  
   const togglePasswordVisibility = (id: string) => {
     setShowPassword((prev) => ({ ...prev, [id]: !prev[id] }))
   }
