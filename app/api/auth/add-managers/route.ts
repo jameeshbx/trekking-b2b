@@ -17,6 +17,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
     }
 
+    
     // Create the manager in the DB
     const newManager = await prisma.manager.create({
       data: {
@@ -43,5 +44,15 @@ export async function POST(req: NextRequest) {
       { error: "Something went wrong", details: error.message },
       { status: 500 }
     );
+  }
+}
+
+
+export async function GET() {
+  try {
+    const managers = await prisma.manager.findMany();
+    return NextResponse.json(managers);
+  } catch (error: any) {
+    return NextResponse.json({ error: "Failed to fetch managers", details: error.message }, { status: 500 });
   }
 }

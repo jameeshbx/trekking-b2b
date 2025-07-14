@@ -56,16 +56,24 @@ export default function ManagerSection() {
   const itemsPerPage = 3
   const totalPages = Math.ceil(managers.length / itemsPerPage)
 
-  // ✅ FETCH managers from backend on mount
+  // Fetch managers from backend on mount
   useEffect(() => {
-    axios.get("http://localhost:5000/manager")
-      .then((res) => {
-        setManagers(res.data)
-      })
-      .catch((err) => {
-        console.error(err)
-      })
+    const fetchManagers = async () => {
+      try {
+        const response = await axios.get("/api/auth/add-managers")
+        setManagers(response.data)
+      } catch (err) {
+        console.error("Failed to fetch managers:", err)
+        toast({
+          title: "Error",
+          description: "Failed to load managers",
+          variant: "destructive",
+        })
+      }
+    }
+    fetchManagers()
   }, [])
+
 
   // Handle pagination, filtering, and sorting
   useEffect(() => {
@@ -75,15 +83,18 @@ export default function ManagerSection() {
         manager.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
         manager.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
         manager.username.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        manager.userId.toLowerCase().includes(searchQuery.toLowerCase()),
+        (manager.id && manager.id.toLowerCase().includes(searchQuery.toLowerCase())),
     )
 
-    // Apply sorting
+
+     // Apply sorting
     filtered = [...filtered].sort((a, b) => {
       if (sortBy === "name") {
         return sortOrder === "asc" ? a.name.localeCompare(b.name) : b.name.localeCompare(a.name)
       } else if (sortBy === "status") {
-        return sortOrder === "asc" ? a.status.localeCompare(b.status) : b.status.localeCompare(a.status)
+        return sortOrder === "asc" 
+          ? (a.status || "").localeCompare(b.status || "") 
+          : (b.status || "").localeCompare(a.status || "")
       } else if (sortBy === "email") {
         return sortOrder === "asc" ? a.email.localeCompare(b.email) : b.email.localeCompare(a.email)
       }
@@ -95,13 +106,13 @@ export default function ManagerSection() {
     const paginatedManagers = filtered.slice(startIndex, startIndex + itemsPerPage)
 
     // Update state with the filtered, sorted, and paginated managers
-    setDisplayedManagers(paginatedManagers)
+    setDisplayedManagers(paginatedManagers);
 
-    // If current page is out of bounds after filtering, go to page 1
-    if (paginatedManagers.length === 0 && filtered.length > 0) {
+     // Reset to page 1 if current page is invalid after filtering
+    if (paginatedManagers.length === 0 && currentPage > 1 && filtered.length > 0) {
       setCurrentPage(1)
     }
-  }, [managers,currentPage, searchQuery, sortBy, sortOrder])
+  }, [managers, currentPage, searchQuery, sortBy, sortOrder])
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target
@@ -112,13 +123,15 @@ export default function ManagerSection() {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0]
       setFormData((prev) => ({ ...prev, profile: file }))
-      setUploadedFile(file.name)
+      setUploadedFile(file.name);
       toast({
         title: "File uploaded",
         description: `Successfully uploaded: ${file.name}`,
-      })
+      });
     }
-  }
+  };
+
+
 
   // Submit form with Axios POST
    
@@ -135,41 +148,46 @@ export default function ManagerSection() {
         // Add profile upload logic if needed — here we’re not sending the file yet!
       }
 
-      const response = await axios.post("http://localhost:5000/manager", managerData)
-
-      // ✅ Add new manager to local state
-      setManagers((prev) => [...prev, response.data])
+       const response = await axios.post("/api/auth/add-managers", managerData)
 
 
+      //  Add new manager to local state
+      setManagers((prev) => [...prev, response.data]);
 
-    console.log("Form submitted:", formData)
+
+      // new one
+       // Reset form and search
+      setFormData({
+        name: "",
+        phone: "",
+        email: "",
+        username: "",
+        password: "",
+        profile: null,
+      })
+      setUploadedFile(null)
+      setSearchQuery("");
+      setCurrentPage(1);
+
+    console.log("Form submitted:", managerData);
 
     toast({
       title: "Form submitted",
       description: "Manager has been added successfully",
     })
 
-    
-    // Reset form after submission
-    setFormData({
-      name: "",
-      phone: "",
-      email: "",
-      username: "",
-      password: "",
-      profile: null,
-    })
-    setUploadedFile(null)
 
- } catch (err) {
-      console.error(err)
+ } catch (err: any) {
+      console.error("Submission error:" ,err)
       toast({
         title: "Error",
-        description: "Failed to add manager",
+          description: err.response?.data?.error || "Failed to add manager",
+        variant: "destructive",
       })
     }
   }
   
+
   const togglePasswordVisibility = (id: string) => {
     setShowPassword((prev) => ({ ...prev, [id]: !prev[id] }))
   }
@@ -178,7 +196,7 @@ export default function ManagerSection() {
     toast({
       title: "Downloaded",
       description: "Manager data has been downloaded successfully",
-    })
+    });
   }
 
   const handleSort = (value: string) => {
@@ -413,27 +431,27 @@ export default function ManagerSection() {
               {displayedManagers.length > 0 ? (
                 displayedManagers.map((manager, index) => (
                   <TableRow
-                    key={manager.userId}
-                    data-testid={`manager-row-${manager.userId}`}
+                    key={manager.id}
+                    data-testid={`manager-row-${manager.id}`}
                     className={index % 2 === 0 ? "bg-white" : "bg-gray-50/50 border-0"}
                   >
                     <TableCell className="py-3">
-                      <Checkbox id={`select-${manager.userId}`} />
+                      <Checkbox id={`select-${manager.id}`} />
                     </TableCell>
-                    <TableCell className="py-3 font-medium font-poppins">{manager.userId}</TableCell>
+                    <TableCell className="py-3 font-medium font-poppins">{manager.id}</TableCell>
                     <TableCell className="py-3 font-poppins">{manager.name}</TableCell>
                     <TableCell className="py-3 font-poppins hidden md:table-cell">{manager.phone}</TableCell>
                     <TableCell className="py-3 font-poppins hidden sm:table-cell">{manager.email}</TableCell>
                     <TableCell className="py-3 font-poppins hidden lg:table-cell">{manager.username}</TableCell>
                     <TableCell className="py-3 font-poppins hidden lg:table-cell">
                       <div className="flex items-center space-x-2">
-                        <span>{showPassword[manager.userId] ? manager.password : "•••••••"}</span>
+                        <span>{showPassword[manager.id] ? manager.password : "•••••••"}</span>
                         <button
                           type="button"
-                          onClick={() => togglePasswordVisibility(manager.userId)}
+                          onClick={() => togglePasswordVisibility(manager.id)}
                           className="text-gray-500"
                         >
-                          {showPassword[manager.userId] ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                          {showPassword[manager.id] ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                         </button>
                       </div>
                     </TableCell>

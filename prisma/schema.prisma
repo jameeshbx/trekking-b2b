@@ -44,6 +44,16 @@ enum DMCStatus {
   ACTIVE
   DEACTIVE
 }
+enum DMCRequestStatusEnum {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+
+
+
+
 
 // Add the missing File model
 model File {
@@ -104,6 +114,10 @@ model DMC {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   users     User[]
+
+
+  status        DMCStatus             @default(ACTIVE)
+  requestStatus DMCRequestStatusEnum  @default(PENDING)
 
   @@index([name])
 }
@@ -204,11 +218,15 @@ model AgencyForm {
   @@index([email])
 }
 
+
 model DMCForm {
   id     String @id @default(uuid())
   name   String
   config Json   @default("{}")
 
+  // dmcRequestStatus DMCRequestStatus? @relation(fields: [dmcRequestStatusId], references: [id])
+ // dmcRequestStatusId String?          @unique
+  }
   // Basic Information
   contactPerson    String?
   designation      String?
@@ -251,6 +269,7 @@ model DMCForm {
 
   @@index([name])
   @@index([email])
+
 }
 
 enum AgencyType {
@@ -282,7 +301,9 @@ model Manager {
   password   String
   profileId  String?  @unique // <-- Add @unique here
   profile    File?    @relation("ManagerProfile", fields: [profileId], references: [id])
+  
 }
+
 
 
 

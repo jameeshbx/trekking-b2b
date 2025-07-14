@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
+import axios from 'axios'
 import {
   Search,
   ChevronDown,
@@ -25,13 +26,41 @@ import { Input } from "@/components/ui/input"
 import { Calendar as CalendarComponent } from "@/components/ui/calendar"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { format } from "date-fns"
-import { dmcRequests, getStatusColor, type DMCRequest } from "@/data/dmc"
+
+// import { dmcRequests, getStatusColor, type DMCRequest } from "@/data/dmc"
+
+
+// Define the DMCRequest type based on your Prisma schema
+type DMCRequest = {
+  id: string
+  name: string
+  email: string
+  phoneNumber: string
+  dmcName: string
+  status: "ACTIVE" | "DEACTIVE"
+  requestStatus: "Approved" | "Pending" | "Rejected"
+  requestDate: string
+}
+
+// Helper function to get status color
+const getStatusColor = (status: string) => {
+  switch (status) {
+    case "ACTIVE":
+      return "bg-green-100 text-green-800"
+    case "DEACTIVE":
+      return "bg-red-100 text-red-800"
+    default:
+      return "bg-gray-100 text-gray-800"
+  }
+}
+
+
 
 export default function Dmcsignup() {
   const router = useRouter()
   const [currentPage, setCurrentPage] = useState(1)
   const [itemsPerPage, ] = useState(8)
-  const [filteredRequests, setFilteredRequests] = useState<DMCRequest[]>(dmcRequests)
+  const [filteredRequests, setFilteredRequests] = useState<DMCRequest[]>([])
   const [searchTerm, setSearchTerm] = useState("")
   const [selectedStatuses] = useState<Record<string, boolean>>({
     Active: true,
@@ -48,70 +77,105 @@ export default function Dmcsignup() {
   const [dateRange, setDateRange] = useState<{
     from: Date | undefined
     to: Date | undefined
-  }>({
-    from: new Date("2025-03-28"),
-    to: new Date("2025-04-10"),
+    }>({
+    from: undefined,
+    to: undefined,
   })
   const [calendarOpen, setCalendarOpen] = useState(false)
   const [sortBy, setSortBy] = useState<string>("date")
-  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc")
+  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc")
+  const [totalCount, setTotalCount] = useState(0)
+  const [isLoading, setIsLoading] = useState(false)
+  const [isUpdating, setIsUpdating] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
 
   // Calculate pagination
   const indexOfLastItem = currentPage * itemsPerPage
   const indexOfFirstItem = indexOfLastItem - itemsPerPage
   const currentItems = filteredRequests.slice(indexOfFirstItem, indexOfLastItem)
-  const totalPages = Math.ceil(filteredRequests.length / itemsPerPage)
+  const totalPages = Math.ceil(totalCount / itemsPerPage)     
 
-  // Filter requests based on search term, status filters, and date range
-  useEffect(() => {
-    const filtered = dmcRequests.filter((request) => {
-      const matchesSearch =
-        request.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        request.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        request.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        request.dmcName.toLowerCase().includes(searchTerm.toLowerCase())
+   // Fetch DMC requests from API
+  const fetchDmcRequests = async () => {   
+    try {
+      setIsLoading(true)
+      setError(null)
+      
+      const params = new URLSearchParams()
+      params.append('page', currentPage.toString())
+      params.append('limit', itemsPerPage.toString())
+      if (searchTerm) params.append('search', searchTerm)
+      
+      // Convert status filters to match Prisma enum
+      const statusFilters = Object.entries(selectedStatuses)
+        .filter(([_, selected]) => selected)
+        .map(([status]) => status === 'Active' ? 'ACTIVE' : 'DEACTIVE')
+      
+      if (statusFilters.length > 0) params.append('status', statusFilters.join(','))
+      
+      const requestStatusFilters = Object.entries(selectedRequestStatuses)
+        .filter(([_, selected]) => selected)
+        .map(([status]) => status)
+      
+      if (requestStatusFilters.length > 0) params.append('requestStatus', requestStatusFilters.join(','))
+      
+      if (dateRange.from) params.append('dateFrom', dateRange.from.toISOString())
+      if (dateRange.to) params.append('dateTo', dateRange.to.toISOString())
+      
+      params.append('sortBy', sortBy === 'date' ? 'createdAt' : 'status')   
+      params.append('sortOrder', sortDirection)
 
-      const statusSelected = selectedStatuses[request.status] || false
-      const requestStatusSelected = selectedRequestStatuses[request.requestStatus] || false
-
-      // Date range filter
-      let matchesDateRange = true
-      if (dateRange.from && dateRange.to && request.requestDate) {
-        const requestDate = new Date(request.requestDate)
-        matchesDateRange = requestDate >= dateRange.from && requestDate <= dateRange.to
-      }
-
-      return matchesSearch && statusSelected && requestStatusSelected && matchesDateRange
-    })
-
-    // Apply sorting
-    const sortedRequests = [...filtered].sort((a, b) => {
-      let comparison = 0
-
-      if (sortBy === "date") {
-        if (a.requestDate && b.requestDate) {
-          comparison = new Date(a.requestDate).getTime() - new Date(b.requestDate).getTime()
-        }
-      } else if (sortBy === "status") {
-        comparison = a.status.localeCompare(b.status)
-      }
-
-      return sortDirection === "asc" ? comparison : -comparison
-    })
-
-    setFilteredRequests(sortedRequests)
-    setCurrentPage(1)
-  }, [searchTerm, selectedStatuses, selectedRequestStatuses, dateRange, sortBy, sortDirection])
-
-  // Add window resize listener for responsive behavior
-  useEffect(() => {
-    const handleResize = () => {
-      setCurrentPage(currentPage)
+      const response = await fetch(`/api/auth/manage-DMC?${params.toString()}`)    
+      if (!response.ok) throw new Error('Failed to fetch DMC requests')         
+      
+      const data = await response.json()
+      setFilteredRequests(data.data)
+      setTotalCount(data.pagination.total)
+    } catch (err) {
+      console.error('Error fetching DMC requests:', err)
+      setError(err instanceof Error ? err.message : 'Failed to fetch data')
+    } finally {
+      setIsLoading(false)
     }
+  }
 
-    window.addEventListener("resize", handleResize)
-    return () => window.removeEventListener("resize", handleResize)
-  }, [currentPage])
+  
+  // Update DMC status
+  const updateDmcStatus = async (id: string, status?: string, requestStatus?: string) => {
+    try {
+      setIsUpdating(true)
+      setError(null)
+       
+     const response = await fetch('/api/auth/manage-DMC', { 
+      method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json'},
+      
+        body: JSON.stringify({ 
+          id, 
+          status: status === 'Active' ? 'ACTIVE' : 'DEACTIVE',
+          requestStatus 
+        }),
+      });
+      
+
+
+      if (!response.ok) throw new Error('Failed to update status')
+      
+      await fetchDmcRequests()
+    } catch (err) {
+      console.error('Error updating DMC status:', err)
+      setError(err instanceof Error ? err.message : 'Failed to update status')
+    } finally {
+      setIsUpdating(false)
+    }
+  }
+
+  // Load data on component mount and when filters change
+  useEffect(() => {
+    fetchDmcRequests()
+  }, [currentPage, searchTerm, selectedStatuses, selectedRequestStatuses, dateRange, sortBy, sortDirection])
 
   // Handle pagination
   const paginate = (pageNumber: number) => {
@@ -210,6 +274,7 @@ export default function Dmcsignup() {
     return "Select dates"
   }
 
+  
   // Navigate to detail page
   const navigateToDetail = (id: string) => {
     router.push(`/request-dashboard/${id}`)
