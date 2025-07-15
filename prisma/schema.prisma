@@ -1,9 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -13,67 +7,37 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-enum Role {
-  USER
-  ADMIN
-  SUPER_ADMIN
-  AGENT_USER
-  AGENT_ADMIN
-  DMC_USER
-  DMC_ADMIN
-}
-
-enum UserType {
-  TEKKING_MYLES
-  AGENCY
-  DMC
-}
-
-enum BusinessType {
-  TEKKING_MYLES
-  AGENCY
-  DMC
-}
-
-enum DMCStatus {
-  ACTIVE
-  DEACTIVE
-}
-
-// Add the missing File model
 model File {
-  id            String      @id @default(uuid())
-  url           String
-  name          String
-  size          Int
-  type          String
-  createdAt     DateTime    @default(now())
-  updatedAt     DateTime    @updatedAt
-  agencyLogo    AgencyForm? @relation("AgencyLogo")
-  agencyLicense AgencyForm? @relation("AgencyBusinessLicense")
-  dmcRegistrationCertificate DMCForm? @relation("DMCRegistrationCertificate")
-  agencyRequestLogo AgencyRequest? @relation("AgencyRequestLogo")
-  agencyRequestBusinessLicense AgencyRequest? @relation("AgencyRequestBusinessLicense")
+  id                         String      @id @default(uuid())
+  url                        String
+  name                       String
+  size                       Int
+  type                       String
+  createdAt                  DateTime    @default(now())
+  updatedAt                  DateTime    @updatedAt
+  agencyLicense              AgencyForm? @relation("AgencyBusinessLicense")
+  agencyLogo                 AgencyForm? @relation("AgencyLogo")
+  dmcRegistrationCertificate DMCForm?    @relation("DMCRegistrationCertificate")
+  managerProfile             Manager?    @relation("ManagerProfile")
 }
 
 model User {
-  id           String       @id @default(cuid())
-  email        String       @unique
-  password     String
-  name         String?
-  companyName  String
-  businessType BusinessType
-  createdAt    DateTime     @default(now())
-  updatedAt    DateTime     @updatedAt
-  role         Role         @default(USER)
-  userType     UserType
-  isOnline     Boolean      @default(false)
-  agency       Agency?      @relation(fields: [agencyId], references: [id])
-  agencyId     String?
-  dmc          DMC?         @relation(fields: [dmcId], references: [id])
-  dmcId        String?
-
-  passwordResets PasswordReset[]
+  id             String         @id @default(cuid())
+  email          String         @unique
+  password       String
+  name           String?
+  companyName    String
+  businessType   BusinessType
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+  role           Role           @default(USER)
+  userType       UserType
+  isOnline       Boolean        @default(false)
+  agencyId       String?
+  dmcId          String?
+  passwordResets PasswordReset?
+  agency         Agency?        @relation(fields: [agencyId], references: [id])
+  dmc            DMC?           @relation(fields: [dmcId], references: [id])
 
   @@index([email])
   @@index([role])
@@ -86,8 +50,8 @@ model Agency {
   createdBy     String
   createdAt     DateTime       @default(now())
   updatedAt     DateTime       @updatedAt
-  users         User[]
   subscriptions Subscription[]
+  users         User[]
 
   @@index([name])
 }
@@ -118,134 +82,150 @@ model Plan {
   name          String         @unique
   maxRequests   Int
   maxUsers      Int
-  subscriptions Subscription[]
   createdAt     DateTime       @default(now())
   updatedAt     DateTime       @updatedAt
+  subscriptions Subscription[]
 }
 
 model Feature {
   id            String         @id @default(uuid())
   name          String         @unique
   description   String?
-  subscriptions Subscription[]
   createdAt     DateTime       @default(now())
   updatedAt     DateTime       @updatedAt
+  subscriptions Subscription[]
 }
 
 model Subscription {
-  id           String  @id @default(uuid())
+  id           String      @id @default(uuid())
   agencyId     String
   planId       String
   featureId    String
   requestLimit Int
   userLimit    Int
   agencyFormId String?
-
-  agency     Agency      @relation(fields: [agencyId], references: [id], onDelete: Cascade)
-  plan       Plan        @relation(fields: [planId], references: [id], onDelete: Cascade)
-  feature    Feature     @relation(fields: [featureId], references: [id], onDelete: Cascade)
-  agencyForm AgencyForm? @relation(fields: [agencyFormId], references: [id], onDelete: Cascade)
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+  agencyForm   AgencyForm? @relation(fields: [agencyFormId], references: [id], onDelete: Cascade)
+  agency       Agency      @relation(fields: [agencyId], references: [id], onDelete: Cascade)
+  feature      Feature     @relation(fields: [featureId], references: [id], onDelete: Cascade)
+  plan         Plan        @relation(fields: [planId], references: [id], onDelete: Cascade)
 
   @@unique([agencyId, featureId])
 }
 
 model AgencyForm {
-  id     String @id @default(uuid())
-  name   String
-  config Json   @default("{}")
-
-  // Basic Information
-  contactPerson    String?
-  agencyType       AgencyType?
-  designation      String?
-  phoneNumber      String?
-  phoneCountryCode String?     @default("+91")
-
-  // Company Details
-  ownerName        String?
-  email            String?
-  companyPhone     String?
-  companyPhoneCode String? @default("+91")
-  website          String?
-  landingPageColor String? @default("#4ECDC4")
-
-  // GST & Registration Details
-  gstRegistered      Boolean? @default(true)
+  id                 String         @id @default(uuid())
+  name               String
+  config             Json           @default("{}")
+  contactPerson      String?
+  agencyType         AgencyType?
+  designation        String?
+  phoneNumber        String?
+  phoneCountryCode   String?        @default("+91")
+  ownerName          String?
+  email              String?
+  companyPhone       String?
+  companyPhoneCode   String?        @default("+91")
+  website            String?
+  landingPageColor   String?        @default("#4ECDC4")
+  gstRegistered      Boolean?       @default(true)
   gstNumber          String?
   yearOfRegistration String?
   panNumber          String?
   panType            PanType?
   headquarters       String?
-  country            String?  @default("INDIA")
+  country            String?        @default("INDIA")
   yearsOfOperation   String?
-
-  // File Storage
-  logoId            String? @unique
-  businessLicenseId String? @unique
-
-  // Relations
-  logo            File? @relation("AgencyLogo", fields: [logoId], references: [id])
-  businessLicense File? @relation("AgencyBusinessLicense", fields: [businessLicenseId], references: [id])
-
-  createdBy     String
-  createdAt     DateTime       @default(now())
-  updatedAt     DateTime       @updatedAt
-  subscriptions Subscription[]
+  logoId             String?        @unique
+  businessLicenseId  String?        @unique
+  createdBy          String
+  createdAt          DateTime       @default(now())
+  updatedAt          DateTime       @updatedAt
+  businessLicense    File?          @relation("AgencyBusinessLicense", fields: [businessLicenseId], references: [id])
+  logo               File?          @relation("AgencyLogo", fields: [logoId], references: [id])
+  subscriptions      Subscription[]
 
   @@index([name])
   @@index([email])
 }
 
 model DMCForm {
-  id     String @id @default(uuid())
-  name   String
-  config Json   @default("{}")
-
-  // Basic Information
-  contactPerson    String?
-  designation      String?
-  phoneNumber      String?
-  phoneCountryCode String?     @default("+91")
-
-  // Company Details
-  ownerName        String?
-  email            String?
-  ownerPhoneNumber String?
-  ownerPhoneCode   String? @default("+91")
-  website          String?
-  
-  // Operational Details
-  primaryCountry       String?
-  destinationsCovered  String?
-  cities               String?
-  
-  // GST & Registration Details
-  gstRegistered      Boolean? @default(true)
-  gstNumber          String?
-  yearOfRegistration String?
-  panNumber          String?
-  panType            PanType?
-  headquarters       String?
-  country            String?
-  yearsOfExperience  String?
-
-  // File Storage
-  registrationCertificateId String? @unique
-
-  // Relations
- registrationCertificate File? @relation("DMCRegistrationCertificate", fields: [registrationCertificateId], references: [id])
-
-  createdBy     String
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-
-  status DMCStatus @default(ACTIVE)
+  id                        String    @id @default(uuid())
+  name                      String
+  config                    Json      @default("{}")
+  contactPerson             String?
+  designation               String?
+  phoneNumber               String?
+  phoneCountryCode          String?   @default("+91")
+  ownerName                 String?
+  email                     String?
+  ownerPhoneNumber          String?
+  ownerPhoneCode            String?   @default("+91")
+  website                   String?
+  primaryCountry            String?
+  destinationsCovered       String?
+  cities                    String?
+  gstRegistered             Boolean?  @default(true)
+  gstNumber                 String?
+  yearOfRegistration        String?
+  panNumber                 String?
+  panType                   PanType?
+  headquarters              String?
+  country                   String?
+  yearsOfExperience         String?
+  registrationCertificateId String?   @unique
+  createdBy                 String
+  createdAt                 DateTime  @default(now())
+  updatedAt                 DateTime  @updatedAt
+  status                    DMCStatus @default(ACTIVE)
+  registrationCertificate   File?     @relation("DMCRegistrationCertificate", fields: [registrationCertificateId], references: [id])
 
   @@index([name])
   @@index([email])
+}
+
+model Manager {
+  id        String  @id @default(uuid())
+  name      String
+  phone     String
+  email     String  @unique
+  username  String  @unique
+  password  String
+  profileId String? @unique
+  profile   File?   @relation("ManagerProfile", fields: [profileId], references: [id])
+}
+
+enum Role {
+  USER
+  ADMIN
+  SUPER_ADMIN
+  AGENT_USER
+  AGENT_ADMIN
+  DMC_USER
+  DMC_ADMIN
+}
+
+enum UserType {
+  TEKKING_MYLES
+  AGENCY
+  DMC
+}
+
+enum BusinessType {
+  TEKKING_MYLES
+  AGENCY
+  DMC
+}
+
+enum ManagerStatus {
+  ACTIVE
+  INACTIVE
+}
+
+enum DMCStatus {
+  ACTIVE
+  DEACTIVE
 }
 
 enum AgencyType {
@@ -265,72 +245,4 @@ enum PanType {
   COMPANY
   TRUST
   OTHER
-}
-
-enum AgencyRequestStatus {
-  PENDING
-  APPROVED
-  REJECTED
-}
-
-enum AgencyRequestType {
-  AGENCY_SIGNUP
-  DMC_SIGNUP
-  SUBSCRIPTION_UPGRADE
-  FEATURE_REQUEST
-}
-
-model AgencyRequest {
-  id          String              @id @default(uuid())
-  requestId   String              @unique @default(cuid())
-  name        String
-  email       String
-  phoneNumber String
-  agencyName  String
-  status      AgencyRequestStatus @default(PENDING)
-  requestType AgencyRequestType   @default(AGENCY_SIGNUP)
-  requestDate DateTime            @default(now())
-  notes       String?
-  
-  // Additional fields for request details
-  contactPerson    String?
-  designation      String?
-  phoneCountryCode String? @default("+91")
-  website          String?
-  
-  // Company details
-  ownerName        String?
-  companyPhone     String?
-  companyPhoneCode String? @default("+91")
-  
-  // GST & Registration details
-  gstRegistered      Boolean? @default(true)
-  gstNumber          String?
-  yearOfRegistration String?
-  panNumber          String?
-  panType            PanType?
-  headquarters       String?
-  country            String? @default("INDIA")
-  yearsOfOperation   String?
-  
-  // File references
-  logoId            String? @unique
-  businessLicenseId String? @unique
-  
-  // Relations
-  logo            File? @relation("AgencyRequestLogo", fields: [logoId], references: [id])
-  businessLicense File? @relation("AgencyRequestBusinessLicense", fields: [businessLicenseId], references: [id])
-  
-  // Admin tracking
-  reviewedBy    String?
-  reviewedAt    DateTime?
-  reviewNotes   String?
-  
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-  
-  @@index([status])
-  @@index([requestType])
-  @@index([requestDate])
-  @@index([email])
 }

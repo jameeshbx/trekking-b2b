@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { useForm, type SubmitHandler } from "react-hook-form"
+import { useForm, SubmitHandler } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { agencyFormSchema, type AgencyFormValues } from "@/lib/agency"
 import { toast } from "sonner"
@@ -39,7 +39,7 @@ export default function AgencyForm() {
     watch,
     formState: { errors },
   } = useForm<AgencyFormValues>({
-    resolver: zodResolver(agencyFormSchema),
+    resolver: zodResolver(agencyFormSchema) as any,
     defaultValues: {
       phoneCountryCode: "+91",
       companyPhoneCode: "+91",
@@ -98,44 +98,43 @@ export default function AgencyForm() {
   const onSubmit: SubmitHandler<AgencyFormValues> = async (data) => {
     setIsSubmitting(true)
     try {
-      const formData = new FormData()
-
-      // Append all form data with proper type conversion
-      Object.entries(data).forEach(([key, value]) => {
-        if (value !== undefined && value !== null) {
-          if (key === "logo" || key === "businessLicense") {
-            // Only append files if they exist
-            if (value instanceof File && value.size > 0) {
-              formData.append(key, value)
-            }
-          } else if (key === "gstRegistered") {
-            // Ensure boolean is converted to string
-            formData.append(key, value ? "true" : "false")
-          } else {
-            // Convert all other values to string
-            formData.append(key, String(value))
-          }
-        }
-      })
-
-      // Add debug logging
-      console.log("Submitting form data:")
-      for (const [key, value] of formData.entries()) {
-        console.log(key, typeof value === "object" ? `File: ${(value as File).name}` : value)
+      console.log("Submitting form data:", data)
+      
+      // Convert form data to a plain object
+      const formDataObj = {
+        ...data,
+        // Convert boolean to string for proper JSON serialization
+        gstRegistered: Boolean(data.gstRegistered),
+        // Ensure all fields are properly typed
+        agencyType: data.agencyType || "PRIVATE_LIMITED",
+        phoneCountryCode: data.phoneCountryCode || "+91",
+        companyPhoneCode: data.companyPhoneCode || "+91",
+        landingPageColor: data.landingPageColor || "#4ECDC4",
+        country: data.country || "INDIA"
       }
 
-      const response = await fetch("/api/agencyform", {
+      console.log("Sending data to API:", formDataObj)
+
+      const response = await fetch("/api/auth/agencyform", {
         method: "POST",
-        body: formData,
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(formDataObj),
       })
 
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}))
-        throw new Error(errorData.error || `Failed to submit form: ${response.status} ${response.statusText}`)
+        const errorData = await response.json()
+        console.error("API error response:", errorData)
+        throw new Error(
+          errorData.details || 
+          errorData.error || 
+          `Failed to submit form: ${response.status} ${response.statusText}`
+        )
       }
 
       const result = await response.json()
-      console.log("Success response:", result)
+      console.log("API success response:", result)
       toast.success("Agency created successfully!")
       router.push("/dashboard")
     } catch (error: unknown) {
@@ -356,7 +355,9 @@ export default function AgencyForm() {
                       {logoUploaded && !logoLoading && (
                         <p className="text-xs text-green-600 mt-1">File uploaded successfully!</p>
                       )}
-                      {errors.logo && <p className="text-red-500 text-xs mt-1">{errors.logo.message}</p>}
+                      {typeof errors.logo?.message === "string" && (
+                        <p className="text-red-500 text-xs mt-1">{errors.logo.message}</p>
+                      )}
                       <p className="text-xs text-gray-500 mt-1">File size should be under 3MB</p>
                     </div>
                     <div>
@@ -439,9 +440,16 @@ export default function AgencyForm() {
                   <div>
                     <Label>GST Registration*</Label>
                     <RadioGroup
-                      defaultValue="yes"
+                      value={gstRegistered ? "yes" : "no"}
                       className="flex gap-4 mt-1"
-                      onValueChange={(value) => setValue("gstRegistered", value === "yes")}
+                      onValueChange={(value) => {
+                        const isGstRegistered = value === "yes";
+                        setValue("gstRegistered", isGstRegistered);
+                        // Clear GST number if GST is not registered
+                        if (!isGstRegistered) {
+                          setValue("gstNumber", undefined);
+                        }
+                      }}
                     >
                       <div className="flex items-center space-x-2 h-12">
                         <RadioGroupItem value="yes" id="gst-yes" className="focus:ring-0" />
@@ -581,7 +589,7 @@ export default function AgencyForm() {
                     {licenseUploaded && !licenseLoading && (
                       <p className="text-xs text-green-600 mt-1">File uploaded successfully!</p>
                     )}
-                    {errors.businessLicense && (
+                    {typeof errors.businessLicense?.message === "string" && (
                       <p className="text-red-500 text-xs mt-1">{errors.businessLicense.message}</p>
                     )}
                     <p className="text-xs text-gray-500 mt-1">File size should be under 3MB</p>

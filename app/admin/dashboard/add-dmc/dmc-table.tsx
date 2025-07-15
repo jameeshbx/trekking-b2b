@@ -71,7 +71,7 @@ export function DMCTable() {
       setLoading(true)
       setError(null)
       
-      const response = await fetch('/api/dmc')
+      const response = await fetch('/api/auth/dmc')
       
       if (!response.ok) {
         throw new Error('Failed to fetch DMC data')
