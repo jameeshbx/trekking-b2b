@@ -101,18 +101,6 @@ export async function POST(request: Request) {
       }
     })
 
-    // Create DMC entity
-    await prisma.dMC.create({
-      data: {
-        name: dmcName,
-        config: {},
-        createdBy: session.user.id,
-        users: {
-          connect: { id: session.user.id }
-        }
-      }
-    })
-
     console.log("DMC Form created successfully:", dmcForm.id)
     
     return NextResponse.json(

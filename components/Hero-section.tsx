@@ -23,7 +23,7 @@ export default function HeroSection() {
           <div className="w-full lg:w-1/2 mb-6 sm:mb-8 lg:mb-0 lg:ml-[-10px] lg:mt-[-30px] md:mb-12">
             <div className="max-w-xl mx-auto lg:ml-40 md:ml-0 lg:mx-0 text-center md:text-left">
               <h1 className="text-4xl sm:text-5xl font-Raleway leading-tight tracking-tight md:text-5xl lg:text-6xl text-[#0F3D2E] m-[revert] sm:mt-[65px] md:mt-[40px]">
-                Your Travel <br className="hidden md:block" /> Agency&apos;s{" "}
+                Your Travel <br className="hidden md:block" /> Business&apos;s{" "}
                 <span className="relative inline-block">
                   <span className="relative z-10 font-Raleway">All-In-One</span>
                   <Image

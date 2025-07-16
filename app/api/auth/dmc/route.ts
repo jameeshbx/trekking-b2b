@@ -18,32 +18,31 @@ export async function POST(req: Request) {
     const data: DMCRegistrationData = await req.json();
 
     // Create DMC record
-    const dmc = await prisma.dMC.create({
+    const dmc = await prisma.dMCForm.create({
       data: {
         name: data.dmcName,
-        config: {
-          primaryContact: data.primaryContact,
-          phoneNumber: data.phoneNumber,
-          designation: data.designation,
-          ownerName: data.ownerName,
-          ownerPhoneNumber: data.ownerPhoneNumber,
-          email: data.email,
-          website: data.website,
-          primaryCountry: data.primaryCountry,
-          destinationsCovered: data.destinationsCovered,
-          cities: data.cities,
-          gstRegistration: data.gstRegistration,
-          gstNo: data.gstNo,
-          yearOfRegistration: data.yearOfRegistration,
-          panNo: data.panNo,
-          panType: data.panType,
-          headquarters: data.headquarters,
-          country: data.country,
-          yearOfExperience: data.yearOfExperience,
-          primaryPhoneExtension: data.primaryPhoneExtension,
-          ownerPhoneExtension: data.ownerPhoneExtension,
-        },
-        createdBy: session.user.id,
+        contactPerson: data.primaryContact,
+        phoneNumber: data.phoneNumber,
+        phoneCountryCode: data.primaryPhoneExtension,
+        designation: data.designation,
+        ownerName: data.ownerName,
+        ownerPhoneNumber: data.ownerPhoneNumber,
+        ownerPhoneCode: data.ownerPhoneExtension,
+        email: data.email,
+        website: data.website,
+        primaryCountry: data.primaryCountry,
+        destinationsCovered: data.destinationsCovered,
+        cities: data.cities,
+        gstRegistered: data.gstRegistration === "Yes",
+        gstNumber: data.gstNo,
+        yearOfRegistration: data.yearOfRegistration,
+        panNumber: data.panNo,
+        panType: data.panType,
+        headquarters: data.headquarters,
+        country: data.country,
+        yearsOfExperience: data.yearOfExperience,
+        // registrationCertificateId: ... (if you handle file upload)
+        createdBy: session.user.id, // or whoever is creating
       },
     });
 
@@ -129,5 +128,22 @@ export async function GET(request: Request) {
       { error: error.message || "Failed to fetch DMC data" },
       { status: 500 }
     );
+  }
+}
+
+export async function DELETE(request: Request) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const id = searchParams.get("id");
+    if (!id) {
+      return NextResponse.json({ error: "Missing DMC id" }, { status: 400 });
+    }
+
+    await prismaClient.dMCForm.delete({ where: { id } });
+
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error("Error deleting DMC:", error);
+    return NextResponse.json({ error: "Failed to delete DMC" }, { status: 500 });
   }
 }

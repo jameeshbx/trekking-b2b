@@ -67,6 +67,22 @@ export interface NavigationData {
       title: "Manage DMC",
       subtitle: "Add or manage details",
     },
+    "/admin/dashboard/manage-agency": {
+      breadcrumbs: [
+        { label: "Pages", href: "/admin" },
+        { label: "Dashboard", href: "/dashboard", active: true },
+      ],
+      title: "Manage Agency Signups",
+      subtitle: "Add or manage details",
+    },
+    "/admin/dashboard/manage-DMC": {
+      breadcrumbs: [
+        { label: "Pages", href: "/admin" },
+        { label: "Dashboard", href: "/dashboard", active: true },
+      ],
+      title: "Manage DMC Signups",
+      subtitle: "Add or manage details",
+    },
     "/agency/dashboard/add-users": {
       breadcrumbs: [
         { label: "Pages", href: "/agency" },
