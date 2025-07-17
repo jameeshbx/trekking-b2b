@@ -5,7 +5,7 @@ import { authOptions } from "@/lib/auth"
 
 const prisma = new PrismaClient()
 
-type PanType = "Individual" | "Company" | "Firm" | "HUF" | "AOP" | "BOI" | "Others";
+type PanType = "INDIVIDUAL" | "COMPANY" | "TRUST" | "OTHER";
 
 export async function POST(request: Request) {
   try {

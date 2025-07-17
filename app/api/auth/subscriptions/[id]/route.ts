@@ -1,24 +1,15 @@
 import { NextResponse } from 'next/server'
 import { prisma } from "@/lib/prisma"
 
-// First, define the route params interface
-interface RouteParams {
-  id: string;
-}
-
-// Update the RouteContext type
-type RouteContext = {
-  params: RouteParams;
-}
 
 // Update your handler function to use these types
 export async function GET(
   request: Request,
-  context: RouteContext
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
     const { params } = context;
-    const { id } = params;
+    const { id } = await params;
 
     const subscription = await prisma.subscription.findUnique({
       where: { id },
@@ -70,13 +61,13 @@ export async function GET(
 
 export async function PUT(
   request: Request,
-  context: { params: RouteParams }
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
     const { params } = context;
     const body = await request.json()
     const subscription = await prisma.subscription.update({
-      where: { id: params.id },
+      where: { id: (await params).id },
       data: body,
       include: {
         agency: true,
@@ -95,12 +86,12 @@ export async function PUT(
 }
 export async function DELETE(
   request: Request,
-  context: { params: RouteParams }
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
     const { params } = context;
     await prisma.subscription.delete({
-      where: { id: params.id },
+      where: { id: (await params).id },
     })
     return NextResponse.json({ success: true })
   } catch (error) {

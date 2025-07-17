@@ -8,7 +8,7 @@ import { PrismaClient } from "@prisma/client";
 const prismaClient = new PrismaClient();
 
 // Define the PanType based on what your Prisma schema expects
-type PanType = "Individual" | "Company" | "Firm" | "HUF" | "AOP" | "BOI" | "Others";
+type PanType = "INDIVIDUAL" | "COMPANY" | "TRUST" | "OTHER";
 
 export async function POST(req: Request) {
   try {
@@ -21,7 +21,7 @@ export async function POST(req: Request) {
     const data: DMCRegistrationData = await req.json();
 
     // Validate and type cast panType
-    // const panType = data.panType as PanType;
+    const panType = data.panType as PanType;
 
     // Create DMC record
     const dmc = await prisma.dMCForm.create({
@@ -43,7 +43,7 @@ export async function POST(req: Request) {
         gstNumber: data.gstNo,
         yearOfRegistration: data.yearOfRegistration,
         panNumber: data.panNo,
-        panType: data.panType,
+        panType: panType,
         headquarters: data.headquarters,
         country: data.country,
         yearsOfExperience: data.yearOfExperience,
