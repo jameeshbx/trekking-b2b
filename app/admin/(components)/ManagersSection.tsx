@@ -27,13 +27,23 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Badge } from "@/components/ui/badge"
-import { managers } from "@/data/managersData"
 import { toast } from "@/components/ui/use-toast"
 import { Toaster } from "@/components/ui/toaster"
 
+interface Manager {
+  id: string;
+  name: string;
+  email: string;
+  username: string;
+  userId: string;
+  status: string;
+  phone: string;
+  password: string;
+}
+
 export default function ManagerSection() {
 
-  const [managers, setManagers] = useState<any[]>([])
+  const [managers, setManagers] = useState<Manager[]>([])
   const [searchQuery, setSearchQuery] = useState("")
   const [currentPage, setCurrentPage] = useState(1) // Start at page 1 instead of 4
   const [showPassword, setShowPassword] = useState<Record<string, boolean>>({})

@@ -195,7 +195,7 @@ const Sidebar = ({ expanded }: SidebarProps) => {
       <div className="flex flex-col h-full p-2 md:p-4 overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:'none'] [scrollbar-width:'none']">
         {/* Logo Section */}
         <div className="flex items-center justify-center p-2 mb-4">
-          <a href="/" data-cy="sidebar-logo-link">
+          <Link href="/" data-cy="sidebar-logo-link">
             {isMobile ? (
               <Image
                 src="/logo trekking.png"
@@ -227,7 +227,7 @@ const Sidebar = ({ expanded }: SidebarProps) => {
                 data-cy="sidebar-logo"
               />
             )}
-          </a>
+          </Link>
         </div>
 
         <nav className="flex-1 space-y-1">

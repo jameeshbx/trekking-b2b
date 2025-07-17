@@ -12,11 +12,6 @@ import { Label } from "@/components/ui/label"
 import { toast } from "@/components/ui/use-toast"
 import { Toaster } from "@/components/ui/toaster"
 import { countries } from "@/data/add-dmc"
-import { writeFile } from "fs/promises";
-import path from "path";
-import { PrismaClient } from "@prisma/client";
-
-const prisma = new PrismaClient();
 
 interface FormErrors {
   dmcName?: string
@@ -187,7 +182,7 @@ export function DMCRegistrationForm() {
     return Object.keys(newErrors).length === 0
   }
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target
     setFormData((prev) => ({ ...prev, [name]: value }))
     
@@ -226,7 +221,7 @@ export function DMCRegistrationForm() {
     }
   }
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     
     // Validate form before submission
@@ -271,8 +266,9 @@ export function DMCRegistrationForm() {
         throw new Error(errorData.error || 'Failed to submit form')
       }
 
-      const data = await response.json()
-      
+      // Success response
+      await response.json() // Just parse but don't store if we're not using it
+
       toast({
         title: "Success!",
         description: "DMC has been registered successfully",
@@ -306,11 +302,11 @@ export function DMCRegistrationForm() {
       setOwnerPhoneExtension("+91")
       setErrors({})
       
-    } catch (error: any) {
+    } catch (error) {
       console.error('Submission error:', error)
       toast({
         title: "Error",
-        description: error.message || "Failed to submit form. Please try again.",
+        description: error instanceof Error ? error.message : "Failed to submit form. Please try again.",
         variant: "destructive"
       })
     } finally {
@@ -594,7 +590,7 @@ export function DMCRegistrationForm() {
           <label className="block text-sm font-medium text-gray-700 font-Poppins">GST Registration</label>
           <RadioGroup
             value={formData.gstRegistration}
-            onValueChange={(value: any) => setFormData((prev) => ({ ...prev, gstRegistration: value }))}
+            onValueChange={(value: "Yes" | "No") => setFormData((prev) => ({ ...prev, gstRegistration: value }))}
             className="flex items-center gap-4"
           >
             <div className="flex items-center space-x-2">
@@ -678,7 +674,7 @@ export function DMCRegistrationForm() {
           </label>
           <Select
             value={formData.panType}
-            onValueChange={(value: any) => setFormData((prev) => ({ ...prev, panType: value }))}
+            onValueChange={(value: "INDIVIDUAL" | "COMPANY" | "TRUST" | "OTHER") => setFormData((prev) => ({ ...prev, panType: value }))}
           >
             <SelectTrigger className="w-full h-12">
               <SelectValue placeholder="Select..." />
@@ -718,7 +714,7 @@ export function DMCRegistrationForm() {
           </label>
           <Select
             value={formData.country}
-            onValueChange={(value: any) => {
+            onValueChange={(value: string) => {
               setFormData((prev) => ({ ...prev, country: value }))
               if (errors.country) {
                 setErrors(prev => ({ ...prev, country: undefined }))

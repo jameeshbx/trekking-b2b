@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, useCallback } from "react"
 import { useRouter } from "next/navigation"
 import {
   Search,
@@ -25,11 +25,12 @@ import { Calendar } from "@/components/ui/calendar"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { format } from "date-fns"
 import {
-  getStatusColor,
   getEmailHighlight,
   getRequestTypeColor,
   getRequestTypeDotColor,
 } from "@/data/agency"
+import { utils, write } from "xlsx"
+import { useToast } from "@/components/ui/use-toast"
 
 // Define the type for agency form data
 type AgencyFormData = {
@@ -48,8 +49,8 @@ type AgencyFormData = {
   gstNumber: string
   panNumber: string
   headquarters: string
-  logo: any
-  businessLicense: any
+  logo: File | null
+  businessLicense: File | null
   agencyType: string
   phoneCountryCode: string
   companyPhone: string
@@ -67,6 +68,7 @@ type AgencyFormData = {
 
 export default function ManageAgencySignup() {
   const router = useRouter()
+  const { toast } = useToast()
   const [currentPage, setCurrentPage] = useState(1)
   const [itemsPerPage] = useState(5)
   const [filteredRequests, setFilteredRequests] = useState<AgencyFormData[]>([])
@@ -75,9 +77,9 @@ export default function ManageAgencySignup() {
   const [error, setError] = useState<string | null>(null)
   const [searchTerm, setSearchTerm] = useState("")
   const [selectedStatuses, setSelectedStatuses] = useState<Record<string, boolean>>({
-    Approved: true,
-    Pending: true,
-    Rejected: true,
+    APPROVED: true,
+    PENDING: true,
+    REJECTED: true,
   })
   const [showStatusFilter, setShowStatusFilter] = useState(false)
   const [selectAll, setSelectAll] = useState(false)
@@ -86,14 +88,114 @@ export default function ManageAgencySignup() {
     from: Date | undefined
     to: Date | undefined
   }>({
-    from: new Date("2025-03-28"),
-    to: new Date("2025-04-10"),
+    from: undefined,
+    to: undefined
   })
   const [calendarOpen, setCalendarOpen] = useState(false)
   const [sortBy, setSortBy] = useState<string>("id")
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc")
   const [, setIsClient] = useState(false)
   const [screenSize, setScreenSize] = useState("lg") // Default to large screen
+
+  // Handle status change
+  const handleStatusChange = async (id: string, newStatus: "Active" | "Inactive") => {
+    try {
+      const response = await fetch(`/api/auth/manage-agency`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          requestId: id,
+          status: newStatus,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        // Update local state with the response data
+        setAllRequests(prev => prev.map(request => 
+          request.id === id ? { ...request, status: data.request.status } : request
+        ));
+        
+        // Show success toast
+        toast({
+          title: "Status Updated",
+          description: `Agency status has been updated to ${data.request.status}`,
+          variant: "default",
+        });
+      } else {
+        console.error('Failed to update status:', data.error);
+        toast({
+          title: "Error",
+          description: data.error || "Failed to update status",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error('Error updating status:', error);
+      toast({
+        title: "Error",
+        description: "An unexpected error occurred while updating status",
+        variant: "destructive",
+      });
+    }
+  };
+
+  // Handle request type change
+  const handleRequestTypeChange = async (id: string, newType: "APPROVED" | "PENDING" | "REJECTED") => {
+    try {
+      const response = await fetch(`/api/auth/manage-agency`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          requestId: id,
+          requestType: newType,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        // Update local state with the response data
+        setAllRequests(prev => prev.map(request => 
+          request.id === id ? { ...request, requestType: data.request.requestType } : request
+        ));
+        
+        // Show success toast
+        toast({
+          title: "Request Status Updated",
+          description: `Request status has been updated to ${data.request.requestType}`,
+          variant: "default",
+        });
+      } else {
+        console.error('Failed to update request type:', data.error);
+        toast({
+          title: "Error",
+          description: data.error || "Failed to update request type",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error('Error updating request type:', error);
+      toast({
+        title: "Error",
+        description: "An unexpected error occurred while updating request type",
+        variant: "destructive",
+      });
+    }
+  };
+
+  // Handle filter status change
+  const handleFilterStatusChange = (status: string, checked: boolean) => {
+    setSelectedStatuses((prev) => ({
+      ...prev,
+      [status.toUpperCase()]: checked,
+    }))
+  }
 
   // Fetch data from API
   useEffect(() => {
@@ -115,7 +217,7 @@ export default function ManageAgencySignup() {
           }
           
           // Transform the data if needed to match expected format
-          const transformedData = data.requests.map((request: any) => ({
+          const transformedData = data.requests.map((request: AgencyFormData) => ({
             ...request,
             // Ensure these fields exist to prevent filtering issues
             requestType: request.requestType || "PENDING",
@@ -169,8 +271,8 @@ export default function ManageAgencySignup() {
   // Reset filters when component mounts
   useEffect(() => {
     setSelectedStatuses({
-      PENDING: true,
       APPROVED: true,
+      PENDING: true,
       REJECTED: true
     })
     
@@ -181,27 +283,70 @@ export default function ManageAgencySignup() {
     })
   }, [])
 
-  // Handle status filter changes
-  const handleStatusChange = (status: string, checked: boolean) => {
-    setSelectedStatuses((prev) => ({
-      ...prev,
-      [status.toUpperCase()]: checked,
-    }))
+  // Handle sort change
+  const handleSortChange = (field: string) => {
+    if (sortBy === field) {
+      setSortDirection(sortDirection === "asc" ? "desc" : "asc")
+    } else {
+      setSortBy(field)
+      setSortDirection("asc")
+    }
   }
 
-  // Filter requests based on search term, status filters, and date range
+  // Sort items - wrapped in useCallback
+  const sortItems = useCallback((items: AgencyFormData[]) => {
+    return [...items].sort((a, b) => {
+      let compareA: string | number | undefined, compareB: string | number | undefined;
+      
+      switch(sortBy) {
+        case 'id':
+          compareA = a.id;
+          compareB = b.id;
+          break;
+        case 'name':
+          compareA = a.name?.toLowerCase();
+          compareB = b.name?.toLowerCase();
+          break;
+        case 'date':
+          compareA = new Date(a.requestDate || a.createdAt).getTime();
+          compareB = new Date(b.requestDate || b.createdAt).getTime();
+          break;
+        case 'status':
+          compareA = a.status?.toLowerCase();
+          compareB = b.status?.toLowerCase();
+          break;
+        case 'requestType':
+          compareA = a.requestType?.toLowerCase();
+          compareB = b.requestType?.toLowerCase();
+          break;
+        case 'email':
+          compareA = a.email?.toLowerCase();
+          compareB = b.email?.toLowerCase();
+          break;
+        case 'agencyName':
+          compareA = a.AgencyName?.toLowerCase();
+          compareB = b.AgencyName?.toLowerCase();
+          break;
+        default:
+          compareA = a.id;
+          compareB = b.id;
+      }
+
+      // Handle undefined/null values
+      if (compareA === undefined || compareA === null) compareA = '';
+      if (compareB === undefined || compareB === null) compareB = '';
+
+      if (sortDirection === 'asc') {
+        return compareA < compareB ? -1 : compareA > compareB ? 1 : 0;
+      } else {
+        return compareA > compareB ? -1 : compareA < compareB ? 1 : 0;
+      }
+    });
+  }, [sortBy, sortDirection]); // Add dependencies for sortItems
+
+  // Filter and sort requests
   useEffect(() => {
-    console.log("Filtering with:", {
-      searchTerm,
-      selectedStatuses,
-      dateRange,
-      allRequests: allRequests.length
-    })
-
-    const filtered = allRequests.filter((request: AgencyFormData) => {
-      // Log each request being filtered
-      console.log("Filtering request:", request)
-
+    let filtered = allRequests.filter((request: AgencyFormData) => {
       // Search term filter
       const matchesSearch =
         !searchTerm || // If no search term, include all
@@ -210,12 +355,12 @@ export default function ManageAgencySignup() {
         request.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         request.AgencyName?.toLowerCase().includes(searchTerm.toLowerCase())
 
-      // Status filter - include if no status is selected or if status matches
+      // Status filter
       const statusSelected = 
         Object.values(selectedStatuses).every(v => !v) || // If no status is selected, show all
-        (request.requestType && selectedStatuses[request.requestType.toUpperCase()]) // Check if status is selected
+        (request.requestType && selectedStatuses[request.requestType.toUpperCase()])
 
-      // Date range filter - include if no date range or if within range
+      // Date range filter
       let matchesDateRange = true
       if (dateRange.from && dateRange.to && request.requestDate) {
         const requestDate = new Date(request.requestDate)
@@ -225,22 +370,15 @@ export default function ManageAgencySignup() {
         matchesDateRange = requestDate >= from && requestDate <= to
       }
 
-      const shouldInclude = matchesSearch && statusSelected && matchesDateRange
-      console.log("Filter result:", { 
-        matchesSearch, 
-        statusSelected, 
-        matchesDateRange, 
-        shouldInclude,
-        requestType: request.requestType,
-        selectedStatuses
-      })
-      
-      return shouldInclude
+      return matchesSearch && statusSelected && matchesDateRange
     })
 
-    console.log("Filtered results:", filtered)
+    // Apply sorting
+    filtered = sortItems(filtered)
+
     setFilteredRequests(filtered)
-  }, [searchTerm, selectedStatuses, dateRange, allRequests])
+    setCurrentPage(1) // Reset to first page when filters change
+  }, [searchTerm, selectedStatuses, dateRange, allRequests, sortBy, sortDirection, sortItems]) // Added sortItems to dependencies
 
   // Calculate pagination
   const indexOfLastItem = currentPage * itemsPerPage
@@ -304,9 +442,9 @@ export default function ManageAgencySignup() {
   // Reset status filters
   const resetStatusFilters = () => {
     setSelectedStatuses({
-      Approved: true,
-      Pending: true,
-      Rejected: true,
+      APPROVED: true,
+      PENDING: true,
+      REJECTED: true,
     })
   }
 
@@ -334,16 +472,6 @@ export default function ManageAgencySignup() {
     })
   }
 
-  // Handle sort change
-  const handleSortChange = (field: string) => {
-    if (sortBy === field) {
-      setSortDirection(sortDirection === "asc" ? "desc" : "asc")
-    } else {
-      setSortBy(field)
-      setSortDirection("asc")
-    }
-  }
-
   // Format date range for display
   const formatDateRange = () => {
     if (dateRange.from && dateRange.to) {
@@ -358,9 +486,78 @@ export default function ManageAgencySignup() {
     return screenSize === "sm" ? "Date" : "Select date range"
   }
 
+  // Reset date range
+  const resetDateRange = () => {
+    setDateRange({
+      from: undefined,
+      to: undefined
+    })
+  }
+
   // Navigate to detail page
   const navigateToDetail = (id: string) => {
     router.push(`/request-dashboard/${id}`)
+  }
+
+  // Handle Excel export
+  const handleExport = () => {
+    try {
+      // Prepare data for export
+      const exportData = filteredRequests.map(request => ({
+        'Request ID': request.id,
+        'Name': request.name,
+        'Email': request.email,
+        'Phone Number': request.phoneNumber,
+        'Agency Name': request.AgencyName,
+        'Status': request.status,
+        'Request Type': request.requestType,
+        'Request Date': new Date(request.requestDate).toLocaleDateString(),
+        'Contact Person': request.contactPerson,
+        'Designation': request.designation,
+        'Website': request.website,
+        'Owner Name': request.ownerName,
+        'GST Number': request.gstNumber,
+        'PAN Number': request.panNumber,
+        'Headquarters': request.headquarters,
+        'Agency Type': request.agencyType,
+        'GST Registered': request.gstRegistered ? 'Yes' : 'No',
+        'Year of Registration': request.yearOfRegistration,
+        'Years of Operation': request.yearsOfOperation,
+        'Country': request.country,
+        'Created At': new Date(request.createdAt).toLocaleDateString(),
+        'Updated At': new Date(request.updatedAt).toLocaleDateString()
+      }))
+
+      // Create worksheet
+      const ws = utils.json_to_sheet(exportData)
+
+      // Set column widths
+      const columnWidths: { [key: string]: { wch: number } } = {}
+      Object.keys(exportData[0] || {}).forEach(key => {
+        columnWidths[key] = { wch: Math.max(key.length, 15) } // minimum width of 15 characters
+      })
+      ws['!cols'] = Object.values(columnWidths)
+
+      // Create workbook
+      const wb = utils.book_new()
+      utils.book_append_sheet(wb, ws, 'Agency Requests')
+
+      // Generate Excel file
+      const excelBuffer = write(wb, { bookType: 'xlsx', type: 'array' })
+      
+      // Create Blob and download
+      const blob = new Blob([excelBuffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' })
+      const url = window.URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = url
+      link.setAttribute('download', `agency_requests_${new Date().toISOString().split('T')[0]}.xlsx`)
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+    } catch (error) {
+      console.error('Error exporting data:', error)
+      // You might want to show a toast notification here
+    }
   }
 
   if (loading) {
@@ -388,37 +585,6 @@ export default function ManageAgencySignup() {
                 className="bg-green-600 hover:bg-green-700"
               >
                 Retry
-              </Button>
-              <Button 
-                onClick={async () => {
-                  try {
-                    const response = await fetch("/api/add-sample-data", { method: "POST" })
-                    if (response.ok) {
-                      window.location.reload()
-                    }
-                  } catch (error) {
-                    console.error("Error adding sample data:", error)
-                  }
-                }} 
-                className="bg-blue-600 hover:bg-blue-700"
-              >
-                Add Sample Data
-              </Button>
-              <Button 
-                onClick={async () => {
-                  try {
-                    const response = await fetch("/api/test-agency")
-                    const data = await response.json()
-                    console.log("Test result:", data)
-                    alert(`Test result: ${JSON.stringify(data, null, 2)}`)
-                  } catch (error) {
-                    console.error("Error testing API:", error)
-                    alert(`Test error: ${error}`)
-                  }
-                }} 
-                className="bg-yellow-600 hover:bg-yellow-700"
-              >
-                Test DB
               </Button>
             </div>
           </div>
@@ -465,8 +631,8 @@ export default function ManageAgencySignup() {
                     <div className="flex items-center space-x-2 mb-2">
                       <Checkbox
                         id="approved"
-                        checked={selectedStatuses.Approved}
-                        onCheckedChange={(checked) => handleStatusChange("Approved", !!checked)}
+                        checked={selectedStatuses.APPROVED}
+                        onCheckedChange={(checked) => handleFilterStatusChange("APPROVED", !!checked)}
                         className="scale-75 sm:scale-100"
                       />
                       <label htmlFor="approved" className="text-xs sm:text-sm">
@@ -476,8 +642,8 @@ export default function ManageAgencySignup() {
                     <div className="flex items-center space-x-2 mb-2">
                       <Checkbox
                         id="pending"
-                        checked={selectedStatuses.Pending}
-                        onCheckedChange={(checked) => handleStatusChange("Pending", !!checked)}
+                        checked={selectedStatuses.PENDING}
+                        onCheckedChange={(checked) => handleFilterStatusChange("PENDING", !!checked)}
                         className="scale-75 sm:scale-100"
                       />
                       <label htmlFor="pending" className="text-xs sm:text-sm">
@@ -487,8 +653,8 @@ export default function ManageAgencySignup() {
                     <div className="flex items-center space-x-2">
                       <Checkbox
                         id="rejected"
-                        checked={selectedStatuses.Rejected}
-                        onCheckedChange={(checked) => handleStatusChange("Rejected", !!checked)}
+                        checked={selectedStatuses.REJECTED}
+                        onCheckedChange={(checked) => handleFilterStatusChange("REJECTED", !!checked)}
                         className="scale-75 sm:scale-100"
                       />
                       <label htmlFor="rejected" className="text-xs sm:text-sm">
@@ -537,7 +703,7 @@ export default function ManageAgencySignup() {
                 <Calendar
                   initialFocus
                   mode="range"
-                  defaultMonth={dateRange.from}
+                  defaultMonth={dateRange.from || new Date()}
                   selected={dateRange}
                   onSelect={(range) => {
                     if (range?.from) {
@@ -545,9 +711,8 @@ export default function ManageAgencySignup() {
                         from: range.from,
                         to: range.to || range.from,
                       })
-                      if (range.to) {
-                        setCalendarOpen(false)
-                      }
+                    } else {
+                      resetDateRange()
                     }
                   }}
                   numberOfMonths={1}
@@ -558,12 +723,7 @@ export default function ManageAgencySignup() {
                     variant="outline"
                     size="sm"
                     className="text-xs h-7 sm:h-8"
-                    onClick={() => {
-                      setDateRange({
-                        from: new Date("2025-03-28"),
-                        to: new Date("2025-04-10"),
-                      })
-                    }}
+                    onClick={resetDateRange}
                   >
                     Reset
                   </Button>
@@ -604,9 +764,11 @@ export default function ManageAgencySignup() {
                 {[
                   { id: "id", label: "Request ID" },
                   { id: "name", label: "Name" },
-                  { id: "date", label: "Date" },
+                  { id: "agencyName", label: "Agency Name" },
+                  { id: "email", label: "Email" },
+                  { id: "date", label: "Request Date" },
                   { id: "status", label: "Status" },
-                  { id: "requestStatus", label: "Request Status" },
+                  { id: "requestType", label: "Request Type" },
                 ].map((option) => (
                   <DropdownMenuItem
                     key={option.id}
@@ -625,6 +787,7 @@ export default function ManageAgencySignup() {
             <Button
               variant="outline"
               className="h-9 sm:h-10 w-9 sm:w-10 p-0 flex items-center justify-center"
+              onClick={handleExport}
               aria-label="Download"
             >
               <Download className="h-3 w-3 sm:h-4 sm:w-4" />
@@ -730,11 +893,33 @@ export default function ManageAgencySignup() {
                     )}
                   </td>
                   <td className="p-1 sm:p-3 text-xs sm:text-sm">
-                    <span
-                      className={`${getStatusColor(request.status)} px-1 sm:px-3 py-0.5 sm:py-1 rounded-md text-xs whitespace-nowrap`}
-                    >
-                      {request.status}
-                    </span>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <div 
+                          className={`inline-flex items-center px-2.5 py-1 rounded-md cursor-pointer ${
+                            request.status === "Active" 
+                              ? "bg-[#E7F6EC] text-[#12B76A]"
+                              : "bg-[#FEE4E2] text-[#F04438]"
+                          }`}
+                        >
+                          <span>{request.status}</span>
+                        </div>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" className="w-[100px]">
+                        <DropdownMenuItem
+                          onClick={() => handleStatusChange(request.id, "Active")}
+                          className="cursor-pointer text-xs hover:bg-[#E7F6EC] hover:text-[#12B76A] px-2.5 py-1.5"
+                        >
+                          Active
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={() => handleStatusChange(request.id, "Inactive")}
+                          className="cursor-pointer text-xs hover:bg-[#FEE4E2] hover:text-[#F04438] px-2.5 py-1.5"
+                        >
+                          Inactive
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </td>
                   {screenSize !== "sm" && (
                     <td className="p-2 sm:p-3 text-sm hidden lg:table-cell">
@@ -742,11 +927,33 @@ export default function ManageAgencySignup() {
                         <span
                           className={`inline-block h-2 w-2 rounded-full ${getRequestTypeDotColor(request.requestType)}`}
                         ></span>
-                        <span
-                          className={`${getRequestTypeColor(request.requestType)} px-2 sm:px-3 py-1 rounded-md text-xs whitespace-nowrap`}
-                        >
-                          {request.requestType}
-                        </span>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger className="focus:outline-none">
+                            <div className={`inline-flex items-center px-2 py-1 rounded-md ${getRequestTypeColor(request.requestType)}`}>
+                              <span className="cursor-pointer">{request.requestType}</span>
+                            </div>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" className="w-32">
+                            <DropdownMenuItem
+                              className="cursor-pointer text-xs hover:bg-emerald-50 hover:text-emerald-600"
+                              onClick={() => handleRequestTypeChange(request.id, "APPROVED")}
+                            >
+                              Approved
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              className="cursor-pointer text-xs hover:bg-yellow-50 hover:text-yellow-600"
+                              onClick={() => handleRequestTypeChange(request.id, "PENDING")}
+                            >
+                              Pending
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              className="cursor-pointer text-xs hover:bg-red-50 hover:text-red-600"
+                              onClick={() => handleRequestTypeChange(request.id, "REJECTED")}
+                            >
+                              Rejected
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       </div>
                     </td>
                   )}

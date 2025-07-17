@@ -5,6 +5,8 @@ import { authOptions } from "@/lib/auth"
 
 const prisma = new PrismaClient()
 
+type PanType = "Individual" | "Company" | "Firm" | "HUF" | "AOP" | "BOI" | "Others";
+
 export async function POST(request: Request) {
   try {
     console.log("DMC Registration API called")
@@ -23,7 +25,6 @@ export async function POST(request: Request) {
 
     const formData = await request.formData()
     
-    // Extract form fields
     const dmcName = formData.get('dmcName') as string
     const primaryContact = formData.get('primaryContact') as string
     const phoneNumber = formData.get('phoneNumber') as string
@@ -39,14 +40,13 @@ export async function POST(request: Request) {
     const gstNo = formData.get('gstNo') as string
     const yearOfRegistration = formData.get('yearOfRegistration') as string
     const panNo = formData.get('panNo') as string
-    const panType = formData.get('panType') as string
+    const panType = formData.get('panType') as PanType
     const headquarters = formData.get('headquarters') as string
     const country = formData.get('country') as string
     const yearOfExperience = formData.get('yearOfExperience') as string
     const primaryPhoneExtension = formData.get('primaryPhoneExtension') as string
     const ownerPhoneExtension = formData.get('ownerPhoneExtension') as string
 
-    // Validate required fields
     if (!dmcName || !primaryContact || !phoneNumber || !designation || !ownerName || !ownerPhoneNumber || !email) {
       return NextResponse.json(
         { error: "Missing required fields" },
@@ -54,24 +54,21 @@ export async function POST(request: Request) {
       )
     }
     
-    // Handle file upload if present
     let registrationCertificateId = null
     const registrationCertificate = formData.get('registrationCertificate') as File | null
     
     if (registrationCertificate && registrationCertificate.size > 0) {
-      // For now, we'll store file metadata. In production, you'd upload to cloud storage
       const file = await prisma.file.create({
         data: {
           name: registrationCertificate.name,
           type: registrationCertificate.type,
           size: registrationCertificate.size,
-          url: `/uploads/${registrationCertificate.name}` // This would be the actual file URL
+          url: `/uploads/${registrationCertificate.name}`
         }
       })
       registrationCertificateId = file.id
     }
 
-    // Create DMC form
     const dmcForm = await prisma.dMCForm.create({
       data: {
         name: dmcName,
@@ -91,7 +88,7 @@ export async function POST(request: Request) {
         gstNumber: gstNo,
         yearOfRegistration: yearOfRegistration,
         panNumber: panNo,
-        panType: panType as any,
+        panType: panType,
         headquarters: headquarters,
         country: country,
         yearsOfExperience: yearOfExperience,
@@ -107,10 +104,11 @@ export async function POST(request: Request) {
       { success: true, data: dmcForm },
       { status: 201 }
     )
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("DMC Registration Error:", error)
+    const errorMessage = error instanceof Error ? error.message : "Failed to register DMC";
     return NextResponse.json(
-      { error: error.message || "Failed to register DMC" },
+      { error: errorMessage },
       { status: 500 }
     )
   }

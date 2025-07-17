@@ -7,6 +7,9 @@ import { PrismaClient } from "@prisma/client";
 
 const prismaClient = new PrismaClient();
 
+// Define the PanType based on what your Prisma schema expects
+type PanType = "Individual" | "Company" | "Firm" | "HUF" | "AOP" | "BOI" | "Others";
+
 export async function POST(req: Request) {
   try {
     const session = await getServerSession(authOptions);
@@ -16,6 +19,9 @@ export async function POST(req: Request) {
     }
 
     const data: DMCRegistrationData = await req.json();
+
+    // Validate and type cast panType
+    // const panType = data.panType as PanType;
 
     // Create DMC record
     const dmc = await prisma.dMCForm.create({
@@ -41,8 +47,7 @@ export async function POST(req: Request) {
         headquarters: data.headquarters,
         country: data.country,
         yearsOfExperience: data.yearOfExperience,
-        // registrationCertificateId: ... (if you handle file upload)
-        createdBy: session.user.id, // or whoever is creating
+        createdBy: session.user.id,
       },
     });
 
@@ -67,7 +72,7 @@ export async function POST(req: Request) {
   }
 }
 
-export async function GET(request: Request) {
+export async function GET() {
   try {
     const session = await getServerSession(authOptions);
     
@@ -78,7 +83,6 @@ export async function GET(request: Request) {
       );
     }
 
-    // Get all DMC forms with related data
     const dmcForms = await prismaClient.dMCForm.findMany({
       include: {
         registrationCertificate: true,
@@ -88,7 +92,6 @@ export async function GET(request: Request) {
       }
     });
 
-    // Transform the data to match the table structure
     const dmcData = dmcForms.map((dmc) => ({
       id: dmc.id,
       name: dmc.name,
@@ -96,11 +99,10 @@ export async function GET(request: Request) {
       phoneNumber: dmc.phoneNumber || '',
       designation: dmc.designation || '',
       email: dmc.email || '',
-      status: 'Active', // You can add a status field to your schema if needed
-      joinSource: 'Direct', // You can add a joinSource field to your schema if needed
+      status: 'Active',
+      joinSource: 'Direct',
       createdAt: dmc.createdAt,
       registrationCertificate: dmc.registrationCertificate,
-      // Additional fields from the form
       ownerName: dmc.ownerName || '',
       ownerPhoneNumber: dmc.ownerPhoneNumber || '',
       website: dmc.website || '',
@@ -111,7 +113,7 @@ export async function GET(request: Request) {
       gstNumber: dmc.gstNumber || '',
       yearOfRegistration: dmc.yearOfRegistration || '',
       panNumber: dmc.panNumber || '',
-      panType: dmc.panType,
+      panType: dmc.panType as PanType,  // Ensure proper typing here too
       headquarters: dmc.headquarters || '',
       country: dmc.country || '',
       yearsOfExperience: dmc.yearsOfExperience || '',
@@ -122,10 +124,11 @@ export async function GET(request: Request) {
       data: dmcData
     });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Error fetching DMC data:", error);
+    const errorMessage = error instanceof Error ? error.message : "Failed to fetch DMC data";
     return NextResponse.json(
-      { error: error.message || "Failed to fetch DMC data" },
+      { error: errorMessage },
       { status: 500 }
     );
   }

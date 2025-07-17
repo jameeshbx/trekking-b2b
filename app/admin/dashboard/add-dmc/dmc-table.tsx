@@ -12,8 +12,6 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Badge } from "@/components/ui/badge"
 import { toast } from "@/components/ui/use-toast"
 import { Toaster } from "@/components/ui/toaster"
-import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
 
 interface DMCData {
   id: string
@@ -85,12 +83,13 @@ export function DMCTable() {
       } else {
         throw new Error(result.error || 'Failed to fetch DMC data')
       }
-    } catch (err: any) {
-      console.error('Error fetching DMC data:', err)
-      setError(err.message || 'Failed to fetch DMC data')
+    } catch (error: unknown) {
+      console.error('Error fetching DMC data:', error)
+      const errorMessage = error instanceof Error ? error.message : 'Failed to fetch DMC data'
+      setError(errorMessage)
       toast({
         title: "Error",
-        description: err.message || "Failed to fetch DMC data",
+        description: errorMessage,
         variant: "destructive"
       })
     } finally {
@@ -165,8 +164,10 @@ export function DMCTable() {
       } else {
         toast({ title: "Error", description: result.error || "Failed to delete DMC", variant: "destructive" });
       }
-    } catch (err) {
-      toast({ title: "Error", description: "Failed to delete DMC", variant: "destructive" });
+    } catch (error: unknown) {
+      console.error('Error deleting DMC:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Failed to delete DMC';
+      toast({ title: "Error", description: errorMessage, variant: "destructive" });
     }
   };
 

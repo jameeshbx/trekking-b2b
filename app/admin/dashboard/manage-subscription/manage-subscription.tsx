@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useRef } from "react"
+import { useState, useEffect, useRef, useCallback } from "react"
 import { useRouter } from "next/navigation"
 import {
   Search,
@@ -40,7 +40,7 @@ export function SubscriptionTable({ subscriptions: initialSubscriptions }: Subsc
   const tableContainerRef = useRef<HTMLDivElement>(null)
   const [currentPage, setCurrentPage] = useState(1)
   const [itemsPerPage] = useState(8)
-  const [subscriptions, setSubscriptions] = useState<SubscriptionData[]>(initialSubscriptions)
+  const [, setSubscriptions] = useState<SubscriptionData[]>(initialSubscriptions)
   const [filteredSubscriptions, setFilteredSubscriptions] = useState<SubscriptionData[]>(initialSubscriptions)
   const [totalPages, setTotalPages] = useState(Math.ceil(initialSubscriptions.length / itemsPerPage))
   const [loading, setLoading] = useState(false)
@@ -77,18 +77,18 @@ export function SubscriptionTable({ subscriptions: initialSubscriptions }: Subsc
   const currentItems = filteredSubscriptions.slice(0, itemsPerPage)
 
   // Fetch subscriptions with filters
-  const fetchFilteredSubscriptions = async () => {
+  const fetchFilteredSubscriptions = useCallback(async () => {
     try {
       setLoading(true)
 
       // Convert selected payment statuses to array
       const paymentStatusArray = Object.entries(selectedPaymentStatuses)
-        .filter(([_, selected]) => selected)
+        .filter(([, selected]) => selected)
         .map(([status]) => status)
 
       // Convert selected plans to array
       const plansArray = Object.entries(selectedPlans)
-        .filter(([_, selected]) => selected)
+        .filter(([, selected]) => selected)
         .map(([plan]) => plan)
 
       const result = await fetchSubscriptions({
@@ -116,7 +116,17 @@ export function SubscriptionTable({ subscriptions: initialSubscriptions }: Subsc
     } finally {
       setLoading(false)
     }
-  }
+  }, [
+    currentPage,
+    dateRange.from,
+    dateRange.to,
+    itemsPerPage,
+    searchTerm,
+    selectedPaymentStatuses,
+    selectedPlans,
+    sortBy,
+    sortDirection,
+  ])
 
   // Apply filters when filter parameters change
   useEffect(() => {
@@ -126,6 +136,7 @@ export function SubscriptionTable({ subscriptions: initialSubscriptions }: Subsc
     searchTerm,
     sortBy,
     sortDirection,
+    fetchFilteredSubscriptions
     // We don't include the following as they are applied via buttons:
     // selectedPaymentStatuses, selectedPlans, dateRange
   ])
@@ -293,10 +304,17 @@ export function SubscriptionTable({ subscriptions: initialSubscriptions }: Subsc
   }
 
   // Handle delete
-  const handleDelete = async (id: string) => {
+  const handleDelete = async (subscriptionId: string) => {
     try {
-      // This would call a server action to delete the subscription
-      // await deleteSubscription(id)
+      // Call the API to delete the subscription
+      const response = await fetch(`/api/auth/subscriptions/${subscriptionId}`, {
+        method: 'DELETE',
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to delete subscription');
+      }
+
       toast({
         title: "Success",
         description: "Subscription deleted successfully",
