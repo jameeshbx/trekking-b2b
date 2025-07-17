@@ -14,6 +14,7 @@ const urlRegex = new RegExp(
 
 export const agencyFormSchema = z.object({
   // Basic Information
+   name: z.string().min(1, "Name is required"),
   contactPerson: z.string().min(2, "Contact person must be at least 2 characters"),
   agencyType: z.enum([
     "PRIVATE_LIMITED",

@@ -17,7 +17,7 @@ export async function POST(req: Request) {
     const formData = await req.formData();
     
     // Convert FormData to a plain object
-    const formValues: Record<string, any> = {};
+    const formValues: Record<string, unknown> = {};
     
     // Debug logging
     console.log("Received form data entries:");
@@ -65,6 +65,8 @@ export async function POST(req: Request) {
       // Create agency record in database
       const agency = await prisma.agencyForm.create({
         data: {
+
+          name: validatedData.name,
           contactPerson: validatedData.contactPerson,
           agencyType: validatedData.agencyType,
           designation: validatedData.designation,
@@ -84,8 +86,7 @@ export async function POST(req: Request) {
           headquarters: validatedData.headquarters,
           country: validatedData.country,
           yearsOfOperation: validatedData.yearsOfOperation,
-          logoUrl: logoFileName,
-          businessLicenseUrl: licenseFileName,
+
           createdBy: session.user.id,
         },
       });

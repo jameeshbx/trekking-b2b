@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
-import axios from 'axios'
 import {
   Search,
   ChevronDown,
@@ -85,9 +84,9 @@ export default function Dmcsignup() {
   const [sortBy, setSortBy] = useState<string>("date")
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc")
   const [totalCount, setTotalCount] = useState(0)
-  const [isLoading, setIsLoading] = useState(false)
-  const [isUpdating, setIsUpdating] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const [, setIsLoading] = useState(false)
+  const [, setIsUpdating] = useState(false)
+  const [, setError] = useState<string | null>(null)
 
 
   // Calculate pagination
@@ -109,18 +108,18 @@ export default function Dmcsignup() {
       
       // Convert status filters to match Prisma enum
       const statusFilters = Object.entries(selectedStatuses)
-        .filter(([_, selected]) => selected)
+        .filter(([, selected]) => selected)
         .map(([status]) => status === 'Active' ? 'ACTIVE' : 'DEACTIVE')
       
       if (statusFilters.length > 0) params.append('status', statusFilters.join(','))
       
       const requestStatusFilters = Object.entries(selectedRequestStatuses)
-        .filter(([_, selected]) => selected)
+        .filter(([, selected]) => selected)
         .map(([status]) => status)
       
       if (requestStatusFilters.length > 0) params.append('requestStatus', requestStatusFilters.join(','))
       
-      if (dateRange.from) params.append('dateFrom', dateRange.from.toISOString())
+      if (dateRange.from) params.append('dateFrom', dateRange.from.toISOString()) 
       if (dateRange.to) params.append('dateTo', dateRange.to.toISOString())
       
       params.append('sortBy', sortBy === 'date' ? 'createdAt' : 'status')   
@@ -140,9 +139,9 @@ export default function Dmcsignup() {
     }
   }
 
-  
+
   // Update DMC status
-  const updateDmcStatus = async (id: string, status?: string, requestStatus?: string) => {
+  const updateDmcStatus = async (id: string, status?: string) => {
     try {
       setIsUpdating(true)
       setError(null)
@@ -155,7 +154,6 @@ export default function Dmcsignup() {
         body: JSON.stringify({ 
           id, 
           status: status === 'Active' ? 'ACTIVE' : 'DEACTIVE',
-          requestStatus 
         }),
       });
       
@@ -607,11 +605,17 @@ export default function Dmcsignup() {
                               <Eye className="h-4 w-4" />
                               <span>View Details</span>
                             </DropdownMenuItem>
-                            <DropdownMenuItem className="flex items-center gap-2 cursor-pointer">
+                            <DropdownMenuItem onClick={()=> updateDmcStatus(request.id, "Active")} className="flex items-center gap-2 cursor-pointer">
                               <Edit className="h-4 w-4" />
                               <span>Edit</span>
+                               Activate
                             </DropdownMenuItem>
-                            <DropdownMenuItem className="flex items-center gap-2 cursor-pointer text-red-600">
+                            <DropdownMenuItem onClick={()=> updateDmcStatus(request.id, "Active")} className="flex items-center gap-2 cursor-pointer">
+                              <Edit className="h-4 w-4" />
+                              <span>Edit</span>
+                               Activate
+                            </DropdownMenuItem>
+                            <DropdownMenuItem  className="flex items-center gap-2 cursor-pointer text-red-600">
                               <Trash2 className="h-4 w-4" />
                               <span>Delete</span>
                             </DropdownMenuItem>

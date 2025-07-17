@@ -13,6 +13,10 @@ import { Badge } from "@/components/ui/badge"
 import { toast } from "@/components/ui/use-toast"
 import { Toaster } from "@/components/ui/toaster"
 
+interface DMCTableProps {
+  refreshTrigger: number
+}
+
 interface DMCData {
   id: string
   name: string
@@ -44,7 +48,9 @@ interface DMCData {
   yearsOfExperience: string
 }
 
-export function DMCTable() {
+
+
+export function DMCTable({ refreshTrigger }: DMCTableProps) {
   const [searchQuery, setSearchQuery] = useState("")
   const [sortBy, setSortBy] = useState("name")
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc")
@@ -83,12 +89,18 @@ export function DMCTable() {
       } else {
         throw new Error(result.error || 'Failed to fetch DMC data')
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Error fetching DMC data:', err)
-      setError(err.message || 'Failed to fetch DMC data')
+      
+      let message = 'Failed to fetch DMC data'
+      if (err instanceof Error) {
+        message = err.message
+      }
+
+      setError(message || 'Failed to fetch DMC data')
       toast({
         title: "Error",
-        description: err.message || "Failed to fetch DMC data",
+        description: message || "Failed to fetch DMC data",
         variant: "destructive"
       })
     } finally {
@@ -99,7 +111,7 @@ export function DMCTable() {
   // Fetch data on component mount
   useEffect(() => {
     fetchDMCData()
-  }, [])
+  }, [refreshTrigger])
 
   const handleSort = (value: string) => {
     if (value === sortBy) {
@@ -157,6 +169,7 @@ export function DMCTable() {
       setCurrentPage(page)
     }
   }
+
 
   if (loading) {
     return (

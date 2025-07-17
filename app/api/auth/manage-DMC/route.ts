@@ -1,6 +1,9 @@
 // app/api/manage-dmc/route.ts
 import { NextResponse } from 'next/server'
 import { PrismaClient } from '@prisma/client'
+import { Prisma, DMCStatus } from "@prisma/client"
+
+
 
 const prisma = new PrismaClient()
 
@@ -11,13 +14,13 @@ interface DMCRequest {
   phoneNumber: string
   dmcName: string
   status: 'ACTIVE' | 'DEACTIVE'
-  requestStatus: 'Approved' | 'Pending' | 'Rejected'
+  requestStatus: 'Approved' | 'Pending' | 'Rejected' 
   requestDate: string
 }
 
 export async function GET(request: Request) {
 
-   console.log(' API GET /api/auth/manage-DMC HIT');
+   console.log(' API GET /api/auth/manage-DMC HIT');  
 
   try {
     const { searchParams } = new URL(request.url); 
@@ -28,14 +31,19 @@ export async function GET(request: Request) {
 
     // Search and filters
     const searchTerm = searchParams.get('search') || '';
-    const statusFilter = searchParams.get('status')?.split(',') || ['ACTIVE', 'DEACTIVE'];
+    const statusFilterParam = searchParams.get('status')?.split(',') || ['ACTIVE', 'DEACTIVE']
+    const statusFilter: DMCStatus[] = statusFilterParam.map(
+    (status) => status as DMCStatus 
+)
+
+
     const dateFrom = searchParams.get('dateFrom');
     const dateTo = searchParams.get('dateTo');
     const sortBy = searchParams.get('sortBy') || 'createdAt';
     const sortOrder = searchParams.get('sortOrder') || 'desc';
 
     // Base query conditions
-    const whereConditions: any = {
+    const whereConditions: Prisma.DMCFormWhereInput = {
       OR: [
         { name: { contains: searchTerm, mode: 'insensitive' } },
         { email: { contains: searchTerm, mode: 'insensitive' } },
@@ -44,12 +52,14 @@ export async function GET(request: Request) {
       ],
       status: { in: statusFilter },
     };
+
     if (dateFrom && dateTo) {
       whereConditions.createdAt = {
         gte: new Date(dateFrom),
         lte: new Date(dateTo),
       };
     }
+
 
     // Get total count
     const totalCount = await prisma.dMCForm.count({ where: whereConditions });
@@ -60,23 +70,27 @@ export async function GET(request: Request) {
       skip: (page - 1) * limit,
       take: limit,
       orderBy: { [sortBy]: sortOrder },
-      // include: {
-      //   dmcRequestStatus: true,
-      // },
+//       include: {
+//         requestStatus: true,
+// },
+
     });
 
 
     // Transform data
     const transformedData: DMCRequest[] = dmcForms.map(form => ({
+      
       id: form.id,
       name: form.contactPerson || 'N/A',
       email: form.email || 'N/A',
       phoneNumber: `${form.phoneCountryCode || ''} ${form.phoneNumber || ''}`.trim(),
       dmcName: form.name,
       status: form.status,
-      requestStatus: (form as any).requestStatus ?? 'Pending',
+     requestStatus: 'Pending',  // or whatever default makes sense
+
       requestDate: form.createdAt.toISOString(),                   
     }));
+
 
     return NextResponse.json({
       success: true,
@@ -98,10 +112,11 @@ export async function GET(request: Request) {
   }
 }
 
+
 export async function PATCH(request: Request) {
   try {
     const body = await request.json()
-    const { id, status, requestStatus } = body
+    const { id, status } = body
 
     if (!id) {
       return NextResponse.json(

@@ -1,4 +1,5 @@
 "use client"
+
 import { useState, useEffect } from "react"
 import { TopBarContainer } from "../../(components)/TobBarContainer"
 import { SubscriptionTable } from "./manage-subscription"
@@ -17,7 +18,8 @@ export default function ManageSubscription() {
         setLoading(true)
         const data = await fetchSubscriptions({})
         setSubscriptions(data.subscriptions)
-      } catch (err) {
+      } catch (error) {
+        console.error(error)
         setError("Failed to load subscriptions")
       } finally {
         setLoading(false)

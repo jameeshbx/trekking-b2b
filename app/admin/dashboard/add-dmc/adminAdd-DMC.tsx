@@ -13,6 +13,10 @@ import { toast } from "@/components/ui/use-toast"
 import { Toaster } from "@/components/ui/toaster"
 import { countries } from "@/data/add-dmc"
 
+interface DMCRegistrationFormProps {
+  onDMCAdded?: () => void
+}
+
 interface FormErrors {
   dmcName?: string
   primaryContact?: string
@@ -35,11 +39,11 @@ interface FormErrors {
   registrationCertificate?: string
 }
 
-export function DMCRegistrationForm() {
+export function DMCRegistrationForm({}: DMCRegistrationFormProps) {
   const [uploadedFile, setUploadedFile] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [errors, setErrors] = useState<FormErrors>({})
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState({  
     dmcName: "",
     primaryContact: "",
     phoneNumber: "",
@@ -257,7 +261,6 @@ export function DMCRegistrationForm() {
         throw new Error(errorData.error || 'Failed to submit form')
       }
 
-      const data = await response.json()
       
       toast({
         title: "Success!",
@@ -292,11 +295,15 @@ export function DMCRegistrationForm() {
       setOwnerPhoneExtension("+91")
       setErrors({})
       
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Submission error:', error)
+      let errorMessage = "Failed to submit form. Please try again."
+      if (typeof error === "object" && error !== null && "message" in error) {
+        errorMessage = (error as { message?: string }).message || errorMessage
+      }
       toast({
         title: "Error",
-        description: error.message || "Failed to submit form. Please try again.",
+        description: errorMessage,
         variant: "destructive"
       })
     } finally {
@@ -575,12 +582,13 @@ export function DMCRegistrationForm() {
           />
         </div>
 
+
         {/* GST Registration */}
         <div className="space-y-2 w-full">
           <label className="block text-sm font-medium text-gray-700 font-Poppins">GST Registration</label>
           <RadioGroup
             value={formData.gstRegistration}
-            onValueChange={(value: any) => setFormData((prev) => ({ ...prev, gstRegistration: value }))}
+            onValueChange={(value: string) => setFormData((prev) => ({ ...prev, gstRegistration: value }))}
             className="flex items-center gap-4"
           >
             <div className="flex items-center space-x-2">
@@ -664,7 +672,7 @@ export function DMCRegistrationForm() {
           </label>
           <Select
             value={formData.panType}
-            onValueChange={(value: any) => setFormData((prev) => ({ ...prev, panType: value }))}
+            onValueChange={(value: string) => setFormData((prev) => ({ ...prev, panType: value }))}
           >
             <SelectTrigger className="w-full h-12">
               <SelectValue placeholder="Select..." />
@@ -704,7 +712,7 @@ export function DMCRegistrationForm() {
           </label>
           <Select
             value={formData.country}
-            onValueChange={(value: any) => {
+            onValueChange={(value: string) => {
               setFormData((prev) => ({ ...prev, country: value }))
               if (errors.country) {
                 setErrors(prev => ({ ...prev, country: undefined }))

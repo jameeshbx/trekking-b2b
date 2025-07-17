@@ -205,9 +205,12 @@ model AgencyForm {
   logoId            String? @unique
   businessLicenseId String? @unique
 
+  
+
   // Relations
   logo            File? @relation("AgencyLogo", fields: [logoId], references: [id])
   businessLicense File? @relation("AgencyBusinessLicense", fields: [businessLicenseId], references: [id])
+
 
   createdBy     String
   createdAt     DateTime       @default(now())
@@ -224,10 +227,13 @@ model DMCForm {
   name   String
   config Json   @default("{}")
 
-  // dmcRequestStatus DMCRequestStatus? @relation(fields: [dmcRequestStatusId], references: [id])
- // dmcRequestStatusId String?          @unique
+  requestStatus  DMCRequestStatus? @relation(fields: [requestStatusId], references: [id])
+  requestStatusId String?
+
+
+
   }
-  // Basic Information
+  // Basic Information 
   contactPerson    String?
   designation      String?
   phoneNumber      String?
@@ -265,7 +271,10 @@ model DMCForm {
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
-  status DMCStatus @default(ACTIVE)
+  status         DMCStatus @default(ACTIVE)
+
+  
+ 
 
   @@index([name])
   @@index([email])
@@ -291,6 +300,12 @@ enum PanType {
   OTHER
 }   
 
+model DMCRequestStatus {
+  id     String @id @default(uuid())
+  status String
+  // reverse relation if needed:
+  dmcForms DMCForm[]
+}
 
 model Manager {
   id         String   @id @default(uuid())

@@ -40,7 +40,7 @@ export function SubscriptionTable({ subscriptions: initialSubscriptions }: Subsc
   const tableContainerRef = useRef<HTMLDivElement>(null)
   const [currentPage, setCurrentPage] = useState(1)
   const [itemsPerPage] = useState(8)
-  const [subscriptions, setSubscriptions] = useState<SubscriptionData[]>(initialSubscriptions)
+  const [, setSubscriptions] = useState<SubscriptionData[]>(initialSubscriptions)
   const [filteredSubscriptions, setFilteredSubscriptions] = useState<SubscriptionData[]>(initialSubscriptions)
   const [totalPages, setTotalPages] = useState(Math.ceil(initialSubscriptions.length / itemsPerPage))
   const [loading, setLoading] = useState(false)
@@ -73,22 +73,23 @@ export function SubscriptionTable({ subscriptions: initialSubscriptions }: Subsc
   const [showDownloadOptions, setShowDownloadOptions] = useState(false)
   const [expandedPhoneNumber, setExpandedPhoneNumber] = useState<string | null>(null)
 
+  
   // Calculate current items for display
   const currentItems = filteredSubscriptions.slice(0, itemsPerPage)
 
   // Fetch subscriptions with filters
-  const fetchFilteredSubscriptions = async () => {
+  const fetchFilteredSubscriptions = async (): Promise<void> => {
     try {
       setLoading(true)
 
       // Convert selected payment statuses to array
       const paymentStatusArray = Object.entries(selectedPaymentStatuses)
-        .filter(([_, selected]) => selected)
+        .filter(([, selected]) => selected)
         .map(([status]) => status)
 
       // Convert selected plans to array
       const plansArray = Object.entries(selectedPlans)
-        .filter(([_, selected]) => selected)
+        .filter(([, selected]) => selected)
         .map(([plan]) => plan)
 
       const result = await fetchSubscriptions({
@@ -293,7 +294,7 @@ export function SubscriptionTable({ subscriptions: initialSubscriptions }: Subsc
   }
 
   // Handle delete
-  const handleDelete = async (id: string) => {
+  const handleDelete = async () => {
     try {
       // This would call a server action to delete the subscription
       // await deleteSubscription(id)
@@ -744,7 +745,7 @@ export function SubscriptionTable({ subscriptions: initialSubscriptions }: Subsc
                             <Edit className="h-4 w-4 mr-2" />
                             <span>Edit</span>
                           </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => handleDelete(subscription.id)}>
+                          <DropdownMenuItem onClick={() => handleDelete()}>
                             <Trash2 className="h-4 w-4 mr-2" />
                             Delete
                           </DropdownMenuItem>
@@ -852,6 +853,7 @@ export function SubscriptionTable({ subscriptions: initialSubscriptions }: Subsc
   )
 }
 
+
 // Helper function to get the color for payment status
 function getPaymentStatusColor(status: string): string {
   switch (status) {
@@ -870,7 +872,7 @@ function getPaymentStatusColor(status: string): string {
 
 // Helper function to get the background color for subscription status
 function getSubscriptionStatusColor(status: string): string {
-  switch (status) {
+  switch (status) {   
     case "Active":
       return "bg-custom-green text-white"
     case "Inactive":

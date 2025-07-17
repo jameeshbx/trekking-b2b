@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import type { DMCRegistrationData } from "@/types/dmc";
+
 import { PrismaClient } from "@prisma/client";
 
 const prismaClient = new PrismaClient();
@@ -68,11 +69,11 @@ export async function POST(req: Request) {
   }
 }
 
-export async function GET(request: Request) {
+export async function GET() {
   try {
     const session = await getServerSession(authOptions);
     
-    if (!session) {
+    if (!session?.user) {
       return NextResponse.json(
         { error: "Unauthorized" },
         { status: 401 }
@@ -123,10 +124,16 @@ export async function GET(request: Request) {
       data: dmcData
     });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Error fetching DMC data:", error);
+
+    let message = "Failed to fetch DMC data";
+  if (error instanceof Error) {
+    message = error.message;
+  }
+
     return NextResponse.json(
-      { error: error.message || "Failed to fetch DMC data" },
+      { error: message || "Failed to fetch DMC data" },
       { status: 500 }
     );
   }

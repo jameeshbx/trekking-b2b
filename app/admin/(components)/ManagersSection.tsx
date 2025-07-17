@@ -27,13 +27,22 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Badge } from "@/components/ui/badge"
-import { managers } from "@/data/managersData"
 import { toast } from "@/components/ui/use-toast"
 import { Toaster } from "@/components/ui/toaster"
 
 export default function ManagerSection() {
 
-  const [managers, setManagers] = useState<any[]>([])
+  type Manager = {
+    id: string
+    name: string
+    phone: string
+    email: string
+    username: string
+    password: string
+    status?: string
+    // Add other fields if needed
+  }
+  const [managers, setManagers] = useState<Manager[]>([])
   const [searchQuery, setSearchQuery] = useState("")
   const [currentPage, setCurrentPage] = useState(1) // Start at page 1 instead of 4
   const [showPassword, setShowPassword] = useState<Record<string, boolean>>({})
@@ -177,11 +186,16 @@ export default function ManagerSection() {
     })
 
 
- } catch (err: any) {
-      console.error("Submission error:" ,err)
+ } catch (err: unknown) {    
+      console.error("Submission error:", err)
+      let errorMessage = "Failed to add manager"
+      if (typeof err === "object" && err !== null && "response" in err) {
+        const response = (err as { response?: { data?: { error?: string } } }).response
+        errorMessage = response?.data?.error || errorMessage
+      }
       toast({
         title: "Error",
-          description: err.response?.data?.error || "Failed to add manager",
+        description: errorMessage,
         variant: "destructive",
       })
     }

@@ -17,7 +17,12 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
     }
 
+
+    // Add email and username already exists check 
+
+
     
+
     // Create the manager in the DB
     const newManager = await prisma.manager.create({
       data: {
@@ -38,21 +43,33 @@ export async function POST(req: NextRequest) {
 
 
     return NextResponse.json(newManager, { status: 201 });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Error creating manager:", error);
+    if (error instanceof Error) {
     return NextResponse.json(
       { error: "Something went wrong", details: error.message },
       { status: 500 }
     );
   }
 }
+}
+
 
 
 export async function GET() {
   try {
     const managers = await prisma.manager.findMany();
     return NextResponse.json(managers);
-  } catch (error: any) {
+  } catch (error) {
+    if (error instanceof Error) {
     return NextResponse.json({ error: "Failed to fetch managers", details: error.message }, { status: 500 });
   }
 }
+
+return NextResponse.json(
+      { error: "Failed to fetch managers" },
+      { status: 500 }
+    );
+  }
+
+
