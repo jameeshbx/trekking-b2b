@@ -18,6 +18,9 @@ export async function POST(req: Request) {
 
     const data: DMCRegistrationData = await req.json();
 
+    // Validate and type cast panType
+    const panType = data.panType as "INDIVIDUAL" | "COMPANY" | "TRUST" | "OTHER";
+
     // Create DMC record
     const dmc = await prisma.dMCForm.create({
       data: {
@@ -38,7 +41,7 @@ export async function POST(req: Request) {
         gstNumber: data.gstNo,
         yearOfRegistration: data.yearOfRegistration,
         panNumber: data.panNo,
-        panType: data.panType,
+        panType: panType,
         headquarters: data.headquarters,
         country: data.country,
         yearsOfExperience: data.yearOfExperience,

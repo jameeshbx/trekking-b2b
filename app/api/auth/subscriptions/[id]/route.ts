@@ -4,10 +4,10 @@ import { prisma } from "@/lib/prisma";
 
 export async function GET(
   _req: Request,
-   context: { params: { id: string } } 
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = context.params;
+    const { id } = await params;
 
     const subscription = await prisma.subscription.findUnique({
       where: { id:id },
@@ -59,12 +59,12 @@ export async function GET(
 
 export async function PUT(
   request: Request,
-  { params }: { params: { id: string } }
+  {params}: { params: Promise<{ id: string }> }
 ) {
   try {
     const body = await request.json();
     const subscription = await prisma.subscription.update({
-      where: { id: params.id },
+        where: { id: (await params).id },
       data: body,
       include: {
         agency: true,
@@ -85,11 +85,11 @@ export async function PUT(
 
 export async function DELETE(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     await prisma.subscription.delete({
-      where: { id: params.id },
+      where: { id: (await params).id },
     })
     return NextResponse.json({ success: true });
   } catch (error) {

@@ -1,6 +1,4 @@
 import { NextRequest, NextResponse } from "next/server"
-import { getServerSession } from "next-auth"
-import { authOptions } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
 
 // GET - Fetch agency requests with filtering and pagination
@@ -18,7 +16,8 @@ export async function GET(request: NextRequest) {
     const dateTo = searchParams.get("dateTo")
 
     // Build where clause
-    const where: any = {}
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const where: Record<string, any> = {}
 
     if (search) {
       where.OR = [
@@ -40,7 +39,8 @@ export async function GET(request: NextRequest) {
     }
 
     // Build orderBy clause
-    const orderBy: any = {}
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const orderBy: Record<string, any> = {}
     orderBy[sortBy === 'status' || sortBy === 'requestType' ? 'createdAt' : sortBy] = sortDirection
 
     console.log("API: Building where clause:", where)
@@ -61,11 +61,11 @@ export async function GET(request: NextRequest) {
     // Transform data to match frontend expectations
     const transformedRequests = requests.map((request) => {
       // Ensure config is an object even if it's null
-      const config = (request.config as Record<string, any>) || {}
+      const config = (request.config as Record<string, unknown>) || {}
       
       // Map the requestType to match frontend expectations
       let requestType = "PENDING"
-      if (config.requestType) {
+      if (config.requestType && typeof config.requestType === 'string') {
         requestType = config.requestType.toUpperCase()
       }
       
@@ -131,7 +131,6 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
     
     const {
-      name,
       email,
       phoneNumber,
       contactPerson,

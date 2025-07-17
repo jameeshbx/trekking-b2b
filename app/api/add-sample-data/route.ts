@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server"
+import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 import { AgencyType, PanType } from "@prisma/client"
 
@@ -113,7 +113,7 @@ const sampleAgencyForms = [
   },
 ]
 
-export async function POST(request: NextRequest) {
+export async function POST() {
   try {
     // Clear existing data
     await prisma.agencyForm.deleteMany()
