@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import {
   Search,
@@ -25,19 +25,54 @@ import { Calendar } from "@/components/ui/calendar"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { format } from "date-fns"
 import {
-  agencyData,
   getStatusColor,
   getEmailHighlight,
   getRequestTypeColor,
-  type AgencyRequest,
   getRequestTypeDotColor,
 } from "@/data/agency"
+
+// Define the type for agency form data
+type AgencyFormData = {
+  id: string
+  name: string
+  email: string
+  phoneNumber: string
+  AgencyName: string
+  status: string
+  requestType: string
+  requestDate: string
+  contactPerson: string
+  designation: string
+  website: string
+  ownerName: string
+  gstNumber: string
+  panNumber: string
+  headquarters: string
+  logo: any
+  businessLicense: any
+  agencyType: string
+  phoneCountryCode: string
+  companyPhone: string
+  companyPhoneCode: string
+  landingPageColor: string
+  gstRegistered: boolean
+  yearOfRegistration: string
+  panType: string
+  country: string
+  yearsOfOperation: string
+  createdBy: string
+  createdAt: string
+  updatedAt: string
+}
 
 export default function ManageAgencySignup() {
   const router = useRouter()
   const [currentPage, setCurrentPage] = useState(1)
   const [itemsPerPage] = useState(5)
-  const [filteredRequests, setFilteredRequests] = useState<AgencyRequest[]>(agencyData)
+  const [filteredRequests, setFilteredRequests] = useState<AgencyFormData[]>([])
+  const [allRequests, setAllRequests] = useState<AgencyFormData[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   const [searchTerm, setSearchTerm] = useState("")
   const [selectedStatuses, setSelectedStatuses] = useState<Record<string, boolean>>({
     Approved: true,
@@ -60,6 +95,56 @@ export default function ManageAgencySignup() {
   const [, setIsClient] = useState(false)
   const [screenSize, setScreenSize] = useState("lg") // Default to large screen
 
+  // Fetch data from API
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true)
+        console.log("Fetching agency data...")
+        const response = await fetch("/api/auth/manage-agency")
+        console.log("Response status:", response.status)
+        
+        if (response.ok) {
+          const data = await response.json()
+          console.log("API response data:", data)
+          
+          if (!data.requests || !Array.isArray(data.requests)) {
+            console.error("Invalid data format received:", data)
+            setError("Invalid data format received from server")
+            return
+          }
+          
+          // Transform the data if needed to match expected format
+          const transformedData = data.requests.map((request: any) => ({
+            ...request,
+            // Ensure these fields exist to prevent filtering issues
+            requestType: request.requestType || "PENDING",
+            status: request.status || "ACTIVE",
+            // Ensure date fields are properly formatted
+            requestDate: request.requestDate || request.createdAt,
+            createdAt: request.createdAt || new Date().toISOString(),
+            updatedAt: request.updatedAt || new Date().toISOString()
+          }))
+          
+          console.log("Transformed data:", transformedData)
+          setAllRequests(transformedData)
+          setFilteredRequests(transformedData)
+        } else {
+          const errorText = await response.text()
+          console.error("API error response:", errorText)
+          setError(`Failed to fetch agency data: ${response.status}`)
+        }
+      } catch (error) {
+        console.error("Error fetching agency data:", error)
+        setError("Error fetching agency data")
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchData()
+  }, [])
+
   useEffect(() => {
     setIsClient(true)
     const handleResize = () => {
@@ -81,59 +166,87 @@ export default function ManageAgencySignup() {
     return () => window.removeEventListener("resize", handleResize)
   }, [])
 
+  // Reset filters when component mounts
+  useEffect(() => {
+    setSelectedStatuses({
+      PENDING: true,
+      APPROVED: true,
+      REJECTED: true
+    })
+    
+    // Reset date range to include all dates
+    setDateRange({
+      from: undefined,
+      to: undefined
+    })
+  }, [])
+
+  // Handle status filter changes
+  const handleStatusChange = (status: string, checked: boolean) => {
+    setSelectedStatuses((prev) => ({
+      ...prev,
+      [status.toUpperCase()]: checked,
+    }))
+  }
+
+  // Filter requests based on search term, status filters, and date range
+  useEffect(() => {
+    console.log("Filtering with:", {
+      searchTerm,
+      selectedStatuses,
+      dateRange,
+      allRequests: allRequests.length
+    })
+
+    const filtered = allRequests.filter((request: AgencyFormData) => {
+      // Log each request being filtered
+      console.log("Filtering request:", request)
+
+      // Search term filter
+      const matchesSearch =
+        !searchTerm || // If no search term, include all
+        request.id?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        request.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        request.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        request.AgencyName?.toLowerCase().includes(searchTerm.toLowerCase())
+
+      // Status filter - include if no status is selected or if status matches
+      const statusSelected = 
+        Object.values(selectedStatuses).every(v => !v) || // If no status is selected, show all
+        (request.requestType && selectedStatuses[request.requestType.toUpperCase()]) // Check if status is selected
+
+      // Date range filter - include if no date range or if within range
+      let matchesDateRange = true
+      if (dateRange.from && dateRange.to && request.requestDate) {
+        const requestDate = new Date(request.requestDate)
+        const from = new Date(dateRange.from)
+        const to = new Date(dateRange.to)
+        to.setHours(23, 59, 59, 999) // Include the entire end day
+        matchesDateRange = requestDate >= from && requestDate <= to
+      }
+
+      const shouldInclude = matchesSearch && statusSelected && matchesDateRange
+      console.log("Filter result:", { 
+        matchesSearch, 
+        statusSelected, 
+        matchesDateRange, 
+        shouldInclude,
+        requestType: request.requestType,
+        selectedStatuses
+      })
+      
+      return shouldInclude
+    })
+
+    console.log("Filtered results:", filtered)
+    setFilteredRequests(filtered)
+  }, [searchTerm, selectedStatuses, dateRange, allRequests])
+
   // Calculate pagination
   const indexOfLastItem = currentPage * itemsPerPage
   const indexOfFirstItem = indexOfLastItem - itemsPerPage
   const currentItems = filteredRequests.slice(indexOfFirstItem, indexOfLastItem)
   const totalPages = Math.ceil(filteredRequests.length / itemsPerPage)
-
-  // Filter requests based on search term, status filters, and date range
-  useEffect(() => {
-    const filtered = agencyData.filter((request) => {
-      const matchesSearch =
-        request.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        request.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        request.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        request.AgencyName.toLowerCase().includes(searchTerm.toLowerCase())
-
-      const statusSelected = selectedStatuses[request.requestType] || false
-
-      // Date range filter
-      let matchesDateRange = true
-      if (dateRange.from && dateRange.to && request.requestDate) {
-        const requestDate = new Date(request.requestDate)
-        matchesDateRange = requestDate >= dateRange.from && requestDate <= dateRange.to
-      }
-
-      return matchesSearch && statusSelected && matchesDateRange
-    })
-
-    // Apply sorting
-    const sortedRequests = [...filtered].sort((a, b) => {
-      let comparison = 0
-
-      if (sortBy === "id") {
-        comparison = a.id.localeCompare(b.id)
-      } else if (sortBy === "name") {
-        comparison = a.name.localeCompare(b.name)
-      } else if (sortBy === "date" || sortBy === "time") {
-        if (a.requestDate && b.requestDate) {
-          comparison = new Date(a.requestDate).getTime() - new Date(b.requestDate).getTime()
-        }
-      } else if (sortBy === "status") {
-        const statusPriority = { Active: 1, Inactive: 2 }
-        comparison = (statusPriority[a.status] || 99) - (statusPriority[b.status] || 99)
-      } else if (sortBy === "requestType") {
-        const typePriority = { Approved: 1, Pending: 2, Rejected: 3 }
-        comparison = (typePriority[a.requestType] || 99) - (typePriority[b.requestType] || 99)
-      }
-
-      return sortDirection === "asc" ? comparison : -comparison
-    })
-
-    setFilteredRequests(sortedRequests)
-    setCurrentPage(1)
-  }, [searchTerm, selectedStatuses, dateRange, sortBy, sortDirection])
 
   // Handle pagination
   const paginate = (pageNumber: number) => {
@@ -181,14 +294,6 @@ export default function ManageAgencySignup() {
     }
 
     return pages
-  }
-
-  // Handle status filter changes
-  const handleStatusChange = (status: string, checked: boolean) => {
-    setSelectedStatuses((prev) => ({
-      ...prev,
-      [status]: checked,
-    }))
   }
 
   // Apply status filters
@@ -256,6 +361,70 @@ export default function ManageAgencySignup() {
   // Navigate to detail page
   const navigateToDetail = (id: string) => {
     router.push(`/request-dashboard/${id}`)
+  }
+
+  if (loading) {
+    return (
+      <div className="w-full p-1 sm:p-2 md:p-4 bg-white rounded-lg border border-gray-200">
+        <div className="flex items-center justify-center h-64">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600 mx-auto mb-4"></div>
+            <p className="text-gray-600">Loading agency data...</p>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="w-full p-1 sm:p-2 md:p-4 bg-white rounded-lg border border-gray-200">
+        <div className="flex items-center justify-center h-64">
+          <div className="text-center">
+            <p className="text-red-600 mb-4">{error}</p>
+            <div className="flex gap-2 justify-center">
+              <Button 
+                onClick={() => window.location.reload()} 
+                className="bg-green-600 hover:bg-green-700"
+              >
+                Retry
+              </Button>
+              <Button 
+                onClick={async () => {
+                  try {
+                    const response = await fetch("/api/add-sample-data", { method: "POST" })
+                    if (response.ok) {
+                      window.location.reload()
+                    }
+                  } catch (error) {
+                    console.error("Error adding sample data:", error)
+                  }
+                }} 
+                className="bg-blue-600 hover:bg-blue-700"
+              >
+                Add Sample Data
+              </Button>
+              <Button 
+                onClick={async () => {
+                  try {
+                    const response = await fetch("/api/test-agency")
+                    const data = await response.json()
+                    console.log("Test result:", data)
+                    alert(`Test result: ${JSON.stringify(data, null, 2)}`)
+                  } catch (error) {
+                    console.error("Error testing API:", error)
+                    alert(`Test error: ${error}`)
+                  }
+                }} 
+                className="bg-yellow-600 hover:bg-yellow-700"
+              >
+                Test DB
+              </Button>
+            </div>
+          </div>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -619,7 +788,11 @@ export default function ManageAgencySignup() {
               {currentItems.length === 0 && (
                 <tr>
                   <td colSpan={9} className="p-4 sm:p-8 text-center text-gray-500 text-xs sm:text-sm">
-                    No records found
+                    {allRequests.length === 0 ? (
+                      "No agency forms submitted yet"
+                    ) : (
+                      "No records found matching your filters"
+                    )}
                   </td>
                 </tr>
               )}

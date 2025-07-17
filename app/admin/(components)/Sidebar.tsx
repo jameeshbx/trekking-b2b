@@ -195,37 +195,39 @@ const Sidebar = ({ expanded }: SidebarProps) => {
       <div className="flex flex-col h-full p-2 md:p-4 overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:'none'] [scrollbar-width:'none']">
         {/* Logo Section */}
         <div className="flex items-center justify-center p-2 mb-4">
-          {isMobile ? (
-            <Image
-              src="/logo trekking.png"
-              alt="Company Logo"
-              width={64}  // Size for mobile
-              height={64}
-              priority
-              className="mx-auto"
-              data-cy="sidebar-logo"
-            />
-          ) : isCollapsed ? (
-            <Image
-              src="/logo trekking.png"
-              alt="Company Logo"
-              width={80}  // Increased size for tablet collapsed view (from 48 to 80)
-              height={80}
-              priority
-              className="mx-auto"
-              data-cy="sidebar-logo"
-            />
-          ) : (
-            <Image
-              src="/logo trekking.png"
-              alt="Company Logo"
-              width={120}
-              height={60}
-              className="mb-2"
-              priority
-              data-cy="sidebar-logo"
-            />
-          )}
+          <a href="/" data-cy="sidebar-logo-link">
+            {isMobile ? (
+              <Image
+                src="/logo trekking.png"
+                alt="Company Logo"
+                width={64}
+                height={64}
+                priority
+                className="mx-auto"
+                data-cy="sidebar-logo"
+              />
+            ) : isCollapsed ? (
+              <Image
+                src="/logo trekking.png"
+                alt="Company Logo"
+                width={80}
+                height={80}
+                priority
+                className="mx-auto"
+                data-cy="sidebar-logo"
+              />
+            ) : (
+              <Image
+                src="/logo trekking.png"
+                alt="Company Logo"
+                width={120}
+                height={60}
+                className="mb-2"
+                priority
+                data-cy="sidebar-logo"
+              />
+            )}
+          </a>
         </div>
 
         <nav className="flex-1 space-y-1">

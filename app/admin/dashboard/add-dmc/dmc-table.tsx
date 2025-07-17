@@ -12,6 +12,8 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Badge } from "@/components/ui/badge"
 import { toast } from "@/components/ui/use-toast"
 import { Toaster } from "@/components/ui/toaster"
+import { NextRequest, NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
 
 interface DMCTableProps {
   refreshTrigger: number
@@ -75,7 +77,7 @@ export function DMCTable({ refreshTrigger }: DMCTableProps) {
       setLoading(true)
       setError(null)
       
-      const response = await fetch('/api/dmc')
+      const response = await fetch('/api/auth/dmc')
       
       if (!response.ok) {
         throw new Error('Failed to fetch DMC data')
@@ -162,6 +164,23 @@ export function DMCTable({ refreshTrigger }: DMCTableProps) {
   const handleDownload = () => {
     console.log("Downloading data")
   }
+
+  const handleDelete = async (id: string) => {
+    if (!window.confirm("Are you sure you want to delete this DMC?")) return;
+    try {
+      const res = await fetch(`/api/dmc?id=${id}`, { method: "DELETE" });
+      const result = await res.json();
+      if (result.success) {
+        setDmcData((prev) => prev.filter((dmc) => dmc.id !== id));
+        setDisplayedDMCs((prev) => prev.filter((dmc) => dmc.id !== id));
+        toast({ title: "Deleted", description: "DMC deleted successfully." });
+      } else {
+        toast({ title: "Error", description: result.error || "Failed to delete DMC", variant: "destructive" });
+      }
+    } catch (err) {
+      toast({ title: "Error", description: "Failed to delete DMC", variant: "destructive" });
+    }
+  };
 
   // Pagination handlers
   const goToPage = (page: number) => {
@@ -317,9 +336,9 @@ export function DMCTable({ refreshTrigger }: DMCTableProps) {
                           <Edit className="h-4 w-4 mr-2" />
                           Edit
                           </DropdownMenuItem>
-                          <DropdownMenuItem>
-                          <Trash2 className="h-4 w-4 mr-2" />
-                          Delete
+                          <DropdownMenuItem onClick={() => handleDelete(dmc.id)}>
+                            <Trash2 className="h-4 w-4 mr-2" />
+                            Delete
                           </DropdownMenuItem>
                         </DropdownMenuContent>
                         </DropdownMenu>
