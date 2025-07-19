@@ -1,7 +1,12 @@
 import { NextRequest, NextResponse } from "next/server"
-import { getServerSession } from "next-auth"
-import { authOptions } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
+
+// Define types for the config object
+type AgencyConfig = {
+  status?: string
+  requestType?: string
+  [key: string]: unknown
+}
 
 // GET - Fetch agency requests with filtering and pagination
 export async function GET(request: NextRequest) {
@@ -18,7 +23,18 @@ export async function GET(request: NextRequest) {
     const dateTo = searchParams.get("dateTo")
 
     // Build where clause
-    const where: any = {}
+    const where: {
+      OR?: Array<{
+        id?: { contains: string; mode: "insensitive" }
+        name?: { contains: string; mode: "insensitive" }
+        email?: { contains: string; mode: "insensitive" }
+        contactPerson?: { contains: string; mode: "insensitive" }
+      }>
+      createdAt?: {
+        gte?: Date
+        lte?: Date
+      }
+    } = {}
 
     if (search) {
       where.OR = [
@@ -40,7 +56,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Build orderBy clause
-    const orderBy: any = {}
+    const orderBy: Record<string, string> = {}
     orderBy[sortBy === 'status' || sortBy === 'requestType' ? 'createdAt' : sortBy] = sortDirection
 
     console.log("API: Building where clause:", where)
@@ -60,8 +76,7 @@ export async function GET(request: NextRequest) {
 
     // Transform data to match frontend expectations
     const transformedRequests = requests.map((request) => {
-      // Ensure config is an object even if it's null
-      const config = (request.config as Record<string, any>) || {}
+      const config: AgencyConfig = request.config as AgencyConfig || {}
       
       // Map the requestType to match frontend expectations
       let requestType = "PENDING"
@@ -75,8 +90,7 @@ export async function GET(request: NextRequest) {
         email: request.email || "",
         phoneNumber: request.phoneNumber || "",
         AgencyName: request.name || "",
-        // Always set status to "ACTIVE" for now
-        status: "ACTIVE",
+        status: config.status || "Inactive",
         requestType: requestType,
         requestDate: request.createdAt.toISOString(),
         contactPerson: request.contactPerson || "",
@@ -131,7 +145,6 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
     
     const {
-      name,
       email,
       phoneNumber,
       contactPerson,
@@ -176,7 +189,10 @@ export async function POST(request: NextRequest) {
     const newRequest = await prisma.agencyForm.create({
       data: {
         name: contactPerson || "Agency",
-        config: {}, // Empty config object
+        config: {
+          status: "Inactive", // Set initial status
+          requestType: "PENDING" // Set initial request type
+        },
         contactPerson,
         agencyType: agencyType || "PRIVATE_LIMITED",
         designation,
@@ -200,6 +216,8 @@ export async function POST(request: NextRequest) {
       },
     })
 
+    const config = newRequest.config as AgencyConfig
+
     return NextResponse.json(
       { 
         message: "Agency request created successfully",
@@ -209,8 +227,8 @@ export async function POST(request: NextRequest) {
           email: newRequest.email || "",
           phoneNumber: newRequest.phoneNumber || "",
           AgencyName: newRequest.name,
-          status: "ACTIVE", // Default status
-          requestType: "PENDING", // Default request type
+          status: config.status || "Inactive",
+          requestType: config.requestType || "PENDING",
           requestDate: newRequest.createdAt.toISOString(),
         }
       },
@@ -228,39 +246,52 @@ export async function POST(request: NextRequest) {
 // PATCH - Update agency request status
 export async function PATCH(request: NextRequest) {
   try {
-    // Temporarily comment out authentication for testing
-    // const session = await getServerSession(authOptions)
-    
-    // if (!session || session.user.role !== "ADMIN") {
-    //   return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-    // }
-
     const body = await request.json()
-    const { requestId, status, reviewNotes } = body
+    const { requestId, status, requestType } = body
 
-    if (!requestId || !status) {
+    if (!requestId || (!status && !requestType)) {
       return NextResponse.json(
         { error: "Missing required fields" },
         { status: 400 }
       )
     }
 
+    // Get existing request first
+    const existingRequest = await prisma.agencyForm.findUnique({
+      where: { id: requestId }
+    })
+
+    if (!existingRequest) {
+      return NextResponse.json(
+        { error: "Agency request not found" },
+        { status: 404 }
+      )
+    }
+
+    // Get existing config
+    const existingConfig: AgencyConfig = existingRequest.config as AgencyConfig || {}
+
+    // Prepare update data
+    const updateData = {
+      config: {
+        ...existingConfig,
+        ...(status && { status }), // Store status in config
+        ...(requestType && { requestType }),
+        updatedAt: new Date()
+      }
+    }
+
     const updatedRequest = await prisma.agencyForm.update({
       where: { id: requestId },
-      data: {
-        // For now, we'll just update the config to store status
-        config: {
-          status,
-          reviewNotes,
-          reviewedBy: "admin", // Temporarily hardcoded for testing
-          reviewedAt: new Date(),
-        },
-      },
+      data: updateData,
       include: {
         logo: true,
         businessLicense: true,
       },
     })
+
+    // Get the updated config
+    const config: AgencyConfig = updatedRequest.config as AgencyConfig || {}
 
     return NextResponse.json({
       message: "Agency request updated successfully",
@@ -270,12 +301,10 @@ export async function PATCH(request: NextRequest) {
         email: updatedRequest.email || "",
         phoneNumber: updatedRequest.phoneNumber || "",
         AgencyName: updatedRequest.name,
-        status: "Active",
-        requestType: status,
+        status: config.status || "Active",
+        requestType: config.requestType || "PENDING",
         requestDate: updatedRequest.createdAt.toISOString(),
-        reviewNotes,
-        reviewedBy: "admin", // Temporarily hardcoded for testing
-        reviewedAt: new Date(),
+        updatedAt: new Date(),
       },
     })
   } catch (error) {
@@ -290,13 +319,6 @@ export async function PATCH(request: NextRequest) {
 // DELETE - Delete agency request
 export async function DELETE(request: NextRequest) {
   try {
-    // Temporarily comment out authentication for testing
-    // const session = await getServerSession(authOptions)
-    
-    // if (!session || session.user.role !== "ADMIN") {
-    //   return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-    // }
-
     const { searchParams } = new URL(request.url)
     const requestId = searchParams.get("requestId")
 
@@ -321,4 +343,4 @@ export async function DELETE(request: NextRequest) {
       { status: 500 }
     )
   }
-} 
+}

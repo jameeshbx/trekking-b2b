@@ -112,14 +112,14 @@ export const agencyData: AgencyRequest[] = [
   },
 ]
 
-export function getStatusColor(status: string) {
-  switch (status) {
-    case "Active":
-      return "bg-green-100 text-green-800"
-    case "Inactive":
-      return "bg-gray-100 text-gray-800"
+export const getStatusColor = (status: string) => {
+  switch (status?.toLowerCase()) {
+    case "active":
+      return "bg-emerald-50 text-emerald-600"
+    case "inactive":
+      return "bg-red-50 text-red-600"
     default:
-      return "bg-gray-100 text-gray-800"
+      return "bg-gray-50 text-gray-600"
   }
 }
 
@@ -130,28 +130,28 @@ export function getEmailHighlight(email: string) {
   return ""
 }
 
-export function getRequestTypeColor(requestType: string) {
-  switch (requestType) {
-    case "Approved":
-      return "bg-green-100 text-green-800"
-    case "Pending":
-      return "bg-yellow-100 text-yellow-800"
-    case "Rejected":
-      return "bg-red-100 text-red-800"
+export const getRequestTypeColor = (type: string) => {
+  switch (type?.toUpperCase()) {
+    case "APPROVED":
+      return "bg-emerald-50 text-emerald-600"
+    case "PENDING":
+      return "bg-yellow-50 text-yellow-600"
+    case "REJECTED":
+      return "bg-red-50 text-red-600"
     default:
-      return "bg-gray-100 text-gray-800"
+      return "bg-gray-50 text-gray-600"
   }
 }
 
-export function getRequestTypeDotColor(requestType: string) {
-  switch (requestType) {
-    case "Approved":
-      return "bg-green-500"
-    case "Pending":
-      return "bg-yellow-500"
-    case "Rejected":
-      return "bg-red-500"
+export const getRequestTypeDotColor = (type: string) => {
+  switch (type?.toUpperCase()) {
+    case "APPROVED":
+      return "bg-emerald-600"
+    case "PENDING":
+      return "bg-yellow-600"
+    case "REJECTED":
+      return "bg-red-600"
     default:
-      return "bg-gray-500"
+      return "bg-gray-600"
   }
 }

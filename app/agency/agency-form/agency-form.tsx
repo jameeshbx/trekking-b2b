@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { useForm, SubmitHandler } from "react-hook-form"
+import { useForm, type SubmitHandler, type Resolver } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { agencyFormSchema, type AgencyFormValues } from "@/lib/agency"
 import { toast } from "sonner"
@@ -39,7 +39,7 @@ export default function AgencyForm() {
     watch,
     formState: { errors },
   } = useForm<AgencyFormValues>({
-    resolver: zodResolver(agencyFormSchema) as any,
+    resolver: zodResolver(agencyFormSchema) as Resolver<AgencyFormValues>,
     defaultValues: {
       phoneCountryCode: "+91",
       companyPhoneCode: "+91",

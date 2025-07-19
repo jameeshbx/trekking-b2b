@@ -1,157 +1,196 @@
-"use client"
+"use client";
 
-import type React from "react"
-import { useState, useEffect } from "react"
-import { Search, Download, MoreVertical, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Edit, Eye, Trash2, RefreshCw } from "lucide-react"
-import { Input } from "@/components/ui/input"
-import { Button } from "@/components/ui/button"
-import { Select, SelectContent, SelectItem, SelectTrigger } from "@/components/ui/select"
-import { Checkbox } from "@/components/ui/checkbox"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
-import { Badge } from "@/components/ui/badge"
-import { toast } from "@/components/ui/use-toast"
-import { Toaster } from "@/components/ui/toaster"
-import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
+import type React from "react";
+import { useState, useEffect } from "react";
+import {
+  Search,
+  Download,
+  MoreVertical,
+  ChevronLeft,
+  ChevronRight,
+  ChevronsLeft,
+  ChevronsRight,
+  Edit,
+  Eye,
+  Trash2,
+  RefreshCw,
+} from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+} from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Badge } from "@/components/ui/badge";
+import { toast } from "@/components/ui/use-toast";
+import { Toaster } from "@/components/ui/toaster";
 
 interface DMCData {
-  id: string
-  name: string
-  primaryContact: string
-  phoneNumber: string
-  designation: string
-  email: string
-  status: string
-  joinSource: string
-  createdAt: string
+  id: string;
+  name: string;
+  primaryContact: string;
+  phoneNumber: string;
+  designation: string;
+  email: string;
+  status: string;
+  joinSource: string;
+  createdAt: string;
   registrationCertificate?: {
-    id: string
-    name: string
-    url: string
-  } | null
-  ownerName: string
-  ownerPhoneNumber: string
-  website: string
-  primaryCountry: string
-  destinationsCovered: string
-  cities: string
-  gstRegistered: boolean
-  gstNumber: string
-  yearOfRegistration: string
-  panNumber: string
-  panType: string
-  headquarters: string
-  country: string
-  yearsOfExperience: string
+    id: string;
+    name: string;
+    url: string;
+  } | null;
+  ownerName: string;
+  ownerPhoneNumber: string;
+  website: string;
+  primaryCountry: string;
+  destinationsCovered: string;
+  cities: string;
+  gstRegistered: boolean;
+  gstNumber: string;
+  yearOfRegistration: string;
+  panNumber: string;
+  panType: string;
+  headquarters: string;
+  country: string;
+  yearsOfExperience: string;
 }
 
-export function DMCTable() {
-  const [searchQuery, setSearchQuery] = useState("")
-  const [sortBy, setSortBy] = useState("name")
-  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc")
-  const [dmcData, setDmcData] = useState<DMCData[]>([])
-  const [displayedDMCs, setDisplayedDMCs] = useState<DMCData[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+interface DMCTableProps {
+  refreshTrigger: number;
+}
+
+export function DMCTable({ refreshTrigger }: DMCTableProps) {
+  const [searchQuery, setSearchQuery] = useState("");
+  const [sortBy, setSortBy] = useState("name");
+  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
+  const [dmcData, setDmcData] = useState<DMCData[]>([]);
+  const [displayedDMCs, setDisplayedDMCs] = useState<DMCData[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   // Pagination state
-  const [currentPage, setCurrentPage] = useState(1)
-  const itemsPerPage = 5
-  const totalPages = Math.ceil(displayedDMCs.length / itemsPerPage)
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 5;
+  const totalPages = Math.ceil(displayedDMCs.length / itemsPerPage);
 
   // Get current items for pagination
-  const indexOfLastItem = currentPage * itemsPerPage
-  const indexOfFirstItem = indexOfLastItem - itemsPerPage
-  const currentItems = displayedDMCs.slice(indexOfFirstItem, indexOfLastItem)
+  const indexOfLastItem = currentPage * itemsPerPage;
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+  const currentItems = displayedDMCs.slice(indexOfFirstItem, indexOfLastItem);
 
   // Fetch DMC data from API
   const fetchDMCData = async () => {
     try {
-      setLoading(true)
-      setError(null)
-      
-      const response = await fetch('/api/auth/dmc')
-      
+      setLoading(true);
+      setError(null);
+
+      const response = await fetch("/api/auth/dmc");
+
       if (!response.ok) {
-        throw new Error('Failed to fetch DMC data')
+        throw new Error("Failed to fetch DMC data");
       }
-      
-      const result = await response.json()
-      
+
+      const result = await response.json();
+
       if (result.success) {
-        setDmcData(result.data)
-        setDisplayedDMCs(result.data)
+        setDmcData(result.data);
+        setDisplayedDMCs(result.data);
       } else {
-        throw new Error(result.error || 'Failed to fetch DMC data')
+        throw new Error(result.error || "Failed to fetch DMC data");
       }
-    } catch (err: any) {
-      console.error('Error fetching DMC data:', err)
-      setError(err.message || 'Failed to fetch DMC data')
+    } catch (error: unknown) {
+      console.error("Error fetching DMC data:", error);
+      const errorMessage =
+        error instanceof Error ? error.message : "Failed to fetch DMC data";
+      setError(errorMessage);
       toast({
         title: "Error",
-        description: err.message || "Failed to fetch DMC data",
-        variant: "destructive"
-      })
+        description: errorMessage,
+        variant: "destructive",
+      });
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
-  // Fetch data on component mount
+  // Fetch data on component mount and when refreshTrigger changes
   useEffect(() => {
-    fetchDMCData()
-  }, [])
+    fetchDMCData();
+  }, [refreshTrigger]);
 
   const handleSort = (value: string) => {
     if (value === sortBy) {
       // Toggle sort order if same field
-      setSortOrder(sortOrder === "asc" ? "desc" : "asc")
+      setSortOrder(sortOrder === "asc" ? "desc" : "asc");
     } else {
       // New field, default to ascending
-      setSortBy(value)
-      setSortOrder("asc")
+      setSortBy(value);
+      setSortOrder("asc");
     }
 
     // Apply sorting
     const sorted = [...dmcData].sort((a, b) => {
       if (value === "name") {
-        return sortOrder === "asc" ? a.name.localeCompare(b.name) : b.name.localeCompare(a.name)
+        return sortOrder === "asc"
+          ? a.name.localeCompare(b.name)
+          : b.name.localeCompare(a.name);
       } else if (value === "contact") {
-        return sortOrder === "asc" ? a.primaryContact.localeCompare(b.primaryContact) : b.primaryContact.localeCompare(a.primaryContact)
+        return sortOrder === "asc"
+          ? a.primaryContact.localeCompare(b.primaryContact)
+          : b.primaryContact.localeCompare(a.primaryContact);
       } else if (value === "status") {
-        return sortOrder === "asc" ? a.status.localeCompare(b.status) : b.status.localeCompare(a.status)
+        return sortOrder === "asc"
+          ? a.status.localeCompare(b.status)
+          : b.status.localeCompare(a.status);
       }
-      return 0
-    })
+      return 0;
+    });
 
-    setDisplayedDMCs(sorted)
-    setCurrentPage(1) // Reset to first page after sorting
-  }
+    setDisplayedDMCs(sorted);
+    setCurrentPage(1); // Reset to first page after sorting
+  };
 
   const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const query = e.target.value
-    setSearchQuery(query)
+    const query = e.target.value;
+    setSearchQuery(query);
 
     if (query.trim() === "") {
-      setDisplayedDMCs(dmcData)
-      return
+      setDisplayedDMCs(dmcData);
+      return;
     }
 
     const filtered = dmcData.filter(
       (dmc) =>
         dmc.name.toLowerCase().includes(query.toLowerCase()) ||
         dmc.primaryContact.toLowerCase().includes(query.toLowerCase()) ||
-        dmc.email.toLowerCase().includes(query.toLowerCase()),
-    )
+        dmc.email.toLowerCase().includes(query.toLowerCase())
+    );
 
-    setDisplayedDMCs(filtered)
-    setCurrentPage(1) // Reset to first page after filtering
-  }
+    setDisplayedDMCs(filtered);
+    setCurrentPage(1); // Reset to first page after filtering
+  };
 
   const handleDownload = () => {
-    console.log("Downloading data")
-  }
+    console.log("Downloading data");
+  };
 
   const handleDelete = async (id: string) => {
     if (!window.confirm("Are you sure you want to delete this DMC?")) return;
@@ -163,19 +202,30 @@ export function DMCTable() {
         setDisplayedDMCs((prev) => prev.filter((dmc) => dmc.id !== id));
         toast({ title: "Deleted", description: "DMC deleted successfully." });
       } else {
-        toast({ title: "Error", description: result.error || "Failed to delete DMC", variant: "destructive" });
+        toast({
+          title: "Error",
+          description: result.error || "Failed to delete DMC",
+          variant: "destructive",
+        });
       }
-    } catch (err) {
-      toast({ title: "Error", description: "Failed to delete DMC", variant: "destructive" });
+    } catch (error: unknown) {
+      console.error("Error deleting DMC:", error);
+      const errorMessage =
+        error instanceof Error ? error.message : "Failed to delete DMC";
+      toast({
+        title: "Error",
+        description: errorMessage,
+        variant: "destructive",
+      });
     }
   };
 
   // Pagination handlers
   const goToPage = (page: number) => {
     if (page >= 1 && page <= totalPages) {
-      setCurrentPage(page)
+      setCurrentPage(page);
     }
-  }
+  };
 
   if (loading) {
     return (
@@ -184,7 +234,7 @@ export function DMCTable() {
           <div className="text-gray-500">Loading DMC data...</div>
         </div>
       </div>
-    )
+    );
   }
 
   if (error) {
@@ -197,7 +247,7 @@ export function DMCTable() {
           </Button>
         </div>
       </div>
-    )
+    );
   }
 
   return (
@@ -220,17 +270,33 @@ export function DMCTable() {
               </div>
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="name">Name {sortBy === "name" && (sortOrder === "asc" ? "↑" : "↓")}</SelectItem>
-              <SelectItem value="contact">
-                Contact {sortBy === "contact" && (sortOrder === "asc" ? "↑" : "↓")}
+              <SelectItem value="name">
+                Name {sortBy === "name" && (sortOrder === "asc" ? "↑" : "↓")}
               </SelectItem>
-              <SelectItem value="status">Status {sortBy === "status" && (sortOrder === "asc" ? "↑" : "↓")}</SelectItem>
+              <SelectItem value="contact">
+                Contact{" "}
+                {sortBy === "contact" && (sortOrder === "asc" ? "↑" : "↓")}
+              </SelectItem>
+              <SelectItem value="status">
+                Status{" "}
+                {sortBy === "status" && (sortOrder === "asc" ? "↑" : "↓")}
+              </SelectItem>
             </SelectContent>
           </Select>
-          <Button variant="outline" size="icon" className="rounded-full bg-gray-100" onClick={handleDownload}>
+          <Button
+            variant="outline"
+            size="icon"
+            className="rounded-full bg-gray-100"
+            onClick={handleDownload}
+          >
             <Download className="h-4 w-4" />
           </Button>
-          <Button variant="outline" size="icon" className="rounded-full bg-gray-100" onClick={fetchDMCData}>
+          <Button
+            variant="outline"
+            size="icon"
+            className="rounded-full bg-gray-100"
+            onClick={fetchDMCData}
+          >
             <RefreshCw className="h-4 w-4" />
           </Button>
         </div>
@@ -244,16 +310,30 @@ export function DMCTable() {
                 <TableHead className="w-12 py-3">
                   <Checkbox id="select-all" />
                 </TableHead>
-                <TableHead className="py-3 font-bold text-gray-500">DMC name</TableHead>
-                <TableHead className="py-3 font-bold text-gray-500">Primary contact</TableHead>
-                <TableHead className="py-3 font-bold text-gray-500 hidden md:table-cell">Phone no.</TableHead>
-                <TableHead className="py-3 font-bold text-gray-500 hidden md:table-cell">Designation</TableHead>
-                <TableHead className="py-3 font-bold text-gray-500 hidden sm:table-cell">Email</TableHead>
+                <TableHead className="py-3 font-bold text-gray-500">
+                  DMC name
+                </TableHead>
+                <TableHead className="py-3 font-bold text-gray-500">
+                  Primary contact
+                </TableHead>
+                <TableHead className="py-3 font-bold text-gray-500 hidden md:table-cell">
+                  Phone no.
+                </TableHead>
+                <TableHead className="py-3 font-bold text-gray-500 hidden md:table-cell">
+                  Designation
+                </TableHead>
+                <TableHead className="py-3 font-bold text-gray-500 hidden sm:table-cell">
+                  Email
+                </TableHead>
                 <TableHead className="py-3 font-bold text-gray-500 hidden lg:table-cell">
                   Registration certificate
                 </TableHead>
-                <TableHead className="py-3 font-bold text-gray-500 hidden lg:table-cell">Join Source</TableHead>
-                <TableHead className="py-3 font-bold text-gray-500">Status</TableHead>
+                <TableHead className="py-3 font-bold text-gray-500 hidden lg:table-cell">
+                  Join Source
+                </TableHead>
+                <TableHead className="py-3 font-bold text-gray-500">
+                  Status
+                </TableHead>
                 <TableHead className="w-12 py-3"></TableHead>
               </TableRow>
             </TableHeader>
@@ -263,7 +343,9 @@ export function DMCTable() {
                   <TableRow
                     key={dmc.id}
                     data-testid={`dmc-row-${dmc.id}`}
-                    className={index % 2 === 0 ? "bg-white" : "bg-gray-50/50 border-0"}
+                    className={
+                      index % 2 === 0 ? "bg-white" : "bg-gray-50/50 border-0"
+                    }
                   >
                     <TableCell className="py-3">
                       <Checkbox id={`select-${dmc.id}`} />
@@ -272,9 +354,15 @@ export function DMCTable() {
                       <div className="flex items-center gap-2">{dmc.name}</div>
                     </TableCell>
                     <TableCell className="py-3">{dmc.primaryContact}</TableCell>
-                    <TableCell className="py-3 hidden md:table-cell">{dmc.phoneNumber}</TableCell>
-                    <TableCell className="py-3 hidden md:table-cell">{dmc.designation}</TableCell>
-                    <TableCell className="py-3 hidden sm:table-cell">{dmc.email}</TableCell>
+                    <TableCell className="py-3 hidden md:table-cell">
+                      {dmc.phoneNumber}
+                    </TableCell>
+                    <TableCell className="py-3 hidden md:table-cell">
+                      {dmc.designation}
+                    </TableCell>
+                    <TableCell className="py-3 hidden sm:table-cell">
+                      {dmc.email}
+                    </TableCell>
                     <TableCell className="py-3 hidden lg:table-cell">
                       {dmc.registrationCertificate ? (
                         <a
@@ -284,16 +372,24 @@ export function DMCTable() {
                           rel="noopener noreferrer"
                           className="inline-flex"
                         >
-                          <Button variant="outline" size="sm" className="h-8 px-2 text-xs flex items-center gap-1">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="h-8 px-2 text-xs flex items-center gap-1"
+                          >
                             <Download className="h-3 w-3" />
                             Download
                           </Button>
                         </a>
                       ) : (
-                        <span className="text-gray-400 text-xs">No certificate</span>
+                        <span className="text-gray-400 text-xs">
+                          No certificate
+                        </span>
                       )}
                     </TableCell>
-                    <TableCell className="py-3 hidden lg:table-cell">{dmc.joinSource || "Direct"}</TableCell>
+                    <TableCell className="py-3 hidden lg:table-cell">
+                      {dmc.joinSource || "Direct"}
+                    </TableCell>
                     <TableCell className="py-3">
                       <Badge
                         variant="outline"
@@ -307,34 +403,43 @@ export function DMCTable() {
                       </Badge>
                     </TableCell>
                     <TableCell className="py-3">
-                        <DropdownMenu>
+                      <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon" className="h-8 w-8">
-                          <MoreVertical className="h-4 w-4" />
-                          <span className="sr-only">Open menu</span>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8"
+                          >
+                            <MoreVertical className="h-4 w-4" />
+                            <span className="sr-only">Open menu</span>
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end" className="w-48">
                           <DropdownMenuItem>
-                          <Eye className="h-4 w-4 mr-2" />
-                          View Details
+                            <Eye className="h-4 w-4 mr-2" />
+                            View Details
                           </DropdownMenuItem>
                           <DropdownMenuItem>
-                          <Edit className="h-4 w-4 mr-2" />
-                          Edit
+                            <Edit className="h-4 w-4 mr-2" />
+                            Edit
                           </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => handleDelete(dmc.id)}>
+                          <DropdownMenuItem
+                            onClick={() => handleDelete(dmc.id)}
+                          >
                             <Trash2 className="h-4 w-4 mr-2" />
                             Delete
                           </DropdownMenuItem>
                         </DropdownMenuContent>
-                        </DropdownMenu>
+                      </DropdownMenu>
                     </TableCell>
                   </TableRow>
                 ))
               ) : (
                 <TableRow>
-                  <TableCell colSpan={10} className="text-center py-6 text-gray-500">
+                  <TableCell
+                    colSpan={10}
+                    className="text-center py-6 text-gray-500"
+                  >
                     No DMCs found. Try adjusting your search criteria.
                   </TableCell>
                 </TableRow>
@@ -366,32 +471,41 @@ export function DMCTable() {
             </Button>
             {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => {
               // Show first page, last page, current page, and pages around current
-              if (page === 1 || page === totalPages || (page >= currentPage - 1 && page <= currentPage + 1)) {
+              if (
+                page === 1 ||
+                page === totalPages ||
+                (page >= currentPage - 1 && page <= currentPage + 1)
+              ) {
                 return (
                   <Button
                     key={page}
                     variant="outline"
                     size="icon"
                     className={`h-8 w-8 rounded-md ${
-                      page === currentPage ? "bg-greenlight text-white border-0 hover:bg-emerald-600" : ""
+                      page === currentPage
+                        ? "bg-greenlight text-white border-0 hover:bg-emerald-600"
+                        : ""
                     }`}
                     onClick={() => goToPage(page)}
                   >
                     {page}
                   </Button>
-                )
+                );
               }
 
               // Show ellipsis for gaps
-              if ((page === 2 && currentPage > 3) || (page === totalPages - 1 && currentPage < totalPages - 2)) {
+              if (
+                (page === 2 && currentPage > 3) ||
+                (page === totalPages - 1 && currentPage < totalPages - 2)
+              ) {
                 return (
                   <div key={page} className="mx-1">
                     ...
                   </div>
-                )
+                );
               }
 
-              return null
+              return null;
             })}
             <Button
               variant="outline"
@@ -416,5 +530,5 @@ export function DMCTable() {
       </div>
       <Toaster />
     </div>
-  )
+  );
 }

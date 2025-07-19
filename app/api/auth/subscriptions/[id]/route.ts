@@ -1,14 +1,18 @@
 import { NextResponse } from 'next/server'
-import { prisma } from "@/lib/prisma";
+import { prisma } from "@/lib/prisma"
 
 
+// Update your handler function to use these types
 export async function GET(
   request: Request,
-  { params }: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { params } = context;
+    const { id } = await params;
+
     const subscription = await prisma.subscription.findUnique({
-      where: { id: params.id },
+      where: { id },
       include: {
         agency: {
           include: { users: { take: 1 } },
@@ -57,12 +61,13 @@ export async function GET(
 
 export async function PUT(
   request: Request,
-  { params }: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { params } = context;
     const body = await request.json()
     const subscription = await prisma.subscription.update({
-      where: { id: params.id },
+      where: { id: (await params).id },
       data: body,
       include: {
         agency: true,
@@ -79,14 +84,14 @@ export async function PUT(
     )
   }
 }
-
 export async function DELETE(
   request: Request,
-  { params }: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { params } = context;
     await prisma.subscription.delete({
-      where: { id: params.id },
+      where: { id: (await params).id },
     })
     return NextResponse.json({ success: true })
   } catch (error) {
@@ -96,4 +101,4 @@ export async function DELETE(
       { status: 500 }
     )
   }
-}
+} 

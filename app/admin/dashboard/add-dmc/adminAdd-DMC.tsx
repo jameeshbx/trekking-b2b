@@ -1,49 +1,54 @@
-"use client"
+"use client";
 
-import type React from "react"
-import { useState } from "react"
-import Image from "next/image"
-import { Upload } from "lucide-react"
-import { Input } from "@/components/ui/input"
-import { Button } from "@/components/ui/button"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
-import { Label } from "@/components/ui/label"
-import { toast } from "@/components/ui/use-toast"
-import { Toaster } from "@/components/ui/toaster"
-import { countries } from "@/data/add-dmc"
-import { writeFile } from "fs/promises";
-import path from "path";
-import { PrismaClient } from "@prisma/client";
-
-const prisma = new PrismaClient();
+import type React from "react";
+import { useState } from "react";
+import Image from "next/image";
+import { Upload } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Label } from "@/components/ui/label";
+import { toast } from "@/components/ui/use-toast";
+import { Toaster } from "@/components/ui/toaster";
+import { countries } from "@/data/add-dmc";
 
 interface FormErrors {
-  dmcName?: string
-  primaryContact?: string
-  phoneNumber?: string
-  designation?: string
-  ownerName?: string
-  ownerPhoneNumber?: string
-  email?: string
-  website?: string
-  primaryCountry?: string
-  destinationsCovered?: string
-  cities?: string
-  gstNo?: string
-  yearOfRegistration?: string
-  panNo?: string
-  panType?: string
-  headquarters?: string
-  country?: string
-  yearOfExperience?: string
-  registrationCertificate?: string
+  dmcName?: string;
+  primaryContact?: string;
+  phoneNumber?: string;
+  designation?: string;
+  ownerName?: string;
+  ownerPhoneNumber?: string;
+  email?: string;
+  website?: string;
+  primaryCountry?: string;
+  destinationsCovered?: string;
+  cities?: string;
+  gstNo?: string;
+  yearOfRegistration?: string;
+  panNo?: string;
+  panType?: string;
+  headquarters?: string;
+  country?: string;
+  yearOfExperience?: string;
+  registrationCertificate?: string;
 }
 
-export function DMCRegistrationForm() {
-  const [uploadedFile, setUploadedFile] = useState<string | null>(null)
-  const [isSubmitting, setIsSubmitting] = useState(false)
-  const [errors, setErrors] = useState<FormErrors>({})
+interface DMCRegistrationFormProps {
+  onDMCAdded: () => void;
+}
+
+export function DMCRegistrationForm({ onDMCAdded }: DMCRegistrationFormProps) {
+  const [uploadedFile, setUploadedFile] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errors, setErrors] = useState<FormErrors>({});
   const [formData, setFormData] = useState({
     dmcName: "",
     primaryContact: "",
@@ -65,218 +70,254 @@ export function DMCRegistrationForm() {
     country: "",
     yearOfExperience: "",
     registrationCertificate: null as File | null,
-  })
+  });
 
-  const [primaryPhoneExtension, setPrimaryPhoneExtension] = useState("+91")
-  const [ownerPhoneExtension, setOwnerPhoneExtension] = useState("+91")
+  const [primaryPhoneExtension, setPrimaryPhoneExtension] = useState("+91");
+  const [ownerPhoneExtension, setOwnerPhoneExtension] = useState("+91");
 
   // Validation functions
   const validateEmail = (email: string): string | undefined => {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-    if (!email) return "Email is required"
-    if (!emailRegex.test(email)) return "Please enter a valid email address"
-    return undefined
-  }
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!email) return "Email is required";
+    if (!emailRegex.test(email)) return "Please enter a valid email address";
+    return undefined;
+  };
 
   const validatePhoneNumber = (phone: string): string | undefined => {
-    const phoneRegex = /^\d{10}$/
-    if (!phone) return "Phone number is required"
-    if (!phoneRegex.test(phone)) return "Please enter a valid 10-digit phone number"
-    return undefined
-  }
+    const phoneRegex = /^\d{10}$/;
+    if (!phone) return "Phone number is required";
+    if (!phoneRegex.test(phone))
+      return "Please enter a valid 10-digit phone number";
+    return undefined;
+  };
 
   const validateWebsite = (website: string): string | undefined => {
-    if (!website) return undefined // Website is optional
-    const urlRegex = /^https?:\/\/.+\..+/
-    if (!urlRegex.test(website)) return "Please enter a valid website URL (e.g., https://example.com)"
-    return undefined
-  }
+    if (!website) return undefined; // Website is optional
+    const urlRegex = /^https?:\/\/.+\..+/;
+    if (!urlRegex.test(website))
+      return "Please enter a valid website URL (e.g., https://example.com)";
+    return undefined;
+  };
 
-  const validateGSTNumber = (gstNo: string, gstRegistered: string): string | undefined => {
-    if (gstRegistered === "No") return undefined
-    if (!gstNo) return "GST number is required when GST registered"
-    const gstRegex = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/
-    if (!gstRegex.test(gstNo)) return "Please enter a valid GST number"
-    return undefined
-  }
+  const validateGSTNumber = (
+    gstNo: string,
+    gstRegistered: string
+  ): string | undefined => {
+    if (gstRegistered === "No") return undefined;
+    if (!gstNo) return "GST number is required when GST registered";
+    const gstRegex =
+      /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/;
+    if (!gstRegex.test(gstNo)) return "Please enter a valid GST number";
+    return undefined;
+  };
 
   const validatePANNumber = (panNo: string): string | undefined => {
-    if (!panNo) return "PAN number is required"
-    const panRegex = /^[A-Z]{5}[0-9]{4}[A-Z]{1}$/
-    if (!panRegex.test(panNo)) return "Please enter a valid PAN number"
-    return undefined
-  }
+    if (!panNo) return "PAN number is required";
+    const panRegex = /^[A-Z]{5}[0-9]{4}[A-Z]{1}$/;
+    if (!panRegex.test(panNo)) return "Please enter a valid PAN number";
+    return undefined;
+  };
 
-  const validateYear = (year: string, fieldName: string): string | undefined => {
-    if (!year) return `${fieldName} is required`
-    const yearNum = parseInt(year)
-    const currentYear = new Date().getFullYear()
+  const validateYear = (
+    year: string,
+    fieldName: string
+  ): string | undefined => {
+    if (!year) return `${fieldName} is required`;
+    const yearNum = parseInt(year);
+    const currentYear = new Date().getFullYear();
     if (isNaN(yearNum) || yearNum < 1900 || yearNum > currentYear) {
-      return `Please enter a valid year between 1900 and ${currentYear}`
+      return `Please enter a valid year between 1900 and ${currentYear}`;
     }
-    return undefined
-  }
+    return undefined;
+  };
 
   const validateExperienceYears = (years: string): string | undefined => {
-    if (!years) return "Year of experience is required"
-    const num = parseInt(years)
+    if (!years) return "Year of experience is required";
+    const num = parseInt(years);
     if (isNaN(num) || num < 0 || num > 100) {
-      return "Please enter a valid number of years (0-100)"
+      return "Please enter a valid number of years (0-100)";
     }
-    return undefined
-  }
+    return undefined;
+  };
 
   const validateFile = (file: File | null): string | undefined => {
-    if (!file) return "Registration certificate is required"
-    const maxSize = 5 * 1024 * 1024 // 5MB
-    const allowedTypes = ['application/pdf', 'image/jpeg', 'image/png', 'image/jpg']
-    
-    if (file.size > maxSize) return "File size must be less than 5MB"
+    if (!file) return "Registration certificate is required";
+    const maxSize = 5 * 1024 * 1024; // 5MB
+    const allowedTypes = [
+      "application/pdf",
+      "image/jpeg",
+      "image/png",
+      "image/jpg",
+    ];
+
+    if (file.size > maxSize) return "File size must be less than 5MB";
     if (!allowedTypes.includes(file.type)) {
-      return "File must be PDF, JPEG, PNG, or JPG"
+      return "File must be PDF, JPEG, PNG, or JPG";
     }
-    return undefined
-  }
+    return undefined;
+  };
 
   const validateForm = (): boolean => {
-    const newErrors: FormErrors = {}
+    const newErrors: FormErrors = {};
 
     // Required field validations
-    if (!formData.dmcName.trim()) newErrors.dmcName = "DMC name is required"
-    if (!formData.primaryContact.trim()) newErrors.primaryContact = "Primary contact is required"
-    if (!formData.designation.trim()) newErrors.designation = "Designation is required"
-    if (!formData.ownerName.trim()) newErrors.ownerName = "Owner name is required"
-    if (!formData.headquarters.trim()) newErrors.headquarters = "Headquarters is required"
-    if (!formData.country) newErrors.country = "Country is required"
+    if (!formData.dmcName.trim()) newErrors.dmcName = "DMC name is required";
+    if (!formData.primaryContact.trim())
+      newErrors.primaryContact = "Primary contact is required";
+    if (!formData.designation.trim())
+      newErrors.designation = "Designation is required";
+    if (!formData.ownerName.trim())
+      newErrors.ownerName = "Owner name is required";
+    if (!formData.headquarters.trim())
+      newErrors.headquarters = "Headquarters is required";
+    if (!formData.country) newErrors.country = "Country is required";
 
     // Email validation
-    const emailError = validateEmail(formData.email)
-    if (emailError) newErrors.email = emailError
+    const emailError = validateEmail(formData.email);
+    if (emailError) newErrors.email = emailError;
 
     // Phone number validations
-    const phoneError = validatePhoneNumber(formData.phoneNumber)
-    if (phoneError) newErrors.phoneNumber = phoneError
+    const phoneError = validatePhoneNumber(formData.phoneNumber);
+    if (phoneError) newErrors.phoneNumber = phoneError;
 
-    const ownerPhoneError = validatePhoneNumber(formData.ownerPhoneNumber)
-    if (ownerPhoneError) newErrors.ownerPhoneNumber = ownerPhoneError
+    const ownerPhoneError = validatePhoneNumber(formData.ownerPhoneNumber);
+    if (ownerPhoneError) newErrors.ownerPhoneNumber = ownerPhoneError;
 
     // Website validation
-    const websiteError = validateWebsite(formData.website)
-    if (websiteError) newErrors.website = websiteError
+    const websiteError = validateWebsite(formData.website);
+    if (websiteError) newErrors.website = websiteError;
 
     // GST validation
-    const gstError = validateGSTNumber(formData.gstNo, formData.gstRegistration)
-    if (gstError) newErrors.gstNo = gstError
+    const gstError = validateGSTNumber(
+      formData.gstNo,
+      formData.gstRegistration
+    );
+    if (gstError) newErrors.gstNo = gstError;
 
     // PAN validation
-    const panError = validatePANNumber(formData.panNo)
-    if (panError) newErrors.panNo = panError
+    const panError = validatePANNumber(formData.panNo);
+    if (panError) newErrors.panNo = panError;
 
     // Year validations
-    const registrationYearError = validateYear(formData.yearOfRegistration, "Year of registration")
-    if (registrationYearError) newErrors.yearOfRegistration = registrationYearError
+    const registrationYearError = validateYear(
+      formData.yearOfRegistration,
+      "Year of registration"
+    );
+    if (registrationYearError)
+      newErrors.yearOfRegistration = registrationYearError;
 
-    const experienceYearsError = validateExperienceYears(formData.yearOfExperience)
-    if (experienceYearsError) newErrors.yearOfExperience = experienceYearsError
+    const experienceYearsError = validateExperienceYears(
+      formData.yearOfExperience
+    );
+    if (experienceYearsError) newErrors.yearOfExperience = experienceYearsError;
 
     // File validation
-    const fileError = validateFile(formData.registrationCertificate)
-    if (fileError) newErrors.registrationCertificate = fileError
+    const fileError = validateFile(formData.registrationCertificate);
+    if (fileError) newErrors.registrationCertificate = fileError;
 
-    setErrors(newErrors)
-    return Object.keys(newErrors).length === 0
-  }
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target
-    setFormData((prev) => ({ ...prev, [name]: value }))
-    
+  const handleInputChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+  ) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
+
     // Clear error when user starts typing
     if (errors[name as keyof FormErrors]) {
-      setErrors(prev => ({ ...prev, [name]: undefined }))
+      setErrors((prev) => ({ ...prev, [name]: undefined }));
     }
-  }
+  };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
-      const file = e.target.files[0]
-      setFormData((prev) => ({ ...prev, registrationCertificate: file }))
-      setUploadedFile(file.name)
-      
+      const file = e.target.files[0];
+      setFormData((prev) => ({ ...prev, registrationCertificate: file }));
+      setUploadedFile(file.name);
+
       // Validate file immediately
-      const fileError = validateFile(file)
+      const fileError = validateFile(file);
       if (fileError) {
         toast({
           title: "Invalid file",
           description: fileError,
-          variant: "destructive"
-        })
-        return
+          variant: "destructive",
+        });
+        return;
       }
-      
+
       toast({
         title: "File uploaded",
         description: `Successfully uploaded: ${file.name}`,
-      })
-      
+      });
+
       // Clear file error
       if (errors.registrationCertificate) {
-        setErrors(prev => ({ ...prev, registrationCertificate: undefined }))
+        setErrors((prev) => ({ ...prev, registrationCertificate: undefined }));
       }
     }
-  }
+  };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+
     // Validate form before submission
     if (!validateForm()) {
       toast({
         title: "Validation Error",
         description: "Please fix the errors in the form before submitting.",
-        variant: "destructive"
-      })
-      return
+        variant: "destructive",
+      });
+      return;
     }
 
-    setIsSubmitting(true)
+    setIsSubmitting(true);
 
     try {
       // Create FormData to handle file upload
-      const formDataToSend = new FormData()
-      
+      const formDataToSend = new FormData();
+
       // Append all form fields
       Object.entries(formData).forEach(([key, value]) => {
-        if (key !== 'registrationCertificate' && value !== null) {
-          formDataToSend.append(key, value.toString())
+        if (key !== "registrationCertificate" && value !== null) {
+          formDataToSend.append(key, value.toString());
         }
-      })
+      });
 
       // Append phone extensions
-      formDataToSend.append('primaryPhoneExtension', primaryPhoneExtension)
-      formDataToSend.append('ownerPhoneExtension', ownerPhoneExtension)
+      formDataToSend.append("primaryPhoneExtension", primaryPhoneExtension);
+      formDataToSend.append("ownerPhoneExtension", ownerPhoneExtension);
 
       // Append file if exists
       if (formData.registrationCertificate) {
-        formDataToSend.append('registrationCertificate', formData.registrationCertificate)
+        formDataToSend.append(
+          "registrationCertificate",
+          formData.registrationCertificate
+        );
       }
 
-      const response = await fetch('/api/auth/admin-addDmc', {
-        method: 'POST',
+      const response = await fetch("/api/auth/admin-addDmc", {
+        method: "POST",
         body: formDataToSend,
-      })
+      });
 
       if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.error || 'Failed to submit form')
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to submit form");
       }
 
-      const data = await response.json()
-      
+      // Success response
+      await response.json(); // Just parse but don't store if we're not using it
+
       toast({
         title: "Success!",
         description: "DMC has been registered successfully",
-      })
+      });
+
+      // Call the callback to refresh the table
+      onDMCAdded();
 
       // Reset form after successful submission
       setFormData({
@@ -300,30 +341,35 @@ export function DMCRegistrationForm() {
         country: "",
         yearOfExperience: "",
         registrationCertificate: null,
-      })
-      setUploadedFile(null)
-      setPrimaryPhoneExtension("+91")
-      setOwnerPhoneExtension("+91")
-      setErrors({})
-      
-    } catch (error: any) {
-      console.error('Submission error:', error)
+      });
+      setUploadedFile(null);
+      setPrimaryPhoneExtension("+91");
+      setOwnerPhoneExtension("+91");
+      setErrors({});
+    } catch (error) {
+      console.error("Submission error:", error);
       toast({
         title: "Error",
-        description: error.message || "Failed to submit form. Please try again.",
-        variant: "destructive"
-      })
+        description:
+          error instanceof Error
+            ? error.message
+            : "Failed to submit form. Please try again.",
+        variant: "destructive",
+      });
     } finally {
-      setIsSubmitting(false)
+      setIsSubmitting(false);
     }
-  }
+  };
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mt-28">
         {/* DMC Name */}
         <div className="space-y-2 w-full">
-          <label htmlFor="dmcName" className="block text-sm font-medium text-gray-700 font-Poppins">
+          <label
+            htmlFor="dmcName"
+            className="block text-sm font-medium text-gray-700 font-Poppins"
+          >
             DMC name
           </label>
           <Input
@@ -332,18 +378,23 @@ export function DMCRegistrationForm() {
             value={formData.dmcName}
             onChange={handleInputChange}
             className={`w-full h-12 focus:border-emerald-500 hover:border-emerald-500 transition-colors ${
-              errors.dmcName ? 'border-red-500' : ''
+              errors.dmcName ? "border-red-500" : ""
             }`}
             required
           />
           {errors.dmcName && (
-            <p className="text-sm text-red-500 font-Poppins">{errors.dmcName}</p>
+            <p className="text-sm text-red-500 font-Poppins">
+              {errors.dmcName}
+            </p>
           )}
         </div>
 
         {/* Primary Contact Person */}
         <div className="space-y-2 w-full">
-          <label htmlFor="primaryContact" className="block text-sm font-medium text-gray-700 font-Poppins">
+          <label
+            htmlFor="primaryContact"
+            className="block text-sm font-medium text-gray-700 font-Poppins"
+          >
             Primary contact person
           </label>
           <Input
@@ -352,22 +403,30 @@ export function DMCRegistrationForm() {
             value={formData.primaryContact}
             onChange={handleInputChange}
             className={`w-full h-12 focus:border-emerald-500 hover:border-emerald-500 transition-colors ${
-              errors.primaryContact ? 'border-red-500' : ''
+              errors.primaryContact ? "border-red-500" : ""
             }`}
             required
           />
           {errors.primaryContact && (
-            <p className="text-sm text-red-500 font-Poppins">{errors.primaryContact}</p>
+            <p className="text-sm text-red-500 font-Poppins">
+              {errors.primaryContact}
+            </p>
           )}
         </div>
 
         {/* Phone Number */}
         <div className="space-y-2 w-full">
-          <label htmlFor="phoneNumber" className="block text-sm font-medium text-gray-700 font-Poppins">
+          <label
+            htmlFor="phoneNumber"
+            className="block text-sm font-medium text-gray-700 font-Poppins"
+          >
             Phone number
           </label>
           <div className="flex">
-            <Select value={primaryPhoneExtension} onValueChange={setPrimaryPhoneExtension}>
+            <Select
+              value={primaryPhoneExtension}
+              onValueChange={setPrimaryPhoneExtension}
+            >
               <SelectTrigger className="w-28 h-12 rounded-r-none border-r-0">
                 <SelectValue placeholder="+91" />
               </SelectTrigger>
@@ -386,13 +445,25 @@ export function DMCRegistrationForm() {
                 </SelectItem>
                 <SelectItem value="+1">
                   <div className="flex items-center">
-                    <Image src="https://flagcdn.com/w20/us.png" alt="USA" className="h-4 mr-1" width={20} height={14} />
+                    <Image
+                      src="https://flagcdn.com/w20/us.png"
+                      alt="USA"
+                      className="h-4 mr-1"
+                      width={20}
+                      height={14}
+                    />
                     <span>+1</span>
                   </div>
                 </SelectItem>
                 <SelectItem value="+44">
                   <div className="flex items-center">
-                    <Image src="https://flagcdn.com/w20/gb.png" alt="UK" className="h-4 mr-1" width={20} height={14} />
+                    <Image
+                      src="https://flagcdn.com/w20/gb.png"
+                      alt="UK"
+                      className="h-4 mr-1"
+                      width={20}
+                      height={14}
+                    />
                     <span>+44</span>
                   </div>
                 </SelectItem>
@@ -404,19 +475,24 @@ export function DMCRegistrationForm() {
               value={formData.phoneNumber}
               onChange={handleInputChange}
               className={`flex-1 h-12 rounded-l-none focus:border-emerald-500 hover:border-emerald-500 transition-colors ${
-                errors.phoneNumber ? 'border-red-500' : ''
+                errors.phoneNumber ? "border-red-500" : ""
               }`}
               required
             />
           </div>
           {errors.phoneNumber && (
-            <p className="text-sm text-red-500 font-Poppins">{errors.phoneNumber}</p>
+            <p className="text-sm text-red-500 font-Poppins">
+              {errors.phoneNumber}
+            </p>
           )}
         </div>
 
         {/* Designation */}
         <div className="space-y-2 w-full">
-          <label htmlFor="designation" className="block text-sm font-medium text-gray-700 font-Poppins">
+          <label
+            htmlFor="designation"
+            className="block text-sm font-medium text-gray-700 font-Poppins"
+          >
             Designation
           </label>
           <Input
@@ -425,18 +501,23 @@ export function DMCRegistrationForm() {
             value={formData.designation}
             onChange={handleInputChange}
             className={`w-full h-12 focus:border-emerald-500 hover:border-emerald-500 transition-colors ${
-              errors.designation ? 'border-red-500' : ''
+              errors.designation ? "border-red-500" : ""
             }`}
             required
           />
           {errors.designation && (
-            <p className="text-sm text-red-500 font-Poppins">{errors.designation}</p>
+            <p className="text-sm text-red-500 font-Poppins">
+              {errors.designation}
+            </p>
           )}
         </div>
 
         {/* Owner Name */}
         <div className="space-y-2 w-full">
-          <label htmlFor="ownerName" className="block text-sm font-medium text-gray-700 font-Poppins">
+          <label
+            htmlFor="ownerName"
+            className="block text-sm font-medium text-gray-700 font-Poppins"
+          >
             Owner name
           </label>
           <Input
@@ -445,22 +526,30 @@ export function DMCRegistrationForm() {
             value={formData.ownerName}
             onChange={handleInputChange}
             className={`w-full h-12 focus:border-emerald-500 hover:border-emerald-500 transition-colors ${
-              errors.ownerName ? 'border-red-500' : ''
+              errors.ownerName ? "border-red-500" : ""
             }`}
             required
           />
           {errors.ownerName && (
-            <p className="text-sm text-red-500 font-Poppins">{errors.ownerName}</p>
+            <p className="text-sm text-red-500 font-Poppins">
+              {errors.ownerName}
+            </p>
           )}
         </div>
 
         {/* Owner Phone Number */}
         <div className="space-y-2 w-full">
-          <label htmlFor="ownerPhoneNumber" className="block text-sm font-medium text-gray-700 font-Poppins">
+          <label
+            htmlFor="ownerPhoneNumber"
+            className="block text-sm font-medium text-gray-700 font-Poppins"
+          >
             Phone number
           </label>
           <div className="flex">
-            <Select value={ownerPhoneExtension} onValueChange={setOwnerPhoneExtension}>
+            <Select
+              value={ownerPhoneExtension}
+              onValueChange={setOwnerPhoneExtension}
+            >
               <SelectTrigger className="w-28 h-12 rounded-r-none border-r-0">
                 <SelectValue placeholder="+91" />
               </SelectTrigger>
@@ -479,13 +568,25 @@ export function DMCRegistrationForm() {
                 </SelectItem>
                 <SelectItem value="+1">
                   <div className="flex items-center">
-                    <Image src="https://flagcdn.com/w20/us.png" alt="USA" className="h-4 mr-1" width={20} height={14} />
+                    <Image
+                      src="https://flagcdn.com/w20/us.png"
+                      alt="USA"
+                      className="h-4 mr-1"
+                      width={20}
+                      height={14}
+                    />
                     <span>+1</span>
                   </div>
                 </SelectItem>
                 <SelectItem value="+44">
                   <div className="flex items-center">
-                    <Image src="https://flagcdn.com/w20/gb.png" alt="UK" className="h-4 mr-1" width={20} height={14} />
+                    <Image
+                      src="https://flagcdn.com/w20/gb.png"
+                      alt="UK"
+                      className="h-4 mr-1"
+                      width={20}
+                      height={14}
+                    />
                     <span>+44</span>
                   </div>
                 </SelectItem>
@@ -497,19 +598,24 @@ export function DMCRegistrationForm() {
               value={formData.ownerPhoneNumber}
               onChange={handleInputChange}
               className={`flex-1 h-12 rounded-l-none focus:border-emerald-500 hover:border-emerald-500 transition-colors ${
-                errors.ownerPhoneNumber ? 'border-red-500' : ''
+                errors.ownerPhoneNumber ? "border-red-500" : ""
               }`}
               required
             />
           </div>
           {errors.ownerPhoneNumber && (
-            <p className="text-sm text-red-500 font-Poppins">{errors.ownerPhoneNumber}</p>
+            <p className="text-sm text-red-500 font-Poppins">
+              {errors.ownerPhoneNumber}
+            </p>
           )}
         </div>
 
         {/* Email */}
         <div className="space-y-2 w-full">
-          <label htmlFor="email" className="block text-sm font-medium text-gray-700 font-Poppins">
+          <label
+            htmlFor="email"
+            className="block text-sm font-medium text-gray-700 font-Poppins"
+          >
             Email
           </label>
           <Input
@@ -519,7 +625,7 @@ export function DMCRegistrationForm() {
             value={formData.email}
             onChange={handleInputChange}
             className={`w-full h-12 focus:border-emerald-500 hover:border-emerald-500 transition-colors ${
-              errors.email ? 'border-red-500' : ''
+              errors.email ? "border-red-500" : ""
             }`}
             required
           />
@@ -530,7 +636,10 @@ export function DMCRegistrationForm() {
 
         {/* Website */}
         <div className="space-y-2 w-full">
-          <label htmlFor="website" className="block text-sm font-medium text-gray-700 font-Poppins">
+          <label
+            htmlFor="website"
+            className="block text-sm font-medium text-gray-700 font-Poppins"
+          >
             Website
           </label>
           <Input
@@ -539,17 +648,22 @@ export function DMCRegistrationForm() {
             value={formData.website}
             onChange={handleInputChange}
             className={`w-full h-12 focus:border-emerald-500 hover:border-emerald-500 transition-colors ${
-              errors.website ? 'border-red-500' : ''
+              errors.website ? "border-red-500" : ""
             }`}
           />
           {errors.website && (
-            <p className="text-sm text-red-500 font-Poppins">{errors.website}</p>
+            <p className="text-sm text-red-500 font-Poppins">
+              {errors.website}
+            </p>
           )}
         </div>
 
         {/* Primary Country */}
         <div className="space-y-2 w-full">
-          <label htmlFor="primaryCountry" className="block text-sm font-medium text-gray-700 font-Poppins">
+          <label
+            htmlFor="primaryCountry"
+            className="block text-sm font-medium text-gray-700 font-Poppins"
+          >
             Primary Country
           </label>
           <Input
@@ -563,7 +677,10 @@ export function DMCRegistrationForm() {
 
         {/* Destinations Covered */}
         <div className="space-y-2 w-full">
-          <label htmlFor="destinationsCovered" className="block text-sm font-medium text-gray-700 font-Poppins">
+          <label
+            htmlFor="destinationsCovered"
+            className="block text-sm font-medium text-gray-700 font-Poppins"
+          >
             Destinations Covered
           </label>
           <Input
@@ -577,7 +694,10 @@ export function DMCRegistrationForm() {
 
         {/* Cities */}
         <div className="space-y-2 w-full">
-          <label htmlFor="cities" className="block text-sm font-medium text-gray-700 font-Poppins">
+          <label
+            htmlFor="cities"
+            className="block text-sm font-medium text-gray-700 font-Poppins"
+          >
             Cities
           </label>
           <Input
@@ -591,14 +711,22 @@ export function DMCRegistrationForm() {
 
         {/* GST Registration */}
         <div className="space-y-2 w-full">
-          <label className="block text-sm font-medium text-gray-700 font-Poppins">GST Registration</label>
+          <label className="block text-sm font-medium text-gray-700 font-Poppins">
+            GST Registration
+          </label>
           <RadioGroup
             value={formData.gstRegistration}
-            onValueChange={(value: any) => setFormData((prev) => ({ ...prev, gstRegistration: value }))}
+            onValueChange={(value: "Yes" | "No") =>
+              setFormData((prev) => ({ ...prev, gstRegistration: value }))
+            }
             className="flex items-center gap-4"
           >
             <div className="flex items-center space-x-2">
-              <RadioGroupItem value="Yes" id="gst-yes" className="text-emerald-500" />
+              <RadioGroupItem
+                value="Yes"
+                id="gst-yes"
+                className="text-emerald-500"
+              />
               <Label htmlFor="gst-yes">Yes</Label>
             </div>
             <div className="flex items-center space-x-2">
@@ -610,7 +738,10 @@ export function DMCRegistrationForm() {
 
         {/* GST No. */}
         <div className="space-y-2 w-full">
-          <label htmlFor="gstNo" className="block text-sm font-medium text-gray-700 font-Poppins">
+          <label
+            htmlFor="gstNo"
+            className="block text-sm font-medium text-gray-700 font-Poppins"
+          >
             GST No.
           </label>
           <Input
@@ -619,7 +750,7 @@ export function DMCRegistrationForm() {
             value={formData.gstNo}
             onChange={handleInputChange}
             className={`w-full h-12 focus:border-emerald-500 hover:border-emerald-500 transition-colors ${
-              errors.gstNo ? 'border-red-500' : ''
+              errors.gstNo ? "border-red-500" : ""
             }`}
             disabled={formData.gstRegistration === "No"}
           />
@@ -630,7 +761,10 @@ export function DMCRegistrationForm() {
 
         {/* Year of Registration */}
         <div className="space-y-2 w-full">
-          <label htmlFor="yearOfRegistration" className="block text-sm font-medium text-gray-700 font-Poppins">
+          <label
+            htmlFor="yearOfRegistration"
+            className="block text-sm font-medium text-gray-700 font-Poppins"
+          >
             Year of Registration
           </label>
           <div className="relative">
@@ -640,7 +774,7 @@ export function DMCRegistrationForm() {
               value={formData.yearOfRegistration}
               onChange={handleInputChange}
               className={`w-full h-12 focus:border-emerald-500 hover:border-emerald-500 transition-colors ${
-                errors.yearOfRegistration ? 'border-red-500' : ''
+                errors.yearOfRegistration ? "border-red-500" : ""
               }`}
             />
             <div className="absolute right-3 top-1/2 transform -translate-y-1/2 bg-gray-100 px-2 py-1 rounded text-sm text-gray-600 font-Poppins">
@@ -648,13 +782,18 @@ export function DMCRegistrationForm() {
             </div>
           </div>
           {errors.yearOfRegistration && (
-            <p className="text-sm text-red-500 font-Poppins">{errors.yearOfRegistration}</p>
+            <p className="text-sm text-red-500 font-Poppins">
+              {errors.yearOfRegistration}
+            </p>
           )}
         </div>
 
         {/* PAN No. */}
         <div className="space-y-2 w-full">
-          <label htmlFor="panNo" className="block text-sm font-medium text-gray-700 font-Poppins">
+          <label
+            htmlFor="panNo"
+            className="block text-sm font-medium text-gray-700 font-Poppins"
+          >
             PAN No.
           </label>
           <Input
@@ -663,7 +802,7 @@ export function DMCRegistrationForm() {
             value={formData.panNo}
             onChange={handleInputChange}
             className={`w-full h-12 focus:border-emerald-500 hover:border-emerald-500 transition-colors ${
-              errors.panNo ? 'border-red-500' : ''
+              errors.panNo ? "border-red-500" : ""
             }`}
           />
           {errors.panNo && (
@@ -673,12 +812,17 @@ export function DMCRegistrationForm() {
 
         {/* PAN Type */}
         <div className="space-y-2 w-full">
-          <label htmlFor="panType" className="block text-sm font-medium text-gray-700 font-Poppins">
+          <label
+            htmlFor="panType"
+            className="block text-sm font-medium text-gray-700 font-Poppins"
+          >
             PAN type
           </label>
           <Select
             value={formData.panType}
-            onValueChange={(value: any) => setFormData((prev) => ({ ...prev, panType: value }))}
+            onValueChange={(
+              value: "INDIVIDUAL" | "COMPANY" | "TRUST" | "OTHER"
+            ) => setFormData((prev) => ({ ...prev, panType: value }))}
           >
             <SelectTrigger className="w-full h-12">
               <SelectValue placeholder="Select..." />
@@ -694,7 +838,10 @@ export function DMCRegistrationForm() {
 
         {/* Headquarters */}
         <div className="space-y-2 w-full">
-          <label htmlFor="headquarters" className="block text-sm font-medium text-gray-700 font-Poppins">
+          <label
+            htmlFor="headquarters"
+            className="block text-sm font-medium text-gray-700 font-Poppins"
+          >
             Headquarters
           </label>
           <Input
@@ -703,29 +850,38 @@ export function DMCRegistrationForm() {
             value={formData.headquarters}
             onChange={handleInputChange}
             className={`w-full h-12 focus:border-emerald-500 hover:border-emerald-500 transition-colors ${
-              errors.headquarters ? 'border-red-500' : ''
+              errors.headquarters ? "border-red-500" : ""
             }`}
           />
           {errors.headquarters && (
-            <p className="text-sm text-red-500 font-Poppins">{errors.headquarters}</p>
+            <p className="text-sm text-red-500 font-Poppins">
+              {errors.headquarters}
+            </p>
           )}
         </div>
 
         {/* Country */}
         <div className="space-y-2 w-full">
-          <label htmlFor="country" className="block text-sm font-medium text-gray-700 font-Poppins">
+          <label
+            htmlFor="country"
+            className="block text-sm font-medium text-gray-700 font-Poppins"
+          >
             Country
           </label>
           <Select
             value={formData.country}
-            onValueChange={(value: any) => {
-              setFormData((prev) => ({ ...prev, country: value }))
+            onValueChange={(value: string) => {
+              setFormData((prev) => ({ ...prev, country: value }));
               if (errors.country) {
-                setErrors(prev => ({ ...prev, country: undefined }))
+                setErrors((prev) => ({ ...prev, country: undefined }));
               }
             }}
           >
-            <SelectTrigger className={`w-full h-12 ${errors.country ? 'border-red-500' : ''}`}>
+            <SelectTrigger
+              className={`w-full h-12 ${
+                errors.country ? "border-red-500" : ""
+              }`}
+            >
               <SelectValue placeholder="Select..." />
             </SelectTrigger>
             <SelectContent className="max-h-60 overflow-y-auto">
@@ -737,13 +893,18 @@ export function DMCRegistrationForm() {
             </SelectContent>
           </Select>
           {errors.country && (
-            <p className="text-sm text-red-500 font-Poppins">{errors.country}</p>
+            <p className="text-sm text-red-500 font-Poppins">
+              {errors.country}
+            </p>
           )}
         </div>
 
         {/* Year of Experience */}
         <div className="space-y-2 w-full">
-          <label htmlFor="yearOfExperience" className="block text-sm font-medium text-gray-700 font-Poppins">
+          <label
+            htmlFor="yearOfExperience"
+            className="block text-sm font-medium text-gray-700 font-Poppins"
+          >
             Years of Experience
           </label>
           <div className="relative">
@@ -753,7 +914,7 @@ export function DMCRegistrationForm() {
               value={formData.yearOfExperience}
               onChange={handleInputChange}
               className={`w-full h-12 focus:border-emerald-500 hover:border-emerald-500 transition-colors ${
-                errors.yearOfExperience ? 'border-red-500' : ''
+                errors.yearOfExperience ? "border-red-500" : ""
               }`}
               placeholder="e.g. 5"
             />
@@ -762,13 +923,18 @@ export function DMCRegistrationForm() {
             </div>
           </div>
           {errors.yearOfExperience && (
-            <p className="text-sm text-red-500 font-Poppins">{errors.yearOfExperience}</p>
+            <p className="text-sm text-red-500 font-Poppins">
+              {errors.yearOfExperience}
+            </p>
           )}
         </div>
 
         {/* Business Registration / Registration Certificate */}
         <div className="space-y-2 w-full">
-          <label htmlFor="registrationCertificate" className="block text-sm font-medium text-gray-700 font-Poppins">
+          <label
+            htmlFor="registrationCertificate"
+            className="block text-sm font-medium text-gray-700 font-Poppins"
+          >
             Business registration / Registration certificate
           </label>
           <div className="flex items-center h-12">
@@ -778,14 +944,16 @@ export function DMCRegistrationForm() {
               value={uploadedFile || ""}
               placeholder="No file chosen"
               className={`flex-1 h-full rounded-r-none focus:border-emerald-500 hover:border-emerald-500 transition-colors ${
-                errors.registrationCertificate ? 'border-red-500' : ''
+                errors.registrationCertificate ? "border-red-500" : ""
               }`}
             />
             <Button
               type="button"
               variant="outline"
               className="h-full rounded-l-none bg-greenlight hover:bg-emerald-600 text-white border-0 flex items-center"
-              onClick={() => document.getElementById("certificate-upload")?.click()}
+              onClick={() =>
+                document.getElementById("certificate-upload")?.click()
+              }
             >
               <Upload className="h-4 w-4 mr-1 font-Poppins" />
               Upload
@@ -799,7 +967,9 @@ export function DMCRegistrationForm() {
             />
           </div>
           {errors.registrationCertificate && (
-            <p className="text-sm text-red-500 font-Poppins">{errors.registrationCertificate}</p>
+            <p className="text-sm text-red-500 font-Poppins">
+              {errors.registrationCertificate}
+            </p>
           )}
         </div>
       </div>
@@ -816,5 +986,5 @@ export function DMCRegistrationForm() {
 
       <Toaster />
     </form>
-  )
+  );
 }
