@@ -30,6 +30,7 @@ import { Badge } from "@/components/ui/badge"
 import { toast } from "@/components/ui/use-toast"
 import { Toaster } from "@/components/ui/toaster"
 
+
 export default function ManagerSection() {
 
   type Manager = {
@@ -56,6 +57,7 @@ export default function ManagerSection() {
     email: "",
     username: "",
     password: "",
+    status: "INACTIVE", // Add status to form data with 
     profile: null as File | null,
   })
   const [showFormPassword, setShowFormPassword] = useState(false)
@@ -96,13 +98,13 @@ export default function ManagerSection() {
     )
 
 
-     // Apply sorting
+    // Apply sorting
     filtered = [...filtered].sort((a, b) => {
       if (sortBy === "name") {
         return sortOrder === "asc" ? a.name.localeCompare(b.name) : b.name.localeCompare(a.name)
       } else if (sortBy === "status") {
-        return sortOrder === "asc" 
-          ? (a.status || "").localeCompare(b.status || "") 
+        return sortOrder === "asc"
+          ? (a.status || "").localeCompare(b.status || "")
           : (b.status || "").localeCompare(a.status || "")
       } else if (sortBy === "email") {
         return sortOrder === "asc" ? a.email.localeCompare(b.email) : b.email.localeCompare(a.email)
@@ -117,7 +119,7 @@ export default function ManagerSection() {
     // Update state with the filtered, sorted, and paginated managers
     setDisplayedManagers(paginatedManagers);
 
-     // Reset to page 1 if current page is invalid after filtering
+    // Reset to page 1 if current page is invalid after filtering
     if (paginatedManagers.length === 0 && currentPage > 1 && filtered.length > 0) {
       setCurrentPage(1)
     }
@@ -126,6 +128,11 @@ export default function ManagerSection() {
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target
     setFormData((prev) => ({ ...prev, [name]: value }))
+  }
+
+  // Handle status change in form
+  const handleStatusChange = (value: string) => {
+    setFormData((prev) => ({ ...prev, status: value }))
   }
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -143,21 +150,40 @@ export default function ManagerSection() {
 
 
   // Submit form with Axios POST
-   
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
-     try {
+    // 👉 Local validation
+    if (formData.username.length < 3) {
+      toast({ title: "Error", description: "Username must be at least 3 characters", variant: "destructive" });
+      return;
+    }
+
+    if (!/^\d+$/.test(formData.phone)) {
+      toast({ title: "Error", description: "Phone must contain 10 digits ", variant: "destructive" });
+      return;
+    }
+
+
+    if (formData.password.length < 8) {
+      toast({ title: "Error", description: "Password must be at least 8 characters", variant: "destructive" });
+      return;
+    }
+
+    try {
       const managerData = {
         name: formData.name,
-        phone: `${phoneExtension} ${formData.phone}`,
+        phone: formData.phone, // only digits
+        countryCode: phoneExtension, // "+91"
         email: formData.email,
         username: formData.username,
         password: formData.password,
+         status: formData.status, // Include status in the request
         // Add profile upload logic if needed — here we’re not sending the file yet!
       }
 
-       const response = await axios.post("/api/auth/add-managers", managerData)
+      const response = await axios.post("/api/auth/add-managers", managerData)
 
 
       //  Add new manager to local state
@@ -165,28 +191,29 @@ export default function ManagerSection() {
 
 
       // new one
-       // Reset form and search
+      // Reset form and search
       setFormData({
         name: "",
         phone: "",
         email: "",
         username: "",
         password: "",
+        status: "INACTIVE", // Reset to default
         profile: null,
       })
       setUploadedFile(null)
       setSearchQuery("");
       setCurrentPage(1);
 
-    console.log("Form submitted:", managerData);
+      console.log("Form submitted:", managerData);
 
-    toast({
-      title: "Form submitted",
-      description: "Manager has been added successfully",
-    })
+      toast({
+        title: "Form submitted",
+        description: "Manager has been added successfully",
+      })
 
 
- } catch (err: unknown) {    
+    } catch (err: unknown) {
       console.error("Submission error:", err)
       let errorMessage = "Failed to add manager"
       if (typeof err === "object" && err !== null && "response" in err) {
@@ -200,12 +227,41 @@ export default function ManagerSection() {
       })
     }
   }
-  
+
 
   const togglePasswordVisibility = (id: string) => {
     setShowPassword((prev) => ({ ...prev, [id]: !prev[id] }))
   }
 
+  //staus update
+  const handleManagerStatusChange = async (id: string, newStatus: string) => {
+    try {
+      await axios.patch("/api/auth/update-manager-status", {
+        id,
+        status: newStatus,
+      });
+
+      setManagers((prev) =>
+        prev.map((m) => (m.id === id ? { ...m, status: newStatus } : m))
+      );
+
+      toast({
+        title: "Status updated",
+        description: `Status changed to ${newStatus}`,
+      });
+    } catch (err) {
+      console.error("Failed to update status:", err);
+      toast({
+        title: "Error",
+        description: "Could not update status",
+        variant: "destructive",
+      });
+    }
+  };
+
+
+
+  // status above
   const handleDownload = () => {
     toast({
       title: "Downloaded",
@@ -265,19 +321,19 @@ export default function ManagerSection() {
                 </SelectItem>
                 <SelectItem value="+1">
                   <div className="flex items-center">
-                  <Image src="https://flagcdn.com/w20/us.png" alt="USA" className="h-4 mr-1" width={20} height={14} />
+                    <Image src="https://flagcdn.com/w20/us.png" alt="USA" className="h-4 mr-1" width={20} height={14} />
                     <span>+1</span>
                   </div>
                 </SelectItem>
                 <SelectItem value="+44">
                   <div className="flex items-center">
-                  <Image src="https://flagcdn.com/w20/gb.png" alt="UK" className="h-4 mr-1" width={20} height={14} />
+                    <Image src="https://flagcdn.com/w20/gb.png" alt="UK" className="h-4 mr-1" width={20} height={14} />
                     <span>+44</span>
                   </div>
                 </SelectItem>
                 <SelectItem value="+61">
                   <div className="flex items-center">
-                  <Image src="https://flagcdn.com/w20/au.png" alt="Australia" className="h-4 mr-1" width={20} height={14} />
+                    <Image src="https://flagcdn.com/w20/au.png" alt="Australia" className="h-4 mr-1" width={20} height={14} />
                     <span>+61</span>
                   </div>
                 </SelectItem>
@@ -425,7 +481,7 @@ export default function ManagerSection() {
                 <TableHead className="w-12 py-3">
                   <Checkbox id="select-all" />
                 </TableHead>
-                <TableHead className="py-3 font-bold font-poppins text-gray-500">User ID</TableHead>
+
                 <TableHead className="py-3 font-bold font-poppins text-gray-500">Name</TableHead>
                 <TableHead className="py-3 font-bold font-poppins text-gray-500 hidden md:table-cell">
                   Phone no.
@@ -446,13 +502,13 @@ export default function ManagerSection() {
                 displayedManagers.map((manager, index) => (
                   <TableRow
                     key={manager.id}
-                    data-testid={`manager-row-${manager.id}`}
+
                     className={index % 2 === 0 ? "bg-white" : "bg-gray-50/50 border-0"}
                   >
                     <TableCell className="py-3">
                       <Checkbox id={`select-${manager.id}`} />
                     </TableCell>
-                    <TableCell className="py-3 font-medium font-poppins">{manager.id}</TableCell>
+
                     <TableCell className="py-3 font-poppins">{manager.name}</TableCell>
                     <TableCell className="py-3 font-poppins hidden md:table-cell">{manager.phone}</TableCell>
                     <TableCell className="py-3 font-poppins hidden sm:table-cell">{manager.email}</TableCell>
@@ -469,18 +525,23 @@ export default function ManagerSection() {
                         </button>
                       </div>
                     </TableCell>
+                    
                     <TableCell className="py-3">
-                      <Badge
-                        variant="outline"
-                        className={`px-3 py-1 rounded-full text-xs font-medium ${
-                          manager.status === "Active"
-                            ? "bg-green-800 hover:bg-green-800 text-white border-0"
-                            : "bg-gray-200 hover:bg-gray-200 text-gray-700 border-0"
-                        }`}
-                      >
-                        {manager.status}
-                      </Badge>
+                      <Select
+                          value={manager.status || "INACTIVE"}
+                          onValueChange={(value) => handleManagerStatusChange(manager.id, value)}
+>
+
+                        <SelectTrigger className="w-28 h-8">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="ACTIVE">Active</SelectItem>
+                          <SelectItem value="INACTIVE">Inactive</SelectItem>
+                        </SelectContent>
+                      </Select>
                     </TableCell>
+
                     <TableCell className="py-3">
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
@@ -549,9 +610,8 @@ export default function ManagerSection() {
                   key={page}
                   variant="outline"
                   size="icon"
-                  className={`h-8 w-8 rounded-md ${
-                    page === currentPage ? "bg-greenlight text-white border-0 hover:bg-emerald-600" : ""
-                  }`}
+                  className={`h-8 w-8 rounded-md ${page === currentPage ? "bg-greenlight text-white border-0 hover:bg-emerald-600" : ""
+                    }`}
                   onClick={() => goToPage(page)}
                 >
                   {page}
