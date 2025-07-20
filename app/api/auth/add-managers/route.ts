@@ -9,6 +9,7 @@ export async function POST(req: NextRequest) {
     const { name, phone, email, username, password, status, profileId, countryCode } = body;
 
 
+
     // ✅ Add name validation here
     const nameRegex = /^[A-Za-z\s]+$/;
 
@@ -116,8 +117,11 @@ export async function POST(req: NextRequest) {
 
 
     // Return manager data without password
-    const { password: _, ...managerWithoutPassword } = newManager
-    return NextResponse.json(managerWithoutPassword, { status: 201 })
+   
+   const { password: managerWithoutPassword } = newManager;
+
+    return NextResponse.json(managerWithoutPassword, { status: 201 });
+
   } catch (error: unknown) {
     console.error("Error creating manager:", error)
     return NextResponse.json(

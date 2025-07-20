@@ -15,7 +15,7 @@ import {
 } from "@/components/ui/select";
 import { useForm, SubmitHandler } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { agencyFormSchema, type AgencyFormValues } from "@/lib/agency";
+import { agencyFormSchemaBase, type AgencyFormValues } from "@/lib/agency";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 
@@ -51,7 +51,7 @@ export default function AgencyForm() {
     formState: { errors },
   } = useForm<AgencyFormValues>({
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    resolver: zodResolver(agencyFormSchema) as any,
+    resolver: zodResolver(agencyFormSchemaBase) as any,
     defaultValues: {
       phoneCountryCode: "+91",
       companyPhoneCode: "+91",
