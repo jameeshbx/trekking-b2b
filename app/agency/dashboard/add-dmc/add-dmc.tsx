@@ -15,7 +15,11 @@ import { Toaster } from "@/components/ui/toaster"
 import { Textarea } from "@/components/ui/textarea"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
 import { countries, cities, destinations } from "@/data/add-dmc"
+<<<<<<< HEAD
 import type { DMCRegistrationData, } from "@/types/dmc"
+=======
+import type { DMCRegistrationData } from "@/types/dmc"
+>>>>>>> 1e1b2f0a30dabaa65ddd16e369f9bdf74be3b288
 
 export function DMCRegistrationForm() {
   const [uploadedFile, setUploadedFile] = useState<string | null>(null)

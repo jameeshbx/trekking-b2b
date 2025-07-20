@@ -1,8 +1,10 @@
 import { NextResponse } from 'next/server'
-import { prisma } from "@/lib/prisma";
+import { prisma } from "@/lib/prisma"
 
 
+// Update your handler function to use these types
 export async function GET(
+<<<<<<< HEAD
   _req: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
@@ -11,6 +13,17 @@ export async function GET(
 
     const subscription = await prisma.subscription.findUnique({
       where: { id:id },
+=======
+  request: Request,
+  context: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { params } = context;
+    const { id } = await params;
+
+    const subscription = await prisma.subscription.findUnique({
+      where: { id },
+>>>>>>> 1e1b2f0a30dabaa65ddd16e369f9bdf74be3b288
       include: {
         agency: {
           include: { users: { take: 1 } },
@@ -59,12 +72,22 @@ export async function GET(
 
 export async function PUT(
   request: Request,
+<<<<<<< HEAD
   {params}: { params: Promise<{ id: string }> }
 ) {
   try {
     const body = await request.json();
     const subscription = await prisma.subscription.update({
         where: { id: (await params).id },
+=======
+  context: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { params } = context;
+    const body = await request.json()
+    const subscription = await prisma.subscription.update({
+      where: { id: (await params).id },
+>>>>>>> 1e1b2f0a30dabaa65ddd16e369f9bdf74be3b288
       data: body,
       include: {
         agency: true,
@@ -82,12 +105,16 @@ export async function PUT(
     );
   }
 }
-
 export async function DELETE(
   request: Request,
+<<<<<<< HEAD
   { params }: { params: Promise<{ id: string }> }
+=======
+  context: { params: Promise<{ id: string }> }
+>>>>>>> 1e1b2f0a30dabaa65ddd16e369f9bdf74be3b288
 ) {
   try {
+    const { params } = context;
     await prisma.subscription.delete({
       where: { id: (await params).id },
     })
@@ -99,4 +126,8 @@ export async function DELETE(
       { status: 500 }
     );
   }
+<<<<<<< HEAD
 }
+=======
+} 
+>>>>>>> 1e1b2f0a30dabaa65ddd16e369f9bdf74be3b288

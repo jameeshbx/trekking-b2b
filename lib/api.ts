@@ -46,7 +46,32 @@
   return response.json()
 }
 
-export const createDMC = async (data: CreateDMCInput) => {
+// Define a type for the DMC data
+type DMCCreateData = {
+  dmcName: string
+  primaryContact: string
+  phoneNumber: string
+  primaryPhoneExtension: string
+  designation: string
+  ownerName: string
+  ownerPhoneNumber: string
+  ownerPhoneExtension: string
+  email: string
+  website?: string
+  primaryCountry: string
+  destinationsCovered?: string
+  cities?: string
+  gstRegistration: string
+  gstNo?: string
+  yearOfRegistration?: string
+  panNo: string
+  panType: string
+  headquarters?: string
+  country: string
+  yearOfExperience?: string
+}
+
+export const createDMC = async (data: DMCCreateData) => {
   const response = await fetch('/api/dmc', {
     method: 'POST',
     headers: {

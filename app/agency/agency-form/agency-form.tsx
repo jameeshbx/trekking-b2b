@@ -15,7 +15,7 @@ import {
 } from "@/components/ui/select";
 import { useForm, SubmitHandler } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { agencyFormSchemaBase, type AgencyFormValues } from "@/lib/agency";
+import { agencyFormSchema, agencyFormSchemaBase, type AgencyFormValues } from "@/lib/agency";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 

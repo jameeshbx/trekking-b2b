@@ -19,6 +19,7 @@ import { toast } from "@/components/ui/use-toast";
 import { Toaster } from "@/components/ui/toaster";
 import { countries } from "@/data/add-dmc";
 
+<<<<<<< HEAD
 interface DMCRegistrationFormProps {
   onDMCAdded?: () => void;
 }
@@ -46,6 +47,35 @@ interface FormErrors {
 }
 
 export function DMCRegistrationForm({}: DMCRegistrationFormProps) {
+=======
+interface FormErrors {
+  dmcName?: string;
+  primaryContact?: string;
+  phoneNumber?: string;
+  designation?: string;
+  ownerName?: string;
+  ownerPhoneNumber?: string;
+  email?: string;
+  website?: string;
+  primaryCountry?: string;
+  destinationsCovered?: string;
+  cities?: string;
+  gstNo?: string;
+  yearOfRegistration?: string;
+  panNo?: string;
+  panType?: string;
+  headquarters?: string;
+  country?: string;
+  yearOfExperience?: string;
+  registrationCertificate?: string;
+}
+
+interface DMCRegistrationFormProps {
+  onDMCAdded: () => void;
+}
+
+export function DMCRegistrationForm({ onDMCAdded }: DMCRegistrationFormProps) {
+>>>>>>> 1e1b2f0a30dabaa65ddd16e369f9bdf74be3b288
   const [uploadedFile, setUploadedFile] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState<FormErrors>({});
@@ -218,11 +248,21 @@ export function DMCRegistrationForm({}: DMCRegistrationFormProps) {
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
+<<<<<<< HEAD
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
 
+=======
+
+  const handleInputChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+  ) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
+
+>>>>>>> 1e1b2f0a30dabaa65ddd16e369f9bdf74be3b288
     // Clear error when user starts typing
     if (errors[name as keyof FormErrors]) {
       setErrors((prev) => ({ ...prev, [name]: undefined }));
@@ -257,10 +297,17 @@ export function DMCRegistrationForm({}: DMCRegistrationFormProps) {
       }
     }
   };
+<<<<<<< HEAD
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
+=======
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+
+>>>>>>> 1e1b2f0a30dabaa65ddd16e369f9bdf74be3b288
     // Validate form before submission
     if (!validateForm()) {
       toast({
@@ -306,10 +353,22 @@ export function DMCRegistrationForm({}: DMCRegistrationFormProps) {
         throw new Error(errorData.error || "Failed to submit form");
       }
 
+<<<<<<< HEAD
+=======
+      // Success response
+      await response.json(); // Just parse but don't store if we're not using it
+
+>>>>>>> 1e1b2f0a30dabaa65ddd16e369f9bdf74be3b288
       toast({
         title: "Success!",
         description: "DMC has been registered successfully",
       });
+<<<<<<< HEAD
+=======
+
+      // Call the callback to refresh the table
+      onDMCAdded();
+>>>>>>> 1e1b2f0a30dabaa65ddd16e369f9bdf74be3b288
 
       // Reset form after successful submission
       setFormData({
@@ -338,6 +397,7 @@ export function DMCRegistrationForm({}: DMCRegistrationFormProps) {
       setPrimaryPhoneExtension("+91");
       setOwnerPhoneExtension("+91");
       setErrors({});
+<<<<<<< HEAD
     } catch (error: unknown) {
       console.error("Submission error:", error);
       let errorMessage = "Failed to submit form. Please try again.";
@@ -347,6 +407,16 @@ export function DMCRegistrationForm({}: DMCRegistrationFormProps) {
       toast({
         title: "Error",
         description: errorMessage,
+=======
+    } catch (error) {
+      console.error("Submission error:", error);
+      toast({
+        title: "Error",
+        description:
+          error instanceof Error
+            ? error.message
+            : "Failed to submit form. Please try again.",
+>>>>>>> 1e1b2f0a30dabaa65ddd16e369f9bdf74be3b288
         variant: "destructive",
       });
     } finally {
@@ -709,7 +779,11 @@ export function DMCRegistrationForm({}: DMCRegistrationFormProps) {
           </label>
           <RadioGroup
             value={formData.gstRegistration}
+<<<<<<< HEAD
             onValueChange={(value: string) =>
+=======
+            onValueChange={(value: "Yes" | "No") =>
+>>>>>>> 1e1b2f0a30dabaa65ddd16e369f9bdf74be3b288
               setFormData((prev) => ({ ...prev, gstRegistration: value }))
             }
             className="flex items-center gap-4"
@@ -813,9 +887,15 @@ export function DMCRegistrationForm({}: DMCRegistrationFormProps) {
           </label>
           <Select
             value={formData.panType}
+<<<<<<< HEAD
             onValueChange={(value: string) =>
               setFormData((prev) => ({ ...prev, panType: value }))
             }
+=======
+            onValueChange={(
+              value: "INDIVIDUAL" | "COMPANY" | "TRUST" | "OTHER"
+            ) => setFormData((prev) => ({ ...prev, panType: value }))}
+>>>>>>> 1e1b2f0a30dabaa65ddd16e369f9bdf74be3b288
           >
             <SelectTrigger className="w-full h-12">
               <SelectValue placeholder="Select..." />

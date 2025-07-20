@@ -1,7 +1,12 @@
 "use client";
 
+<<<<<<< HEAD
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
+=======
+import { useState, useEffect, useRef, useCallback } from "react"
+import { useRouter } from "next/navigation"
+>>>>>>> 1e1b2f0a30dabaa65ddd16e369f9bdf74be3b288
 import {
   Search,
   ChevronDown,
@@ -57,6 +62,7 @@ interface SubscriptionTableProps {
   subscriptions: SubscriptionData[];
 }
 
+<<<<<<< HEAD
 export function SubscriptionTable({
   subscriptions: initialSubscriptions,
 }: SubscriptionTableProps) {
@@ -76,6 +82,19 @@ export function SubscriptionTable({
   const [selectedPaymentStatuses, setSelectedPaymentStatuses] = useState<
     Record<string, boolean>
   >({
+=======
+export function SubscriptionTable({ subscriptions: initialSubscriptions }: SubscriptionTableProps) {
+  const router = useRouter()
+  const tableContainerRef = useRef<HTMLDivElement>(null)
+  const [currentPage, setCurrentPage] = useState(1)
+  const [itemsPerPage] = useState(8)
+  const [, setSubscriptions] = useState<SubscriptionData[]>(initialSubscriptions)
+  const [filteredSubscriptions, setFilteredSubscriptions] = useState<SubscriptionData[]>(initialSubscriptions)
+  const [totalPages, setTotalPages] = useState(Math.ceil(initialSubscriptions.length / itemsPerPage))
+  const [loading, setLoading] = useState(false)
+  const [searchTerm, setSearchTerm] = useState("")
+  const [selectedPaymentStatuses, setSelectedPaymentStatuses] = useState<Record<string, boolean>>({
+>>>>>>> 1e1b2f0a30dabaa65ddd16e369f9bdf74be3b288
     Paid: true,
     Pending: true,
     Failed: true,
@@ -111,19 +130,31 @@ export function SubscriptionTable({
   const currentItems = filteredSubscriptions.slice(0, itemsPerPage);
 
   // Fetch subscriptions with filters
+<<<<<<< HEAD
   const fetchFilteredSubscriptions = async (): Promise<void> => {
+=======
+  const fetchFilteredSubscriptions = useCallback(async () => {
+>>>>>>> 1e1b2f0a30dabaa65ddd16e369f9bdf74be3b288
     try {
       setLoading(true);
 
       // Convert selected payment statuses to array
       const paymentStatusArray = Object.entries(selectedPaymentStatuses)
         .filter(([, selected]) => selected)
+<<<<<<< HEAD
         .map(([status]) => status);
+=======
+        .map(([status]) => status)
+>>>>>>> 1e1b2f0a30dabaa65ddd16e369f9bdf74be3b288
 
       // Convert selected plans to array
       const plansArray = Object.entries(selectedPlans)
         .filter(([, selected]) => selected)
+<<<<<<< HEAD
         .map(([plan]) => plan);
+=======
+        .map(([plan]) => plan)
+>>>>>>> 1e1b2f0a30dabaa65ddd16e369f9bdf74be3b288
 
       const result = await fetchSubscriptions({
         search: searchTerm,
@@ -150,7 +181,21 @@ export function SubscriptionTable({
     } finally {
       setLoading(false);
     }
+<<<<<<< HEAD
   };
+=======
+  }, [
+    currentPage,
+    dateRange.from,
+    dateRange.to,
+    itemsPerPage,
+    searchTerm,
+    selectedPaymentStatuses,
+    selectedPlans,
+    sortBy,
+    sortDirection,
+  ])
+>>>>>>> 1e1b2f0a30dabaa65ddd16e369f9bdf74be3b288
 
   // Apply filters when filter parameters change
   useEffect(() => {
@@ -160,7 +205,11 @@ export function SubscriptionTable({
     searchTerm,
     sortBy,
     sortDirection,
+<<<<<<< HEAD
     fetchFilteredSubscriptions,
+=======
+    fetchFilteredSubscriptions
+>>>>>>> 1e1b2f0a30dabaa65ddd16e369f9bdf74be3b288
     // We don't include the following as they are applied via buttons:
     // selectedPaymentStatuses, selectedPlans, dateRange
   ]);
@@ -336,10 +385,21 @@ export function SubscriptionTable({
   };
 
   // Handle delete
+<<<<<<< HEAD
   const handleDelete = async () => {
+=======
+  const handleDelete = async (subscriptionId: string) => {
+>>>>>>> 1e1b2f0a30dabaa65ddd16e369f9bdf74be3b288
     try {
-      // This would call a server action to delete the subscription
-      // await deleteSubscription(id)
+      // Call the API to delete the subscription
+      const response = await fetch(`/api/auth/subscriptions/${subscriptionId}`, {
+        method: 'DELETE',
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to delete subscription');
+      }
+
       toast({
         title: "Success",
         description: "Subscription deleted successfully",

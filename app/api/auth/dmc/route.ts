@@ -8,6 +8,9 @@ import { PrismaClient } from "@prisma/client";
 
 const prismaClient = new PrismaClient();
 
+// Define the PanType based on what your Prisma schema expects
+type PanType = "INDIVIDUAL" | "COMPANY" | "TRUST" | "OTHER";
+
 export async function POST(req: Request) {
   try {
     const session = await getServerSession(authOptions);
@@ -19,7 +22,11 @@ export async function POST(req: Request) {
     const data: DMCRegistrationData = await req.json();
 
     // Validate and type cast panType
+<<<<<<< HEAD
     const panType = data.panType as "INDIVIDUAL" | "COMPANY" | "TRUST" | "OTHER";
+=======
+    const panType = data.panType as PanType;
+>>>>>>> 1e1b2f0a30dabaa65ddd16e369f9bdf74be3b288
 
     // Create DMC record
     const dmc = await prisma.dMCForm.create({
@@ -45,8 +52,7 @@ export async function POST(req: Request) {
         headquarters: data.headquarters,
         country: data.country,
         yearsOfExperience: data.yearOfExperience,
-        // registrationCertificateId: ... (if you handle file upload)
-        createdBy: session.user.id, // or whoever is creating
+        createdBy: session.user.id,
       },
     });
 
@@ -82,7 +88,6 @@ export async function GET() {
       );
     }
 
-    // Get all DMC forms with related data
     const dmcForms = await prismaClient.dMCForm.findMany({
       include: {
         registrationCertificate: true,
@@ -92,7 +97,6 @@ export async function GET() {
       }
     });
 
-    // Transform the data to match the table structure
     const dmcData = dmcForms.map((dmc) => ({
       id: dmc.id,
       name: dmc.name,
@@ -100,11 +104,10 @@ export async function GET() {
       phoneNumber: dmc.phoneNumber || '',
       designation: dmc.designation || '',
       email: dmc.email || '',
-      status: 'Active', // You can add a status field to your schema if needed
-      joinSource: 'Direct', // You can add a joinSource field to your schema if needed
+      status: 'Active',
+      joinSource: 'Direct',
       createdAt: dmc.createdAt,
       registrationCertificate: dmc.registrationCertificate,
-      // Additional fields from the form
       ownerName: dmc.ownerName || '',
       ownerPhoneNumber: dmc.ownerPhoneNumber || '',
       website: dmc.website || '',
@@ -115,7 +118,7 @@ export async function GET() {
       gstNumber: dmc.gstNumber || '',
       yearOfRegistration: dmc.yearOfRegistration || '',
       panNumber: dmc.panNumber || '',
-      panType: dmc.panType,
+      panType: dmc.panType as PanType,  // Ensure proper typing here too
       headquarters: dmc.headquarters || '',
       country: dmc.country || '',
       yearsOfExperience: dmc.yearsOfExperience || '',
@@ -128,6 +131,7 @@ export async function GET() {
 
   } catch (error: unknown) {
     console.error("Error fetching DMC data:", error);
+<<<<<<< HEAD
 
     let message = "Failed to fetch DMC data";
   if (error instanceof Error) {
@@ -136,6 +140,11 @@ export async function GET() {
 
     return NextResponse.json(
       { error: message || "Failed to fetch DMC data" },
+=======
+    const errorMessage = error instanceof Error ? error.message : "Failed to fetch DMC data";
+    return NextResponse.json(
+      { error: errorMessage },
+>>>>>>> 1e1b2f0a30dabaa65ddd16e369f9bdf74be3b288
       { status: 500 }
     );
   }

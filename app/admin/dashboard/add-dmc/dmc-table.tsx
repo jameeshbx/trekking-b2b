@@ -42,6 +42,7 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "@/components/ui/use-toast";
 import { Toaster } from "@/components/ui/toaster";
 
+<<<<<<< HEAD
 interface DMCTableProps {
   refreshTrigger: number;
 }
@@ -75,6 +76,41 @@ interface DMCData {
   headquarters: string;
   country: string;
   yearsOfExperience: string;
+=======
+interface DMCData {
+  id: string;
+  name: string;
+  primaryContact: string;
+  phoneNumber: string;
+  designation: string;
+  email: string;
+  status: string;
+  joinSource: string;
+  createdAt: string;
+  registrationCertificate?: {
+    id: string;
+    name: string;
+    url: string;
+  } | null;
+  ownerName: string;
+  ownerPhoneNumber: string;
+  website: string;
+  primaryCountry: string;
+  destinationsCovered: string;
+  cities: string;
+  gstRegistered: boolean;
+  gstNumber: string;
+  yearOfRegistration: string;
+  panNumber: string;
+  panType: string;
+  headquarters: string;
+  country: string;
+  yearsOfExperience: string;
+}
+
+interface DMCTableProps {
+  refreshTrigger: number;
+>>>>>>> 1e1b2f0a30dabaa65ddd16e369f9bdf74be3b288
 }
 
 export function DMCTable({ refreshTrigger }: DMCTableProps) {
@@ -116,6 +152,7 @@ export function DMCTable({ refreshTrigger }: DMCTableProps) {
       } else {
         throw new Error(result.error || "Failed to fetch DMC data");
       }
+<<<<<<< HEAD
     } catch (err: unknown) {
       console.error("Error fetching DMC data:", err);
 
@@ -128,6 +165,16 @@ export function DMCTable({ refreshTrigger }: DMCTableProps) {
       toast({
         title: "Error",
         description: message || "Failed to fetch DMC data",
+=======
+    } catch (error: unknown) {
+      console.error("Error fetching DMC data:", error);
+      const errorMessage =
+        error instanceof Error ? error.message : "Failed to fetch DMC data";
+      setError(errorMessage);
+      toast({
+        title: "Error",
+        description: errorMessage,
+>>>>>>> 1e1b2f0a30dabaa65ddd16e369f9bdf74be3b288
         variant: "destructive",
       });
     } finally {
@@ -135,7 +182,7 @@ export function DMCTable({ refreshTrigger }: DMCTableProps) {
     }
   };
 
-  // Fetch data on component mount
+  // Fetch data on component mount and when refreshTrigger changes
   useEffect(() => {
     fetchDMCData();
   }, [refreshTrigger]);
@@ -212,10 +259,20 @@ export function DMCTable({ refreshTrigger }: DMCTableProps) {
           variant: "destructive",
         });
       }
+<<<<<<< HEAD
     } catch {
       toast({
         title: "Error",
         description: "Failed to delete DMC",
+=======
+    } catch (error: unknown) {
+      console.error("Error deleting DMC:", error);
+      const errorMessage =
+        error instanceof Error ? error.message : "Failed to delete DMC";
+      toast({
+        title: "Error",
+        description: errorMessage,
+>>>>>>> 1e1b2f0a30dabaa65ddd16e369f9bdf74be3b288
         variant: "destructive",
       });
     }
