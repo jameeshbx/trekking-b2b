@@ -12,8 +12,8 @@ const urlRegex = new RegExp(
   /^(https?:\/\/)?([\da-z.-]+)\.([a-z.]{2,6})([/\w .-]*)*\/?$/
 );
 
-export const agencyFormSchema = z.object({
-  // Basic Information
+export const agencyFormSchemaBase = z.object({
+  name: z.string(),
   contactPerson: z.string().min(2, "Contact person must be at least 2 characters"),
   agencyType: z.enum([
     "PRIVATE_LIMITED",
@@ -67,4 +67,5 @@ export const agencyFormSchema = z.object({
   path: ["gstNumber"]
 });
 
-export type AgencyFormValues = z.infer<typeof agencyFormSchema>;
+export const agencyFormSchema = agencyFormSchemaBase.refine
+export type AgencyFormValues = z.infer<typeof agencyFormSchemaBase>;

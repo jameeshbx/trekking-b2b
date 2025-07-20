@@ -23,6 +23,10 @@ export async function GET(request: NextRequest) {
     const dateTo = searchParams.get("dateTo")
 
     // Build where clause
+<<<<<<< HEAD
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const where: Record<string, any> = {}
+=======
     const where: {
       OR?: Array<{
         id?: { contains: string; mode: "insensitive" }
@@ -35,6 +39,7 @@ export async function GET(request: NextRequest) {
         lte?: Date
       }
     } = {}
+>>>>>>> 1e1b2f0a30dabaa65ddd16e369f9bdf74be3b288
 
     if (search) {
       where.OR = [
@@ -56,7 +61,12 @@ export async function GET(request: NextRequest) {
     }
 
     // Build orderBy clause
+<<<<<<< HEAD
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const orderBy: Record<string, any> = {}
+=======
     const orderBy: Record<string, string> = {}
+>>>>>>> 1e1b2f0a30dabaa65ddd16e369f9bdf74be3b288
     orderBy[sortBy === 'status' || sortBy === 'requestType' ? 'createdAt' : sortBy] = sortDirection
 
     console.log("API: Building where clause:", where)
@@ -76,11 +86,16 @@ export async function GET(request: NextRequest) {
 
     // Transform data to match frontend expectations
     const transformedRequests = requests.map((request) => {
+<<<<<<< HEAD
+      // Ensure config is an object even if it's null
+      const config = (request.config as Record<string, unknown>) || {}
+=======
       const config: AgencyConfig = request.config as AgencyConfig || {}
+>>>>>>> 1e1b2f0a30dabaa65ddd16e369f9bdf74be3b288
       
       // Map the requestType to match frontend expectations
       let requestType = "PENDING"
-      if (config.requestType) {
+      if (config.requestType && typeof config.requestType === 'string') {
         requestType = config.requestType.toUpperCase()
       }
       

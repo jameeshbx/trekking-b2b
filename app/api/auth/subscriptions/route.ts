@@ -1,5 +1,9 @@
 import { NextResponse } from 'next/server'
 import { prisma } from "@/lib/prisma"
+<<<<<<< HEAD
+
+=======
+>>>>>>> 1e1b2f0a30dabaa65ddd16e369f9bdf74be3b288
 import type { Prisma } from "@prisma/client"
 
 export const dynamic = 'force-dynamic' // If using dynamic routes
@@ -14,6 +18,10 @@ export async function GET(request: Request) {
     const limit = parseInt(searchParams.get('limit') || '8')
     const sortBy = searchParams.get('sortBy') || 'createdAt'
     const sortDirection = searchParams.get('sortDirection') as 'asc' | 'desc' || 'desc'
+<<<<<<< HEAD
+    // const paymentStatus = searchParams.getAll('paymentStatus') || []
+=======
+>>>>>>> 1e1b2f0a30dabaa65ddd16e369f9bdf74be3b288
     const plans = searchParams.getAll('plans') || []
     const fromDate = searchParams.get('fromDate') ? new Date(searchParams.get('fromDate')!) : null
     const toDate = searchParams.get('toDate') ? new Date(searchParams.get('toDate')!) : null

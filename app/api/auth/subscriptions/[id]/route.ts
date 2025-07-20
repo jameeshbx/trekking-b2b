@@ -4,6 +4,16 @@ import { prisma } from "@/lib/prisma"
 
 // Update your handler function to use these types
 export async function GET(
+<<<<<<< HEAD
+  _req: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { id } = await params;
+
+    const subscription = await prisma.subscription.findUnique({
+      where: { id:id },
+=======
   request: Request,
   context: { params: Promise<{ id: string }> }
 ) {
@@ -13,6 +23,7 @@ export async function GET(
 
     const subscription = await prisma.subscription.findUnique({
       where: { id },
+>>>>>>> 1e1b2f0a30dabaa65ddd16e369f9bdf74be3b288
       include: {
         agency: {
           include: { users: { take: 1 } },
@@ -20,13 +31,13 @@ export async function GET(
         plan: true,
         feature: true,
       },
-    })
+    });
 
     if (!subscription) {
       return NextResponse.json(
         { error: "Subscription not found" },
         { status: 404 }
-      )
+      );
     }
 
     const user = subscription.agency.users[0] || null
@@ -47,20 +58,28 @@ export async function GET(
       requestLimit: subscription.requestLimit,
       userLimit: subscription.userLimit,
       feature: subscription.feature.name,
-    }
+    };
 
     return NextResponse.json(formattedSubscription)
   } catch (error) {
-    console.error("Error fetching subscription:", error)
+    console.error("Error fetching subscription:", error);
     return NextResponse.json(
       { error: "Failed to fetch subscription" },
       { status: 500 }
-    )
+    );
   }
 }
 
 export async function PUT(
   request: Request,
+<<<<<<< HEAD
+  {params}: { params: Promise<{ id: string }> }
+) {
+  try {
+    const body = await request.json();
+    const subscription = await prisma.subscription.update({
+        where: { id: (await params).id },
+=======
   context: { params: Promise<{ id: string }> }
 ) {
   try {
@@ -68,37 +87,47 @@ export async function PUT(
     const body = await request.json()
     const subscription = await prisma.subscription.update({
       where: { id: (await params).id },
+>>>>>>> 1e1b2f0a30dabaa65ddd16e369f9bdf74be3b288
       data: body,
       include: {
         agency: true,
         plan: true,
         feature: true,
       },
-    })
-    return NextResponse.json(subscription)
+    });
+
+    return NextResponse.json(subscription);
   } catch (error) {
-    console.error("Error updating subscription:", error)
+    console.error("Error updating subscription:", error);
     return NextResponse.json(
       { error: "Failed to update subscription" },
       { status: 500 }
-    )
+    );
   }
 }
 export async function DELETE(
   request: Request,
+<<<<<<< HEAD
+  { params }: { params: Promise<{ id: string }> }
+=======
   context: { params: Promise<{ id: string }> }
+>>>>>>> 1e1b2f0a30dabaa65ddd16e369f9bdf74be3b288
 ) {
   try {
     const { params } = context;
     await prisma.subscription.delete({
       where: { id: (await params).id },
     })
-    return NextResponse.json({ success: true })
+    return NextResponse.json({ success: true });
   } catch (error) {
-    console.error("Error deleting subscription:", error)
+    console.error("Error deleting subscription:", error);
     return NextResponse.json(
       { error: "Failed to delete subscription" },
       { status: 500 }
-    )
+    );
   }
+<<<<<<< HEAD
+}
+=======
 } 
+>>>>>>> 1e1b2f0a30dabaa65ddd16e369f9bdf74be3b288

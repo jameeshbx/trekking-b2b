@@ -1,4 +1,30 @@
-export const fetchDMCs = async (params: {
+ export interface CreateDMCInput {
+  name: string
+  contactPerson?: string
+  designation?: string
+  phoneNumber?: string
+  phoneCountryCode?: string
+  ownerName?: string
+  email?: string
+  ownerPhoneNumber?: string
+  ownerPhoneCode?: string
+  website?: string
+  primaryCountry?: string
+  destinationsCovered?: string
+  cities?: string
+  gstRegistered?: boolean
+  gstNumber?: string
+  yearOfRegistration?: string
+  panNumber?: string
+  panType?: 'INDIVIDUAL' | 'COMPANY' | 'TRUST' | 'OTHER'
+  headquarters?: string
+  country?: string
+  yearsOfExperience?: string
+  registrationCertificateId?: string
+  createdBy: string
+}
+
+ export const fetchDMCs = async (params: {
   search?: string
   sortBy?: string
   sortOrder?: string

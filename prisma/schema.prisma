@@ -186,15 +186,20 @@ model DMCForm {
 }
 
 model Manager {
-  id        String  @id @default(uuid())
+  id        String   @id @default(uuid())
   name      String
   phone     String
-  email     String  @unique
-  username  String  @unique
+  email     String   @unique
+  username  String   @unique
   password  String
-  profileId String? @unique
-  profile   File?   @relation("ManagerProfile", fields: [profileId], references: [id])
+  status    String   @default("INACTIVE")
+  profileId String?  @unique
+  profile   File?    @relation("ManagerProfile", fields: [profileId], references: [id])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt @default(now())
 }
+
+
 
 enum Role {
   USER
@@ -227,6 +232,16 @@ enum DMCStatus {
   ACTIVE
   DEACTIVE
 }
+enum DMCRequestStatusEnum {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+
+
+
+
 
 enum AgencyType {
   PRIVATE_LIMITED

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server"
 import { PrismaClient } from "@prisma/client"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
+import type { PanType } from "@prisma/client";
 
 const prisma = new PrismaClient()
 
@@ -88,7 +89,12 @@ export async function POST(request: Request) {
         gstNumber: gstNo,
         yearOfRegistration: yearOfRegistration,
         panNumber: panNo,
+<<<<<<< HEAD
+        panType: panType ? (panType as PanType) : undefined,
+
+=======
         panType: panType,
+>>>>>>> 1e1b2f0a30dabaa65ddd16e369f9bdf74be3b288
         headquarters: headquarters,
         country: country,
         yearsOfExperience: yearOfExperience,
@@ -106,9 +112,18 @@ export async function POST(request: Request) {
     )
   } catch (error: unknown) {
     console.error("DMC Registration Error:", error)
+<<<<<<< HEAD
+    let message = "Failed to register DMC"
+  if (error instanceof Error) {
+    message = error.message
+  }
+    return NextResponse.json(
+      { error: message || "Failed to register DMC" },
+=======
     const errorMessage = error instanceof Error ? error.message : "Failed to register DMC";
     return NextResponse.json(
       { error: errorMessage },
+>>>>>>> 1e1b2f0a30dabaa65ddd16e369f9bdf74be3b288
       { status: 500 }
     )
   }

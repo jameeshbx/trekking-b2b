@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import type { DMCRegistrationData } from "@/types/dmc";
+
 import { PrismaClient } from "@prisma/client";
 
 const prismaClient = new PrismaClient();
@@ -21,7 +22,11 @@ export async function POST(req: Request) {
     const data: DMCRegistrationData = await req.json();
 
     // Validate and type cast panType
+<<<<<<< HEAD
+    const panType = data.panType as "INDIVIDUAL" | "COMPANY" | "TRUST" | "OTHER";
+=======
     const panType = data.panType as PanType;
+>>>>>>> 1e1b2f0a30dabaa65ddd16e369f9bdf74be3b288
 
     // Create DMC record
     const dmc = await prisma.dMCForm.create({
@@ -76,7 +81,7 @@ export async function GET() {
   try {
     const session = await getServerSession(authOptions);
     
-    if (!session) {
+    if (!session?.user) {
       return NextResponse.json(
         { error: "Unauthorized" },
         { status: 401 }
@@ -126,9 +131,20 @@ export async function GET() {
 
   } catch (error: unknown) {
     console.error("Error fetching DMC data:", error);
+<<<<<<< HEAD
+
+    let message = "Failed to fetch DMC data";
+  if (error instanceof Error) {
+    message = error.message;
+  }
+
+    return NextResponse.json(
+      { error: message || "Failed to fetch DMC data" },
+=======
     const errorMessage = error instanceof Error ? error.message : "Failed to fetch DMC data";
     return NextResponse.json(
       { error: errorMessage },
+>>>>>>> 1e1b2f0a30dabaa65ddd16e369f9bdf74be3b288
       { status: 500 }
     );
   }
