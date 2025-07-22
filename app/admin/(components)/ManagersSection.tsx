@@ -26,7 +26,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
-import { Badge } from "@/components/ui/badge"
 import { toast } from "@/components/ui/use-toast"
 import { Toaster } from "@/components/ui/toaster"
 
@@ -649,7 +648,7 @@ export default function ManagerSection() {
       </div>
 
       <div className="text-xs text-gray-500 mt-8">
-        © 2023, Made by <span className="text-emerald-500">Trekking Miles</span>.
+        © 2025, Made by <span className="text-emerald-500">Trekking Miles</span>.
       </div>
 
       <Toaster />

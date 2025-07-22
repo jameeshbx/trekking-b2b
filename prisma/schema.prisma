@@ -19,6 +19,9 @@ model File {
   agencyLogo                 AgencyForm? @relation("AgencyLogo")
   dmcRegistrationCertificate DMCForm?    @relation("DMCRegistrationCertificate")
   managerProfile             Manager?    @relation("ManagerProfile")
+  userProfile                UserForm?   @relation("UserProfileImage")
+
+  @@map("file") 
 }
 
 model User {
@@ -199,7 +202,23 @@ model Manager {
   updatedAt DateTime @updatedAt @default(now())
 }
 
+model UserForm {
+  id               String    @id @default(uuid())
+  name             String
+  phoneNumber      String
+  phoneExtension   String    @default("+91")
+  email            String    @unique
+  username         String    @unique
+  password         String
+  profileImageId   String?   @unique
+  status           UserStatus @default(ACTIVE)
+  createdAt        DateTime   @default(now())
+  updatedAt        DateTime   @updatedAt
+  createdBy        String
+  profileImage     File?     @relation("UserProfileImage", fields: [profileImageId], references: [id])
 
+  @@map("user_form") // Explicit table name mapping
+}
 
 enum Role {
   USER
@@ -238,11 +257,6 @@ enum DMCRequestStatusEnum {
   REJECTED
 }
 
-
-
-
-
-
 enum AgencyType {
   PRIVATE_LIMITED
   PROPRIETORSHIP
@@ -260,4 +274,9 @@ enum PanType {
   COMPANY
   TRUST
   OTHER
+}
+
+enum UserStatus {
+  ACTIVE
+  INACTIVE
 }
