@@ -1,18 +1,28 @@
 "use client"
 
 import type React from "react"
-import Image from 'next/image';
-
-import { useState } from "react"
+import Image from 'next/image';                                                  
+                                                                                                
+import { useState,useEffect } from "react"
 import { Eye, Facebook, Twitter, Instagram } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dailog"
-import { profileData, accountData, teamMembers, commentData } from "@/data/profile"
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dailog" 
+import { accountData, teamMembers, commentData } from "@/data/profile"                                            
 
 export default function ProfilePage() {
-  const [showComments, setShowComments] = useState(false)
+  const [showComments, setShowComments] = useState(false) 
   const [showPassword, setShowPassword] = useState(false)
   const [commentText, setCommentText] = useState("")
+
+
+   //  New dynamic profile state
+ const [profileData, setProfileData] = useState<{    
+  name: string | null;
+  email: string | null;
+  bio?: string | null;
+  mobile?: string | null;
+} | null>(null);
+
 
   // Function to handle image errors and provide fallback
   const handleImageError = (e: React.SyntheticEvent<HTMLImageElement, Event>) => {
@@ -23,6 +33,22 @@ export default function ProfilePage() {
     console.log("Posted comment:", commentText)
     setCommentText("")
   }
+
+   //  New dynamic fetch effect
+  useEffect(() => {
+    const fetchProfile = async () => {
+      const res = await fetch("/api/auth/admin-profile");
+      if (res.ok) {
+        const data = await res.json();
+        setProfileData(data);
+      } else {
+        console.error("Failed to fetch profile"); 
+      }
+    };
+
+    fetchProfile();
+  }, []);
+
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -44,7 +70,7 @@ export default function ProfilePage() {
         <div className="flex items-center gap-4 relative z-10">
           <div className="h-12 w-12 rounded-full overflow-hidden border-2 border-white/60 backdrop-blur-sm relative">
             <Image
-              src={profileData.avatarUrl || "/placeholder.svg"}
+              src={ "/placeholder.svg"}
               alt="Profile"
               fill
               className="object-cover"
@@ -53,10 +79,10 @@ export default function ProfilePage() {
           </div>
           <div>
             <h1 className="font-medium text-lg text-gray-800 drop-shadow-[0_1px_1px_rgba(255,255,255,0.8)]">
-              {profileData.name}
+              {profileData?.name || "Loading..."}
             </h1>
             <p className="text-base text-gray-600 drop-shadow-[0_1px_1px_rgba(255,255,255,0.8)]">
-              {profileData.email}
+              {profileData?.email || "Loading..."}
             </p>
           </div>
         </div>
@@ -73,27 +99,27 @@ export default function ProfilePage() {
         {/* Profile Information */}
         <div className="p-6 bg-white rounded-lg shadow-md">
           <h2 className="text-lg font-bold mb-4">Profile Information</h2>
-          <p className="text-sm text-gray-600 mb-6">{profileData.bio}</p>
+          <p className="text-sm text-gray-600 mb-6">{profileData?.bio || "Loading"}</p>
 
           <div className="space-y-4">
             <div className="grid grid-cols-3 gap-2">
               <span className="text-sm font-medium">Full Name:</span>
-              <span className="text-sm text-gray-600 col-span-2">{profileData.fullName}</span>
+              <span className="text-sm text-gray-600 col-span-2"> {profileData?.name || "Loading..."}</span>
             </div>
 
             <div className="grid grid-cols-3 gap-2">
               <span className="text-sm font-medium">Mobile:</span>
-              <span className="text-sm text-gray-600 col-span-2">{profileData.mobile}</span>
+              <span className="text-sm text-gray-600 col-span-2">{profileData?.mobile || "Loading..."}</span>
             </div>
 
             <div className="grid grid-cols-3 gap-2">
               <span className="text-sm font-medium">Email:</span>
-              <span className="text-sm text-gray-600 col-span-2">{profileData.email}</span>
+              <span className="text-sm text-gray-600 col-span-2"> {profileData?.email || "Loading..."}</span>
             </div>
 
             <div className="grid grid-cols-3 gap-2">
               <span className="text-sm font-medium">Location:</span>
-              <span className="text-sm text-gray-600 col-span-2">{profileData.location}</span>
+              <span className="text-sm text-gray-600 col-span-2">{accountData.location}</span>
             </div>
 
             <div className="grid grid-cols-3 gap-2">
@@ -220,7 +246,7 @@ export default function ProfilePage() {
                   alt={commentData.author}
                   width={40}
                   height={40}
-                  className="h-full w-full object-cover"
+                  className="h-full w-full object-cover" 
                   onError={handleImageError}
                 />
               </div>

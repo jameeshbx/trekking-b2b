@@ -1,12 +1,7 @@
 "use client";
 
-<<<<<<< HEAD
-import { useState, useEffect, useRef } from "react";
-import { useRouter } from "next/navigation";
-=======
 import { useState, useEffect, useRef, useCallback } from "react"
 import { useRouter } from "next/navigation"
->>>>>>> 1e1b2f0a30dabaa65ddd16e369f9bdf74be3b288
 import {
   Search,
   ChevronDown,
@@ -62,27 +57,6 @@ interface SubscriptionTableProps {
   subscriptions: SubscriptionData[];
 }
 
-<<<<<<< HEAD
-export function SubscriptionTable({
-  subscriptions: initialSubscriptions,
-}: SubscriptionTableProps) {
-  const router = useRouter();
-  const tableContainerRef = useRef<HTMLDivElement>(null);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage] = useState(8);
-  const [, setSubscriptions] =
-    useState<SubscriptionData[]>(initialSubscriptions);
-  const [filteredSubscriptions, setFilteredSubscriptions] =
-    useState<SubscriptionData[]>(initialSubscriptions);
-  const [totalPages, setTotalPages] = useState(
-    Math.ceil(initialSubscriptions.length / itemsPerPage)
-  );
-  const [loading, setLoading] = useState(false);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [selectedPaymentStatuses, setSelectedPaymentStatuses] = useState<
-    Record<string, boolean>
-  >({
-=======
 export function SubscriptionTable({ subscriptions: initialSubscriptions }: SubscriptionTableProps) {
   const router = useRouter()
   const tableContainerRef = useRef<HTMLDivElement>(null)
@@ -94,7 +68,6 @@ export function SubscriptionTable({ subscriptions: initialSubscriptions }: Subsc
   const [loading, setLoading] = useState(false)
   const [searchTerm, setSearchTerm] = useState("")
   const [selectedPaymentStatuses, setSelectedPaymentStatuses] = useState<Record<string, boolean>>({
->>>>>>> 1e1b2f0a30dabaa65ddd16e369f9bdf74be3b288
     Paid: true,
     Pending: true,
     Failed: true,
@@ -130,31 +103,19 @@ export function SubscriptionTable({ subscriptions: initialSubscriptions }: Subsc
   const currentItems = filteredSubscriptions.slice(0, itemsPerPage);
 
   // Fetch subscriptions with filters
-<<<<<<< HEAD
-  const fetchFilteredSubscriptions = async (): Promise<void> => {
-=======
   const fetchFilteredSubscriptions = useCallback(async () => {
->>>>>>> 1e1b2f0a30dabaa65ddd16e369f9bdf74be3b288
     try {
       setLoading(true);
 
       // Convert selected payment statuses to array
       const paymentStatusArray = Object.entries(selectedPaymentStatuses)
         .filter(([, selected]) => selected)
-<<<<<<< HEAD
-        .map(([status]) => status);
-=======
         .map(([status]) => status)
->>>>>>> 1e1b2f0a30dabaa65ddd16e369f9bdf74be3b288
 
       // Convert selected plans to array
       const plansArray = Object.entries(selectedPlans)
         .filter(([, selected]) => selected)
-<<<<<<< HEAD
-        .map(([plan]) => plan);
-=======
         .map(([plan]) => plan)
->>>>>>> 1e1b2f0a30dabaa65ddd16e369f9bdf74be3b288
 
       const result = await fetchSubscriptions({
         search: searchTerm,
@@ -181,9 +142,6 @@ export function SubscriptionTable({ subscriptions: initialSubscriptions }: Subsc
     } finally {
       setLoading(false);
     }
-<<<<<<< HEAD
-  };
-=======
   }, [
     currentPage,
     dateRange.from,
@@ -195,7 +153,6 @@ export function SubscriptionTable({ subscriptions: initialSubscriptions }: Subsc
     sortBy,
     sortDirection,
   ])
->>>>>>> 1e1b2f0a30dabaa65ddd16e369f9bdf74be3b288
 
   // Apply filters when filter parameters change
   useEffect(() => {
@@ -205,11 +162,7 @@ export function SubscriptionTable({ subscriptions: initialSubscriptions }: Subsc
     searchTerm,
     sortBy,
     sortDirection,
-<<<<<<< HEAD
-    fetchFilteredSubscriptions,
-=======
     fetchFilteredSubscriptions
->>>>>>> 1e1b2f0a30dabaa65ddd16e369f9bdf74be3b288
     // We don't include the following as they are applied via buttons:
     // selectedPaymentStatuses, selectedPlans, dateRange
   ]);
@@ -385,11 +338,7 @@ export function SubscriptionTable({ subscriptions: initialSubscriptions }: Subsc
   };
 
   // Handle delete
-<<<<<<< HEAD
-  const handleDelete = async () => {
-=======
   const handleDelete = async (subscriptionId: string) => {
->>>>>>> 1e1b2f0a30dabaa65ddd16e369f9bdf74be3b288
     try {
       // Call the API to delete the subscription
       const response = await fetch(`/api/auth/subscriptions/${subscriptionId}`, {
@@ -415,8 +364,6 @@ export function SubscriptionTable({ subscriptions: initialSubscriptions }: Subsc
     }
   };
 
-  // Rest of the component remains the same as your original code
-  // ...
 
   return (
     <div className="flex flex-col h-full">
@@ -965,7 +912,7 @@ export function SubscriptionTable({ subscriptions: initialSubscriptions }: Subsc
                             <Edit className="h-4 w-4 mr-2" />
                             <span>Edit</span>
                           </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => handleDelete()}>
+                          <DropdownMenuItem onClick={() => handleDelete(subscription.id)}>
                             <Trash2 className="h-4 w-4 mr-2" />
                             Delete
                           </DropdownMenuItem>
