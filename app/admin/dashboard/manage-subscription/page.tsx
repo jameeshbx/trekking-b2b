@@ -18,16 +18,10 @@ export default function ManageSubscription() {
         setLoading(true)
         const data = await fetchSubscriptions({})
         setSubscriptions(data.subscriptions)
-<<<<<<< HEAD
-      } catch (error) {
-        console.error(error)
-        setError("Failed to load subscriptions")
-=======
       } catch (error: unknown) {
         console.error("Error loading subscriptions:", error)
         const errorMessage = error instanceof Error ? error.message : "Failed to load subscriptions"
         setError(errorMessage)
->>>>>>> 1e1b2f0a30dabaa65ddd16e369f9bdf74be3b288
       } finally {
         setLoading(false)
       }
