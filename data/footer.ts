@@ -8,10 +8,10 @@ export const links = {
   };
   
   export const contactDetails = {
-    email: "Info@exemple.com",
-    mob: "+1 123 456 7890",
-    location: "Office 322 G4,",
-    address: "Town, City, New York",
+    email: "sales@elneera.com",
+    mob: "+91 9633779922",
+    location: "First Floor, Integrated Startup Complex, Kerala Technology Innovation Zone, HMT Colony,",
+    address: "Kalamassery, Kochi, Kerala 683503",
   };
   
   export const socialMedia = [
@@ -38,4 +38,4 @@ export const links = {
     { label: "Terms and Conditions", href: "/terms-conditions" },
   ];
   
-  export const copyrightText = "Copyright © 2025 • Trekking Miles.";
+  export const copyrightText = "Copyright © 2025 • Elneera.";

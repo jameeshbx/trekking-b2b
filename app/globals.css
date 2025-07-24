@@ -14,6 +14,7 @@
   --font-raleway: "Raleway", sans-serif; /* Keep Raleway available */
   --font-nunito: "Nunito", sans-serif; /* Added Nunito */
   --font-urbanist: "Urbanist", sans-serif; /* Added Urbanist */
+  --font-Beiruti: "Beiruti", serif; /* Added Beiruti */
   --font-mono: var(--font-geist-mono);
 
   --width-w1: 650px;
@@ -163,6 +164,8 @@
 .font-Helvetica{
   font-family: 'Roboto',Arial, Helvetica, sans-serif;
 }
-
+.font-Beiruti {
+  font-family: "Beiruti", serif; /* Added Beiruti */
+}
   
 }
