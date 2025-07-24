@@ -33,7 +33,7 @@ export default function Navbar() {
       <div className="max-w-7xl mx-auto flex items-center justify-between">
         {/* Logo - Visible on both mobile and desktop */}
         <Link href="/" className="flex items-center z-20" data-cy="navbar-logo">
-          <div className="absolute h-12 w-40">
+          <div className="absolute h-16 w-44">
             <Image src="/logo.png" alt="Trekking Miles" fill className="object-contain" priority />
           </div>
         </Link>

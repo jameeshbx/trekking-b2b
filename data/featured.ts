@@ -1,7 +1,7 @@
 export const featuresData = [
     {
       imagePath: "/img/Vector (1).svg",
-      title: "Smart Itinerary Builder",
+      title: "AI Itinerary Builder",
       description: "Create, edit & share travel plans in minutes.",
     },
     {
