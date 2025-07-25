@@ -296,11 +296,10 @@ export default function HowItWorks() {
             </div>
 
             <h3 className="text-xl font-medium mt-4 text-golden-yellow text-center font-Poppins">
-              Connect with DMCs <br /> for Pricing
+              Connect with DMCs/TOs <br /> for Pricing
             </h3>
             <p className="text-base text-center mt-2 text-gray-500 max-w-xs leading-6 font-Poppins">
-              Submit the finalized itinerary to selected DMCs for pricing, compare options, view margins, and share with
-              your customers.
+              Submit your finalized itinerary to selected DMCs and TOs for pricing, compare options, view margins, and share with customers.
             </p>
           </div>
 

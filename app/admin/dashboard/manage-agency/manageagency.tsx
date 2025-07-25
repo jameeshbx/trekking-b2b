@@ -457,7 +457,6 @@ export default function ManageAgencySignup() {
 
   // Reset status filters
   const resetStatusFilters = () => {
-    setSelectedStatuses({
     setSelectedStatuses({ 
       APPROVED: true,
       PENDING: true,

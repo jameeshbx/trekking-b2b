@@ -34,19 +34,19 @@ const features = [
     isGradient: true,
   },
   {
-    title: "Forex Support",
+    title: "International Tour Payments",
     imageSrc: "/background/gradient.png?height=400&width=600",
     isGradient: true,
     containerClassName: "xl:col-span-4  mx-auto",
   },
   {
-    title: "24/7 Support & Assistance",
+    title: "Powered by AI",
     imageSrc: "/background/gradient.png?height=400&width=600",
     isGradient: true,
     containerClassName: "xl:col-span-5  mx-auto",
   },
   {
-    title: "Dedicated help for seamless operations.",
+    title: "Instantly get personalized itineraries based on your preferences, time, and budget.",
     imageSrc: "/background/feature4.png?height=400&width=600",
     containerClassName: "xl:col-span-7  mx-auto shadow-xl",
     imageClassName: "lg:w-w2 lg:-ml-5",
