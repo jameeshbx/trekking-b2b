@@ -648,7 +648,7 @@ export default function ManagerSection() {
       </div>
 
       <div className="text-xs text-gray-500 mt-8">
-        © 2023, Made by <span className="text-emerald-500">Trekking Miles</span>.
+        © 2025, Made by <span className="text-emerald-500">Trekking Miles</span>.
       </div>
 
       <Toaster />

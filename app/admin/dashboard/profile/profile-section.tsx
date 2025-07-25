@@ -1,13 +1,13 @@
 "use client"
 
 import type React from "react"
-import Image from 'next/image';                                                  
-                                                                                                
+import Image from 'next/image';                                                                                                                                                  
 import { useState,useEffect } from "react"
 import { Eye, Facebook, Twitter, Instagram } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dailog" 
 import { accountData, teamMembers, commentData } from "@/data/profile"                                            
+
 
 export default function ProfilePage() {
   const [showComments, setShowComments] = useState(false) 
@@ -25,9 +25,10 @@ export default function ProfilePage() {
 
 
   // Function to handle image errors and provide fallback
-  const handleImageError = (e: React.SyntheticEvent<HTMLImageElement, Event>) => {
-    e.currentTarget.src = "/placeholder.svg?height=40&width=40"
-  }
+ const handleImageError = (e: React.SyntheticEvent<HTMLImageElement, Event>) => {
+  e.currentTarget.src = "/placeholder.svg"; 
+};
+
 
   const handlePostComment = () => {
     console.log("Posted comment:", commentText)

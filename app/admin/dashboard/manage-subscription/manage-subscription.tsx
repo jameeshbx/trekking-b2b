@@ -364,7 +364,6 @@ export function SubscriptionTable({ subscriptions: initialSubscriptions }: Subsc
     }
   };
 
-
   return (
     <div className="flex flex-col h-full">
       {/* Search and Filters - Fixed */}

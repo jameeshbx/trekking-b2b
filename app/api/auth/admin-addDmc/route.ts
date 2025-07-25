@@ -3,7 +3,6 @@ import { PrismaClient } from "@prisma/client"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 
-
 const prisma = new PrismaClient()
 
 type PanType = "INDIVIDUAL" | "COMPANY" | "TRUST" | "OTHER";
@@ -89,7 +88,7 @@ export async function POST(request: Request) {
         gstNumber: gstNo,
         yearOfRegistration: yearOfRegistration,
         panNumber: panNo,
-        panType: panType,
+        panType: panType ? (panType as PanType) : undefined,
         headquarters: headquarters,
         country: country,
         yearsOfExperience: yearOfExperience,

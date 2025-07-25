@@ -988,3 +988,4 @@ export function DMCRegistrationForm({ onDMCAdded }: DMCRegistrationFormProps) {
     </form>
   );
 }
+

@@ -15,6 +15,8 @@ declare module "next-auth" {
       role?: string;
     };
   }
+
+  
   
   interface User {
     id: string;
@@ -70,6 +72,7 @@ export const authOptions: NextAuthOptions = {
       },
     }),
   ],
+  
   session: {
     strategy: "jwt",
   },
