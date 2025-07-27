@@ -1,52 +1,58 @@
-"use client"
+"use client";
 
-import { useState, useEffect } from "react"
-import Image from "next/image"
-import { ChevronLeft, ChevronRight } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { cn } from "@/lib/utils"
-import { featuresData } from "../data/featured"
+import { useState, useEffect } from "react";
+import Image from "next/image";
+import { ChevronLeft, ChevronRight } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
+import { featuresData } from "../data/featured";
 
 export default function FeaturesSection() {
-  const [isMobile, setIsMobile] = useState<boolean | null>(null)
-  const [isTablet, setIsTablet] = useState<boolean | null>(null)
-  const [currentIndex, setCurrentIndex] = useState(0)
+  const [isMobile, setIsMobile] = useState<boolean | null>(null);
+  const [isTablet, setIsTablet] = useState<boolean | null>(null);
+  const [currentIndex, setCurrentIndex] = useState(0);
 
   useEffect(() => {
     const updateViewport = () => {
-      setIsMobile(window.innerWidth < 768)
-      setIsTablet(window.innerWidth >= 768 && window.innerWidth < 1024)
-    }
+      setIsMobile(window.innerWidth < 768);
+      setIsTablet(window.innerWidth >= 768 && window.innerWidth < 1024);
+    };
 
-    updateViewport()
-    window.addEventListener("resize", updateViewport)
-    return () => window.removeEventListener("resize", updateViewport)
-  }, [])
+    updateViewport();
+    window.addEventListener("resize", updateViewport);
+    return () => window.removeEventListener("resize", updateViewport);
+  }, []);
 
   const nextSlide = () => {
-    setCurrentIndex((prevIndex) => (prevIndex === featuresData.length - 1 ? 0 : prevIndex + 1))
-  }
+    setCurrentIndex((prevIndex) =>
+      prevIndex === featuresData.length - 1 ? 0 : prevIndex + 1
+    );
+  };
 
   const prevSlide = () => {
-    setCurrentIndex((prevIndex) => (prevIndex === 0 ? featuresData.length - 1 : prevIndex - 1))
-  }
+    setCurrentIndex((prevIndex) =>
+      prevIndex === 0 ? featuresData.length - 1 : prevIndex - 1
+    );
+  };
 
   const goToSlide = (index: number) => {
-    setCurrentIndex(index)
-  }
+    setCurrentIndex(index);
+  };
 
   useEffect(() => {
-    if (!isMobile) return
-    const interval = setInterval(nextSlide, 4000)
-    return () => clearInterval(interval)
-  }, [isMobile])
+    if (!isMobile) return;
+    const interval = setInterval(nextSlide, 4000);
+    return () => clearInterval(interval);
+  }, [isMobile]);
 
   if (isMobile === null || isTablet === null) {
     return (
       <section className="py-16 px-4 md:px-6 lg:px-8 bg-white">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-12">
-            <h2 className="text-4xl md:text-5xl font-bold text-gray-900 font-nunito mb-4">Our Value to You</h2>
+            <h2 className="text-4xl md:text-5xl font-bold text-gray-900 font-nunito mb-4">
+              Our Value to You
+            </h2>
             <p className="text-xl text-gray-600 font-Poppins max-w-3xl mx-auto">
               Empowering Agencies with Seamless Travel Planning
             </p>
@@ -58,14 +64,16 @@ export default function FeaturesSection() {
           </div>
         </div>
       </section>
-    )
+    );
   }
 
   return (
-    <section className="py-16 px-4 md:px-6 lg:px-8 bg-white z-[-1] ">
+    <section className="py-16 px-4 md:px-6 lg:px-8 bg-white z-[-1] " id="about">
       <div className="max-w-7xl mx-auto">
         <div className="text-center mb-12">
-          <h2 className="text-4xl md:text-5xl font-bold text-gray-900 font-nunito mb-4">Our Value to You</h2>
+          <h2 className="text-4xl md:text-5xl font-bold text-gray-900 font-nunito mb-4">
+            Our Value to You
+          </h2>
           <p className="text-xl text-gray-600 font-poppins max-w-3xl mx-auto">
             Empowering Agencies with Seamless Travel Planning
           </p>
@@ -113,7 +121,7 @@ export default function FeaturesSection() {
                   onClick={() => goToSlide(index)}
                   className={cn(
                     "w-2 h-2 rounded-full transition-colors",
-                    currentIndex === index ? "bg-emerald-800" : "bg-gray-300",
+                    currentIndex === index ? "bg-emerald-800" : "bg-gray-300"
                   )}
                   aria-label={`Go to slide ${index + 1}`}
                 />
@@ -128,19 +136,27 @@ export default function FeaturesSection() {
             <div className="overflow-hidden">
               <div
                 className="flex transition-transform duration-300 ease-in-out"
-                style={{ transform: `translateX(-${Math.floor(currentIndex / 2) * 100}%)` }}
+                style={{
+                  transform: `translateX(-${
+                    Math.floor(currentIndex / 2) * 100
+                  }%)`,
+                }}
               >
-                {Array.from({ length: Math.ceil(featuresData.length / 2) }).map((_, groupIndex) => (
-                  <div key={groupIndex} className="w-full flex-shrink-0">
-                    <div className="flex gap-6 px-4">
-                      {featuresData.slice(groupIndex * 2, groupIndex * 2 + 2).map((feature, index) => (
-                        <div key={index} className="w-1/2">
-                          <FeatureCard {...feature} />
-                        </div>
-                      ))}
+                {Array.from({ length: Math.ceil(featuresData.length / 2) }).map(
+                  (_, groupIndex) => (
+                    <div key={groupIndex} className="w-full flex-shrink-0">
+                      <div className="flex gap-6 px-4">
+                        {featuresData
+                          .slice(groupIndex * 2, groupIndex * 2 + 2)
+                          .map((feature, index) => (
+                            <div key={index} className="w-1/2">
+                              <FeatureCard {...feature} />
+                            </div>
+                          ))}
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  )
+                )}
               </div>
             </div>
 
@@ -162,17 +178,21 @@ export default function FeaturesSection() {
             </Button>
 
             <div className="flex space-x-2 justify-center mt-6">
-              {Array.from({ length: Math.ceil(featuresData.length / 2) }).map((_, index) => (
-                <button
-                  key={index}
-                  onClick={() => goToSlide(index * 2)}
-                  className={cn(
-                    "w-2 h-2 rounded-full transition-colors",
-                    Math.floor(currentIndex / 2) === index ? "bg-emerald-800" : "bg-gray-300",
-                  )}
-                  aria-label={`Go to slide group ${index + 1}`}
-                />
-              ))}
+              {Array.from({ length: Math.ceil(featuresData.length / 2) }).map(
+                (_, index) => (
+                  <button
+                    key={index}
+                    onClick={() => goToSlide(index * 2)}
+                    className={cn(
+                      "w-2 h-2 rounded-full transition-colors",
+                      Math.floor(currentIndex / 2) === index
+                        ? "bg-emerald-800"
+                        : "bg-gray-300"
+                    )}
+                    aria-label={`Go to slide group ${index + 1}`}
+                  />
+                )
+              )}
             </div>
           </div>
         )}
@@ -189,7 +209,13 @@ export default function FeaturesSection() {
               {featuresData.slice(4, 7).map((feature, index) => (
                 <FeatureCard key={index + 4} {...feature} />
               ))}
-              {featuresData[7] && <FeatureCard key={7} {...featuresData[7]} isSeventhCard={true} />}
+              {featuresData[7] && (
+                <FeatureCard
+                  key={7}
+                  {...featuresData[7]}
+                  isSeventhCard={true}
+                />
+              )}
             </div>
 
             {/* Additional Image Section - Only on desktop */}
@@ -208,7 +234,7 @@ export default function FeaturesSection() {
         )}
       </div>
     </section>
-  )
+  );
 }
 
 function MobileFeatureCard({
@@ -216,19 +242,25 @@ function MobileFeatureCard({
   title,
   description,
 }: {
-  imagePath: string
-  title: string
-  description: string
+  imagePath: string;
+  title: string;
+  description: string;
 }) {
   return (
     <div className="bg-white border border-gray-200 rounded-lg p-6 transition-all hover:shadow-md h-full flex flex-col items-center text-center">
       <div className="mb-6 relative w-20 h-20">
-        <Image src={imagePath || "/placeholder.svg"} alt={title} fill className="object-contain" sizes="80px" />
+        <Image
+          src={imagePath || "/placeholder.svg"}
+          alt={title}
+          fill
+          className="object-contain"
+          sizes="80px"
+        />
       </div>
       <h3 className="text-lg font-semibold text-gray-900 mb-3">{title}</h3>
       <p className="text-gray-600 text-sm">{description}</p>
     </div>
-  )
+  );
 }
 
 function FeatureCard({
@@ -237,17 +269,19 @@ function FeatureCard({
   description,
   isSeventhCard = false,
 }: {
-  imagePath: string
-  title: string
-  description: string
-  isSeventhCard?: boolean
+  imagePath: string;
+  title: string;
+  description: string;
+  isSeventhCard?: boolean;
 }) {
   return (
     <div className="bg-white border border-gray-200 rounded-lg p-6 transition-all hover:shadow-md h-full z-10">
       {isSeventhCard ? (
         <div className="flex gap-4">
           <div className="flex-1">
-            <h3 className="text-lg font-semibold text-gray-900 mb-2 font-poppins">{title}</h3>
+            <h3 className="text-lg font-semibold text-gray-900 mb-2 font-poppins">
+              {title}
+            </h3>
             <p className="text-gray-600">{description}</p>
           </div>
           <div className="relative w-20 h-20 flex-shrink-0">
@@ -263,13 +297,20 @@ function FeatureCard({
       ) : (
         <>
           <div className="mb-4 relative w-12 h-12">
-            <Image src={imagePath || "/placeholder.svg"} alt={title} fill className="object-contain" sizes="48px" />
+            <Image
+              src={imagePath || "/placeholder.svg"}
+              alt={title}
+              fill
+              className="object-contain"
+              sizes="48px"
+            />
           </div>
-          <h3 className="text-lg font-semibold text-gray-900 mb-2 font-poppins">{title}</h3>
+          <h3 className="text-lg font-semibold text-gray-900 mb-2 font-poppins">
+            {title}
+          </h3>
           <p className="text-gray-600">{description}</p>
         </>
       )}
     </div>
-  )
+  );
 }
-
