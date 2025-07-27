@@ -1,4 +1,30 @@
-export const fetchDMCs = async (params: {
+ export interface CreateDMCInput {
+  name: string
+  contactPerson?: string
+  designation?: string
+  phoneNumber?: string
+  phoneCountryCode?: string
+  ownerName?: string
+  email?: string
+  ownerPhoneNumber?: string
+  ownerPhoneCode?: string
+  website?: string
+  primaryCountry?: string
+  destinationsCovered?: string
+  cities?: string
+  gstRegistered?: boolean
+  gstNumber?: string
+  yearOfRegistration?: string
+  panNumber?: string
+  panType?: 'INDIVIDUAL' | 'COMPANY' | 'TRUST' | 'OTHER'
+  headquarters?: string
+  country?: string
+  yearsOfExperience?: string
+  registrationCertificateId?: string
+  createdBy: string
+}
+
+ export const fetchDMCs = async (params: {
   search?: string
   sortBy?: string
   sortOrder?: string
@@ -20,7 +46,32 @@ export const fetchDMCs = async (params: {
   return response.json()
 }
 
-export const createDMC = async (data: any) => {
+// Define a type for the DMC data
+type DMCCreateData = {
+  dmcName: string
+  primaryContact: string
+  phoneNumber: string
+  primaryPhoneExtension: string
+  designation: string
+  ownerName: string
+  ownerPhoneNumber: string
+  ownerPhoneExtension: string
+  email: string
+  website?: string
+  primaryCountry: string
+  destinationsCovered?: string
+  cities?: string
+  gstRegistration: string
+  gstNo?: string
+  yearOfRegistration?: string
+  panNo: string
+  panType: string
+  headquarters?: string
+  country: string
+  yearOfExperience?: string
+}
+
+export const createDMC = async (data: DMCCreateData) => {
   const response = await fetch('/api/dmc', {
     method: 'POST',
     headers: {

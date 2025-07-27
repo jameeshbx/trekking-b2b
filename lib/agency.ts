@@ -12,8 +12,8 @@ const urlRegex = new RegExp(
   /^(https?:\/\/)?([\da-z.-]+)\.([a-z.]{2,6})([/\w .-]*)*\/?$/
 );
 
-export const agencyFormSchema = z.object({
-  // Basic Information
+export const agencyFormSchemaBase = z.object({
+  name: z.string(),
   contactPerson: z.string().min(2, "Contact person must be at least 2 characters"),
   agencyType: z.enum([
     "PRIVATE_LIMITED",
@@ -40,7 +40,7 @@ export const agencyFormSchema = z.object({
 
   // GST & Registration Details
   gstRegistered: z.boolean().default(true),
-  gstNumber: z.string().regex(gstRegex, "Invalid GST number").optional().nullable(),
+  gstNumber: z.string().optional().nullable(),
   yearOfRegistration: z.string().min(4, "Year must be 4 digits").max(4, "Year must be 4 digits"),
   panNumber: z.string().regex(panRegex, "Invalid PAN number"),
   panType: z.enum(["INDIVIDUAL", "COMPANY", "TRUST", "OTHER"]),
@@ -48,15 +48,24 @@ export const agencyFormSchema = z.object({
   country: z.string().default("INDIA"),
   yearsOfOperation: z.string().min(1, "Years of operation is required"),
 
-  // File Uploads
-  logo: z.any().refine(
-    (file) => file instanceof File && file.size <= 3 * 1024 * 1024,
-    "Logo must be less than 3MB"
-  ),
-  businessLicense: z.any().refine(
-    (file) => file instanceof File && file.size <= 3 * 1024 * 1024,
-    "License must be less than 3MB"
-  ),
+  // File Uploads - Make them optional for frontend validation
+  logo: z.any().optional(),
+  businessLicense: z.any().optional(),
+}).refine((data) => {
+  // If GST is not registered, GST number should be optional
+  if (!data.gstRegistered) {
+    return true; // Allow submission without GST number
+  }
+  // If GST is registered, GST number should be provided and valid
+  if (!data.gstNumber || data.gstNumber.trim() === "") {
+    return false;
+  }
+  // Validate GST number format if provided
+  return gstRegex.test(data.gstNumber);
+}, {
+  message: "Valid GST number is required when GST is registered",
+  path: ["gstNumber"]
 });
 
-export type AgencyFormValues = z.infer<typeof agencyFormSchema>;
+export const agencyFormSchema = agencyFormSchemaBase.refine
+export type AgencyFormValues = z.infer<typeof agencyFormSchemaBase>;

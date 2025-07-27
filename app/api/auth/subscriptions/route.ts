@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import prisma from "@/lib/prisma"
+import { prisma } from "@/lib/prisma"
 import type { Prisma } from "@prisma/client"
 
 export const dynamic = 'force-dynamic' // If using dynamic routes
@@ -14,12 +14,11 @@ export async function GET(request: Request) {
     const limit = parseInt(searchParams.get('limit') || '8')
     const sortBy = searchParams.get('sortBy') || 'createdAt'
     const sortDirection = searchParams.get('sortDirection') as 'asc' | 'desc' || 'desc'
-    const paymentStatus = searchParams.getAll('paymentStatus') || []
     const plans = searchParams.getAll('plans') || []
     const fromDate = searchParams.get('fromDate') ? new Date(searchParams.get('fromDate')!) : null
     const toDate = searchParams.get('toDate') ? new Date(searchParams.get('toDate')!) : null
 
-    // Build where clause (same as your existing code)
+    // Build where clause
     const where: Prisma.SubscriptionWhereInput = {}
 
     if (search) {

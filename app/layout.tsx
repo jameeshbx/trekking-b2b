@@ -15,7 +15,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Trekking Miles",
+  title: "Elneera",
   description: "Smart Tools for Smarter Agencies",
 };
 

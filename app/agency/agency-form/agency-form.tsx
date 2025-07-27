@@ -1,36 +1,47 @@
-"use client"
-import { useState, type ChangeEvent } from "react"
-import Image from "next/image"
-import { HexColorPicker } from "react-colorful"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { useForm, type SubmitHandler } from "react-hook-form"
-import { zodResolver } from "@hookform/resolvers/zod"
-import { agencyFormSchema, type AgencyFormValues } from "@/lib/agency"
-import { toast } from "sonner"
-import { useRouter } from "next/navigation"
+"use client";
+import { useState, type ChangeEvent } from "react";
+import Image from "next/image";
+import { HexColorPicker } from "react-colorful";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { useForm, SubmitHandler } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import {agencyFormSchemaBase, type AgencyFormValues } from "@/lib/agency";
+import { toast } from "sonner";
+import { useRouter } from "next/navigation";
 
 // Add type for agency type options
-type AgencyType = "PRIVATE_LIMITED" | "PROPRIETORSHIP" | "PARTNERSHIP" | "PUBLIC_LIMITED" | "LLP"
+type AgencyType =
+  | "PRIVATE_LIMITED"
+  | "PROPRIETORSHIP"
+  | "PARTNERSHIP"
+  | "PUBLIC_LIMITED"
+  | "LLP";
 
 // Add type for PAN type options
-type PanType = "INDIVIDUAL" | "COMPANY" | "TRUST" | "OTHER"
+type PanType = "INDIVIDUAL" | "COMPANY" | "TRUST" | "OTHER";
 
 export default function AgencyForm() {
-  const router = useRouter()
-  const [color, setColor] = useState("#4ECDC4")
-  const [tempColor, setTempColor] = useState("#4ECDC4")
-  const [showColorPicker, setShowColorPicker] = useState(false)
-  const [logoFile, setLogoFile] = useState<File | null>(null)
-  const [licenseFile, setLicenseFile] = useState<File | null>(null)
-  const [logoLoading, setLogoLoading] = useState(false)
-  const [licenseLoading, setLicenseLoading] = useState(false)
-  const [logoUploaded, setLogoUploaded] = useState(false)
-  const [licenseUploaded, setLicenseUploaded] = useState(false)
-  const [isSubmitting, setIsSubmitting] = useState(false)
+  const router = useRouter();
+  const [color, setColor] = useState("#4ECDC4");
+  const [tempColor, setTempColor] = useState("#4ECDC4");
+  const [showColorPicker, setShowColorPicker] = useState(false);
+  const [logoFile, setLogoFile] = useState<File | null>(null);
+  const [licenseFile, setLicenseFile] = useState<File | null>(null);
+  const [logoLoading, setLogoLoading] = useState(false);
+  const [licenseLoading, setLicenseLoading] = useState(false);
+  const [logoUploaded, setLogoUploaded] = useState(false);
+  const [licenseUploaded, setLicenseUploaded] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const {
     register,
@@ -39,7 +50,8 @@ export default function AgencyForm() {
     watch,
     formState: { errors },
   } = useForm<AgencyFormValues>({
-    resolver: zodResolver(agencyFormSchema),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    resolver: zodResolver(agencyFormSchemaBase) as any,
     defaultValues: {
       phoneCountryCode: "+91",
       companyPhoneCode: "+91",
@@ -47,105 +59,107 @@ export default function AgencyForm() {
       country: "INDIA",
       gstRegistered: true,
     },
-  })
+  });
 
-  const gstRegistered = watch("gstRegistered")
+  const gstRegistered = watch("gstRegistered");
 
   const handleLogoUpload = (e: ChangeEvent<HTMLInputElement>) => {
-    e.preventDefault()
-    e.stopPropagation()
+    e.preventDefault();
+    e.stopPropagation();
 
-    const file = e.target.files?.[0] || null
+    const file = e.target.files?.[0] || null;
     if (file) {
       if (file.size <= 3 * 1024 * 1024) {
-        setLogoLoading(true)
-        setLogoUploaded(false)
+        setLogoLoading(true);
+        setLogoUploaded(false);
         setTimeout(() => {
-          setLogoFile(file)
+          setLogoFile(file);
           // Ensure the file is properly set in the form
-          setValue("logo", file, { shouldValidate: true })
-          setLogoLoading(false)
-          setLogoUploaded(true)
-        }, 1000)
+          setValue("logo", file, { shouldValidate: true });
+          setLogoLoading(false);
+          setLogoUploaded(true);
+        }, 1000);
       } else {
-        toast.error("File size exceeds 3MB limit")
+        toast.error("File size exceeds 3MB limit");
       }
     }
-  }
+  };
 
   const handleLicenseUpload = (e: ChangeEvent<HTMLInputElement>) => {
-    e.preventDefault()
-    e.stopPropagation()
+    e.preventDefault();
+    e.stopPropagation();
 
-    const file = e.target.files?.[0] || null
+    const file = e.target.files?.[0] || null;
     if (file) {
       if (file.size <= 3 * 1024 * 1024) {
-        setLicenseLoading(true)
-        setLicenseUploaded(false)
+        setLicenseLoading(true);
+        setLicenseUploaded(false);
         setTimeout(() => {
-          setLicenseFile(file)
+          setLicenseFile(file);
           // Ensure the file is properly set in the form
-          setValue("businessLicense", file, { shouldValidate: true })
-          setLicenseLoading(false)
-          setLicenseUploaded(true)
-        }, 1000)
+          setValue("businessLicense", file, { shouldValidate: true });
+          setLicenseLoading(false);
+          setLicenseUploaded(true);
+        }, 1000);
       } else {
-        toast.error("File size exceeds 3MB limit")
+        toast.error("File size exceeds 3MB limit");
       }
     }
-  }
+  };
 
   const onSubmit: SubmitHandler<AgencyFormValues> = async (data) => {
-    setIsSubmitting(true)
+    setIsSubmitting(true);
     try {
-      const formData = new FormData()
+      console.log("Submitting form data:", data);
 
-      // Append all form data with proper type conversion
-      Object.entries(data).forEach(([key, value]) => {
-        if (value !== undefined && value !== null) {
-          if (key === "logo" || key === "businessLicense") {
-            // Only append files if they exist
-            if (value instanceof File && value.size > 0) {
-              formData.append(key, value)
-            }
-          } else if (key === "gstRegistered") {
-            // Ensure boolean is converted to string
-            formData.append(key, value ? "true" : "false")
-          } else {
-            // Convert all other values to string
-            formData.append(key, String(value))
-          }
-        }
-      })
+      // Convert form data to a plain object
+      const formDataObj = {
+        ...data,
+        // Convert boolean to string for proper JSON serialization
+        gstRegistered: Boolean(data.gstRegistered),
+        // Ensure all fields are properly typed
+        agencyType: data.agencyType || "PRIVATE_LIMITED",
+        phoneCountryCode: data.phoneCountryCode || "+91",
+        companyPhoneCode: data.companyPhoneCode || "+91",
+        landingPageColor: data.landingPageColor || "#4ECDC4",
+        country: data.country || "INDIA",
+      };
 
-      // Add debug logging
-      console.log("Submitting form data:")
-      for (const [key, value] of formData.entries()) {
-        console.log(key, typeof value === "object" ? `File: ${(value as File).name}` : value)
-      }
+      console.log("Sending data to API:", formDataObj);
 
-      const response = await fetch("/api/agencyform", {
+      const response = await fetch("/api/auth/agencyform", {
         method: "POST",
-        body: formData,
-      })
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(formDataObj),
+      });
 
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}))
-        throw new Error(errorData.error || `Failed to submit form: ${response.status} ${response.statusText}`)
+        const errorData = await response.json();
+        console.error("API error response:", errorData);
+        throw new Error(
+          errorData.details ||
+            errorData.error ||
+            `Failed to submit form: ${response.status} ${response.statusText}`
+        );
       }
 
-      const result = await response.json()
-      console.log("Success response:", result)
-      toast.success("Agency created successfully!")
-      router.push("/dashboard")
+      const result = await response.json();
+      console.log("API success response:", result);
+      toast.success("Agency created successfully!");
+      router.push("/dashboard");
     } catch (error: unknown) {
-      console.error("Submission error:", error)
-      const errorMessage = error instanceof Error ? error.message : "Error submitting form. Please try again."
-      toast.error(errorMessage)
+      console.error("Submission error:", error);
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : "Error submitting form. Please try again.";
+      toast.error(errorMessage);
     } finally {
-      setIsSubmitting(false)
+      setIsSubmitting(false);
     }
-  }
+  };
 
   return (
     <div className="relative w-full overflow-hidden py-6 px-4 sm:px-6 lg:px-8 bg-custom-green z-[10] min-h-screen bg-custom-green flex items-center justify-center p-4 h-auto">
@@ -162,7 +176,13 @@ export default function AgencyForm() {
 
       {/* Background Image */}
       <div className="absolute inset-0 -z-[10]">
-        <Image src="/background/Other details  -bg2.png" alt="" fill className="object-cover opacity-100" priority />
+        <Image
+          src="/background/Other details  -bg2.png"
+          alt=""
+          fill
+          className="object-cover opacity-100"
+          priority
+        />
       </div>
 
       <div className="relative w-full max-w-4xl mt-20 mb-6">
@@ -176,7 +196,9 @@ export default function AgencyForm() {
               <div className="space-y-8">
                 {/* Basic Informations Section */}
                 <div>
-                  <h2 className="text-2xl mb-6 text-greyish font-poppins">Basic Informations</h2>
+                  <h2 className="text-2xl mb-6 text-greyish font-poppins">
+                    Basic Informations
+                  </h2>
                   <div className="grid md:grid-cols-2 gap-4">
                     <div>
                       <Label htmlFor="contact-person" className="font-poppins">
@@ -189,14 +211,20 @@ export default function AgencyForm() {
                         {...register("contactPerson")}
                       />
                       {errors.contactPerson && (
-                        <p className="text-red-500 text-xs mt-1">{errors.contactPerson.message}</p>
+                        <p className="text-red-500 text-xs mt-1">
+                          {errors.contactPerson.message}
+                        </p>
                       )}
                     </div>
                     <div>
                       <Label htmlFor="agency-type" className="font-poppins">
                         Agency type*
                       </Label>
-                      <Select onValueChange={(value) => setValue("agencyType", value as AgencyType)}>
+                      <Select
+                        onValueChange={(value) =>
+                          setValue("agencyType", value as AgencyType)
+                        }
+                      >
                         <SelectTrigger
                           id="agency-type"
                           className="h-12 border border-gray-300 focus:border-gray-400 focus:ring-0 focus:bg-white font-poppins"
@@ -204,14 +232,28 @@ export default function AgencyForm() {
                           <SelectValue placeholder="Select agency type" />
                         </SelectTrigger>
                         <SelectContent className="font-poppins">
-                          <SelectItem value="PRIVATE_LIMITED">Private Limited</SelectItem>
-                          <SelectItem value="PROPRIETORSHIP">Proprietorship</SelectItem>
-                          <SelectItem value="PARTNERSHIP">Partnership</SelectItem>
-                          <SelectItem value="PUBLIC_LIMITED">Public Limited Companies</SelectItem>
-                          <SelectItem value="LLP">Limited Liability Partnership</SelectItem>
+                          <SelectItem value="PRIVATE_LIMITED">
+                            Private Limited
+                          </SelectItem>
+                          <SelectItem value="PROPRIETORSHIP">
+                            Proprietorship
+                          </SelectItem>
+                          <SelectItem value="PARTNERSHIP">
+                            Partnership
+                          </SelectItem>
+                          <SelectItem value="PUBLIC_LIMITED">
+                            Public Limited Companies
+                          </SelectItem>
+                          <SelectItem value="LLP">
+                            Limited Liability Partnership
+                          </SelectItem>
                         </SelectContent>
                       </Select>
-                      {errors.agencyType && <p className="text-red-500 text-xs mt-1">{errors.agencyType.message}</p>}
+                      {errors.agencyType && (
+                        <p className="text-red-500 text-xs mt-1">
+                          {errors.agencyType.message}
+                        </p>
+                      )}
                     </div>
                     <div>
                       <Label htmlFor="designation" className="font-poppins">
@@ -223,14 +265,23 @@ export default function AgencyForm() {
                         className="h-12 border border-gray-300 focus:border-gray-400 focus:ring-0 focus:bg-white"
                         {...register("designation")}
                       />
-                      {errors.designation && <p className="text-red-500 text-xs mt-1">{errors.designation.message}</p>}
+                      {errors.designation && (
+                        <p className="text-red-500 text-xs mt-1">
+                          {errors.designation.message}
+                        </p>
+                      )}
                     </div>
                     <div>
                       <Label htmlFor="phone" className="font-poppins">
                         Phone number*
                       </Label>
                       <div className="flex">
-                        <Select defaultValue="+91" onValueChange={(value) => setValue("phoneCountryCode", value)}>
+                        <Select
+                          defaultValue="+91"
+                          onValueChange={(value) =>
+                            setValue("phoneCountryCode", value)
+                          }
+                        >
                           <SelectTrigger className="w-20 h-12 border border-gray-300 focus:border-gray-400 focus:ring-0 focus:bg-white">
                             <SelectValue placeholder="+91" />
                           </SelectTrigger>
@@ -247,13 +298,19 @@ export default function AgencyForm() {
                           {...register("phoneNumber")}
                         />
                       </div>
-                      {errors.phoneNumber && <p className="text-red-500 text-xs mt-1">{errors.phoneNumber.message}</p>}
+                      {errors.phoneNumber && (
+                        <p className="text-red-500 text-xs mt-1">
+                          {errors.phoneNumber.message}
+                        </p>
+                      )}
                     </div>
                   </div>
                 </div>
 
                 <div>
-                  <h2 className="text-greyish text-2xl mb-6 font-poppins">Company Details</h2>
+                  <h2 className="text-greyish text-2xl mb-6 font-poppins">
+                    Company Details
+                  </h2>
                   <div className="grid md:grid-cols-2 gap-4">
                     <div>
                       <Label htmlFor="owner-name">Owner name*</Label>
@@ -263,7 +320,11 @@ export default function AgencyForm() {
                         className="h-12 border border-gray-300 focus:border-gray-400 focus:ring-0 focus:bg-white"
                         {...register("ownerName")}
                       />
-                      {errors.ownerName && <p className="text-red-500 text-xs mt-1">{errors.ownerName.message}</p>}
+                      {errors.ownerName && (
+                        <p className="text-red-500 text-xs mt-1">
+                          {errors.ownerName.message}
+                        </p>
+                      )}
                     </div>
                     <div>
                       <Label htmlFor="email" className="font-poppins">
@@ -276,14 +337,23 @@ export default function AgencyForm() {
                         className="h-12 border border-gray-300 focus:border-gray-400 focus:ring-0 focus:bg-white"
                         {...register("email")}
                       />
-                      {errors.email && <p className="text-red-500 text-xs mt-1">{errors.email.message}</p>}
+                      {errors.email && (
+                        <p className="text-red-500 text-xs mt-1">
+                          {errors.email.message}
+                        </p>
+                      )}
                     </div>
                     <div>
                       <Label htmlFor="company-phone" className="font-poppins">
                         Phone number*
                       </Label>
                       <div className="flex">
-                        <Select defaultValue="+91" onValueChange={(value) => setValue("companyPhoneCode", value)}>
+                        <Select
+                          defaultValue="+91"
+                          onValueChange={(value) =>
+                            setValue("companyPhoneCode", value)
+                          }
+                        >
                           <SelectTrigger className="w-20 h-12 border border-gray-300 focus:border-gray-400 focus:ring-0 focus:bg-white">
                             <SelectValue placeholder="+91" />
                           </SelectTrigger>
@@ -301,7 +371,9 @@ export default function AgencyForm() {
                         />
                       </div>
                       {errors.companyPhone && (
-                        <p className="text-red-500 text-xs mt-1">{errors.companyPhone.message}</p>
+                        <p className="text-red-500 text-xs mt-1">
+                          {errors.companyPhone.message}
+                        </p>
                       )}
                     </div>
                     <div>
@@ -314,7 +386,11 @@ export default function AgencyForm() {
                         className="h-12 border border-gray-300 focus:border-gray-400 focus:ring-0 focus:bg-white"
                         {...register("website")}
                       />
-                      {errors.website && <p className="text-red-500 text-xs mt-1">{errors.website.message}</p>}
+                      {errors.website && (
+                        <p className="text-red-500 text-xs mt-1">
+                          {errors.website.message}
+                        </p>
+                      )}
                     </div>
                     <div>
                       <Label htmlFor="logo" className="font-poppins">
@@ -323,17 +399,21 @@ export default function AgencyForm() {
                       <div className="mt-1 flex items-center relative">
                         <div className="bg-white rounded-l-md border border-gray-300 border-r-0 flex-grow h-12 flex items-center px-3 text-sm">
                           {logoFile
-                            ? `${logoFile.name.substring(0, 15)}${logoFile.name.length > 15 ? "..." : ""}`
+                            ? `${logoFile.name.substring(0, 15)}${
+                                logoFile.name.length > 15 ? "..." : ""
+                              }`
                             : "No file selected"}
                         </div>
                         <div className="flex">
                           <Button
                             onClick={(e) => {
-                              e.preventDefault()
-                              const input = document.getElementById("logo-upload") as HTMLInputElement
+                              e.preventDefault();
+                              const input = document.getElementById(
+                                "logo-upload"
+                              ) as HTMLInputElement;
                               if (input && !logoLoading) {
-                                input.value = ""
-                                input.click()
+                                input.value = "";
+                                input.click();
                               }
                             }}
                             className="h-12 rounded-l-none bg-greenlight hover:bg-greenlight text-white border border-emerald-500 focus:ring-0 font-poppins"
@@ -352,12 +432,24 @@ export default function AgencyForm() {
                           />
                         </div>
                       </div>
-                      {logoLoading && <p className="text-xs text-amber-600 mt-1">Uploading file...</p>}
-                      {logoUploaded && !logoLoading && (
-                        <p className="text-xs text-green-600 mt-1">File uploaded successfully!</p>
+                      {logoLoading && (
+                        <p className="text-xs text-amber-600 mt-1">
+                          Uploading file...
+                        </p>
                       )}
-                      {errors.logo && <p className="text-red-500 text-xs mt-1">{errors.logo.message}</p>}
-                      <p className="text-xs text-gray-500 mt-1">File size should be under 3MB</p>
+                      {logoUploaded && !logoLoading && (
+                        <p className="text-xs text-green-600 mt-1">
+                          File uploaded successfully!
+                        </p>
+                      )}
+                      {typeof errors.logo?.message === "string" && (
+                        <p className="text-red-500 text-xs mt-1">
+                          {errors.logo.message}
+                        </p>
+                      )}
+                      <p className="text-xs text-gray-500 mt-1">
+                        File size should be under 3MB
+                      </p>
                     </div>
                     <div>
                       <div>
@@ -375,8 +467,8 @@ export default function AgencyForm() {
                               className="fixed inset-0 bg-black/30 z-40 flex items-center justify-center p-4"
                               onClick={(e) => {
                                 if (e.target === e.currentTarget) {
-                                  setShowColorPicker(false)
-                                  setTempColor(color)
+                                  setShowColorPicker(false);
+                                  setTempColor(color);
                                 }
                               }}
                             >
@@ -384,19 +476,30 @@ export default function AgencyForm() {
                                 className="bg-white rounded-lg shadow-lg max-w-xs w-full p-4 z-50"
                                 onClick={(e) => e.stopPropagation()}
                               >
-                                <h3 className="font-medium mb-3">Choose Landing Page Color</h3>
+                                <h3 className="font-medium mb-3">
+                                  Choose Landing Page Color
+                                </h3>
 
-                                <div className="w-full h-16 rounded mb-4" style={{ backgroundColor: tempColor }} />
+                                <div
+                                  className="w-full h-16 rounded mb-4"
+                                  style={{ backgroundColor: tempColor }}
+                                />
 
                                 <div className="mb-4">
-                                  <HexColorPicker color={tempColor} onChange={setTempColor} className="w-full" />
+                                  <HexColorPicker
+                                    color={tempColor}
+                                    onChange={setTempColor}
+                                    className="w-full"
+                                  />
                                 </div>
 
                                 <div className="flex items-center gap-2 mb-4">
                                   <div className="text-sm w-10">RGB</div>
                                   <Input
                                     value={tempColor}
-                                    onChange={(e) => setTempColor(e.target.value)}
+                                    onChange={(e) =>
+                                      setTempColor(e.target.value)
+                                    }
                                     className="h-12 border border-gray-300 focus:border-gray-400 focus:ring-0 focus:bg-white text-xs"
                                   />
                                   <div className="text-xs">100%</div>
@@ -407,8 +510,8 @@ export default function AgencyForm() {
                                     variant="outline"
                                     size="sm"
                                     onClick={() => {
-                                      setShowColorPicker(false)
-                                      setTempColor(color)
+                                      setShowColorPicker(false);
+                                      setTempColor(color);
                                     }}
                                     className="h-10 border border-gray-300 focus:ring-0 font-poppins"
                                   >
@@ -417,9 +520,9 @@ export default function AgencyForm() {
                                   <Button
                                     size="sm"
                                     onClick={() => {
-                                      setColor(tempColor)
-                                      setValue("landingPageColor", tempColor)
-                                      setShowColorPicker(false)
+                                      setColor(tempColor);
+                                      setValue("landingPageColor", tempColor);
+                                      setShowColorPicker(false);
                                     }}
                                     className="bg-greenook hover:bg-bg-greenook h-10 focus:ring-0 font-poppins"
                                   >
@@ -439,16 +542,31 @@ export default function AgencyForm() {
                   <div>
                     <Label>GST Registration*</Label>
                     <RadioGroup
-                      defaultValue="yes"
+                      value={gstRegistered ? "yes" : "no"}
                       className="flex gap-4 mt-1"
-                      onValueChange={(value) => setValue("gstRegistered", value === "yes")}
+                      onValueChange={(value) => {
+                        const isGstRegistered = value === "yes";
+                        setValue("gstRegistered", isGstRegistered);
+                        // Clear GST number if GST is not registered
+                        if (!isGstRegistered) {
+                          setValue("gstNumber", undefined);
+                        }
+                      }}
                     >
                       <div className="flex items-center space-x-2 h-12">
-                        <RadioGroupItem value="yes" id="gst-yes" className="focus:ring-0" />
+                        <RadioGroupItem
+                          value="yes"
+                          id="gst-yes"
+                          className="focus:ring-0"
+                        />
                         <Label htmlFor="gst-yes">Yes</Label>
                       </div>
                       <div className="flex items-center space-x-2 h-12">
-                        <RadioGroupItem value="no" id="gst-no" className="focus:ring-0" />
+                        <RadioGroupItem
+                          value="no"
+                          id="gst-no"
+                          className="focus:ring-0"
+                        />
                         <Label htmlFor="gst-no">No</Label>
                       </div>
                     </RadioGroup>
@@ -465,7 +583,11 @@ export default function AgencyForm() {
                         className="h-12 border border-gray-300 focus:border-gray-400 focus:ring-0 focus:bg-white"
                         {...register("gstNumber")}
                       />
-                      {errors.gstNumber && <p className="text-red-500 text-xs mt-1">{errors.gstNumber.message}</p>}
+                      {errors.gstNumber && (
+                        <p className="text-red-500 text-xs mt-1">
+                          {errors.gstNumber.message}
+                        </p>
+                      )}
                     </div>
                   </div>
                 )}
@@ -480,7 +602,9 @@ export default function AgencyForm() {
                       {...register("yearOfRegistration")}
                     />
                     {errors.yearOfRegistration && (
-                      <p className="text-red-500 text-xs mt-1">{errors.yearOfRegistration.message}</p>
+                      <p className="text-red-500 text-xs mt-1">
+                        {errors.yearOfRegistration.message}
+                      </p>
                     )}
                   </div>
                   <div>
@@ -491,11 +615,19 @@ export default function AgencyForm() {
                       className="h-12 border border-gray-300 focus:border-gray-400 focus:ring-0 focus:bg-white font-poppins"
                       {...register("panNumber")}
                     />
-                    {errors.panNumber && <p className="text-red-500 text-xs mt-1">{errors.panNumber.message}</p>}
+                    {errors.panNumber && (
+                      <p className="text-red-500 text-xs mt-1">
+                        {errors.panNumber.message}
+                      </p>
+                    )}
                   </div>
                   <div>
                     <Label htmlFor="pan-type">PAN Type*</Label>
-                    <Select onValueChange={(value) => setValue("panType", value as PanType)}>
+                    <Select
+                      onValueChange={(value) =>
+                        setValue("panType", value as PanType)
+                      }
+                    >
                       <SelectTrigger className="h-12 border border-gray-300 focus:border-gray-400 focus:ring-0 focus:bg-white font-poppins">
                         <SelectValue placeholder="Select PAN type" />
                       </SelectTrigger>
@@ -506,7 +638,11 @@ export default function AgencyForm() {
                         <SelectItem value="OTHER">Other</SelectItem>
                       </SelectContent>
                     </Select>
-                    {errors.panType && <p className="text-red-500 text-xs mt-1">{errors.panType.message}</p>}
+                    {errors.panType && (
+                      <p className="text-red-500 text-xs mt-1">
+                        {errors.panType.message}
+                      </p>
+                    )}
                   </div>
                   <div>
                     <Label htmlFor="headquarters">Headquarters*</Label>
@@ -516,11 +652,17 @@ export default function AgencyForm() {
                       className="h-12 border border-gray-300 focus:border-gray-400 focus:ring-0 focus:bg-white font-poppins"
                       {...register("headquarters")}
                     />
-                    {errors.headquarters && <p className="text-red-500 text-xs mt-1">{errors.headquarters.message}</p>}
+                    {errors.headquarters && (
+                      <p className="text-red-500 text-xs mt-1">
+                        {errors.headquarters.message}
+                      </p>
+                    )}
                   </div>
                   <div>
                     <Label htmlFor="country">Country*</Label>
-                    <Select onValueChange={(value) => setValue("country", value)}>
+                    <Select
+                      onValueChange={(value) => setValue("country", value)}
+                    >
                       <SelectTrigger className="h-12 border border-gray-300 focus:border-gray-400 focus:ring-0 focus:bg-white font-poppins">
                         <SelectValue placeholder="Select country" />
                       </SelectTrigger>
@@ -540,25 +682,33 @@ export default function AgencyForm() {
                       {...register("yearsOfOperation")}
                     />
                     {errors.yearsOfOperation && (
-                      <p className="text-red-500 text-xs mt-1">{errors.yearsOfOperation.message}</p>
+                      <p className="text-red-500 text-xs mt-1">
+                        {errors.yearsOfOperation.message}
+                      </p>
                     )}
                   </div>
                   <div>
-                    <Label htmlFor="license">Business License / Registration Certificate*</Label>
+                    <Label htmlFor="license">
+                      Business License / Registration Certificate*
+                    </Label>
                     <div className="mt-1 flex items-center relative">
                       <div className="bg-white rounded-l-md border border-gray-300 border-r-0 flex-grow h-12 flex items-center px-3 text-sm font-poppins">
                         {licenseFile
-                          ? `${licenseFile.name.substring(0, 15)}${licenseFile.name.length > 15 ? "..." : ""}`
+                          ? `${licenseFile.name.substring(0, 15)}${
+                              licenseFile.name.length > 15 ? "..." : ""
+                            }`
                           : "No file selected"}
                       </div>
                       <div className="flex">
                         <Button
                           onClick={(e) => {
-                            e.preventDefault()
-                            const input = document.getElementById("license-upload") as HTMLInputElement
+                            e.preventDefault();
+                            const input = document.getElementById(
+                              "license-upload"
+                            ) as HTMLInputElement;
                             if (input && !licenseLoading) {
-                              input.value = ""
-                              input.click()
+                              input.value = "";
+                              input.click();
                             }
                           }}
                           className="h-12 rounded-l-none bg-greenlight hover:bg-greenlight text-white border border-emerald-500 focus:ring-0 font-poppins"
@@ -577,14 +727,24 @@ export default function AgencyForm() {
                         />
                       </div>
                     </div>
-                    {licenseLoading && <p className="text-xs text-amber-600 mt-1">Uploading file...</p>}
+                    {licenseLoading && (
+                      <p className="text-xs text-amber-600 mt-1">
+                        Uploading file...
+                      </p>
+                    )}
                     {licenseUploaded && !licenseLoading && (
-                      <p className="text-xs text-green-600 mt-1">File uploaded successfully!</p>
+                      <p className="text-xs text-green-600 mt-1">
+                        File uploaded successfully!
+                      </p>
                     )}
-                    {errors.businessLicense && (
-                      <p className="text-red-500 text-xs mt-1">{errors.businessLicense.message}</p>
+                    {typeof errors.businessLicense?.message === "string" && (
+                      <p className="text-red-500 text-xs mt-1">
+                        {errors.businessLicense.message}
+                      </p>
                     )}
-                    <p className="text-xs text-gray-500 mt-1">File size should be under 3MB</p>
+                    <p className="text-xs text-gray-500 mt-1">
+                      File size should be under 3MB
+                    </p>
                   </div>
                 </div>
 
@@ -603,5 +763,5 @@ export default function AgencyForm() {
         </div>
       </div>
     </div>
-  )
+  );
 }

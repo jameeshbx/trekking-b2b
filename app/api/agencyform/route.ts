@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { agencyFormSchema } from "@/lib/agency";
+import { agencyFormSchemaBase } from "@/lib/agency";
 import { z } from "zod";
 
 export async function POST(req: Request) {
@@ -17,7 +17,7 @@ export async function POST(req: Request) {
     const formData = await req.formData();
     
     // Convert FormData to a plain object
-    const formValues: Record<string, any> = {};
+    const formValues: Record<string, unknown> = {};
     
     // Debug logging
     console.log("Received form data entries:");
@@ -43,8 +43,13 @@ export async function POST(req: Request) {
 
     // Validate the form data
     try {
-      // Create a modified schema for validation that handles File objects
-      const validationSchema = agencyFormSchema.omit({ 
+      // First, get the inner schema if agencyFormSchemaBase is an effect
+      const baseSchema = agencyFormSchemaBase instanceof z.ZodEffects 
+        ? agencyFormSchemaBase.innerType() 
+        : agencyFormSchemaBase;
+      
+      // Now we can safely use omit
+      const validationSchema = baseSchema.omit({ 
         logo: true, 
         businessLicense: true 
       });
@@ -65,6 +70,7 @@ export async function POST(req: Request) {
       // Create agency record in database
       const agency = await prisma.agencyForm.create({
         data: {
+          name: validatedData.name,
           contactPerson: validatedData.contactPerson,
           agencyType: validatedData.agencyType,
           designation: validatedData.designation,
@@ -84,8 +90,6 @@ export async function POST(req: Request) {
           headquarters: validatedData.headquarters,
           country: validatedData.country,
           yearsOfOperation: validatedData.yearsOfOperation,
-          logoUrl: logoFileName,
-          businessLicenseUrl: licenseFileName,
           createdBy: session.user.id,
         },
       });

@@ -1,40 +1,70 @@
-"use client"
+"use client";
 
-import { useState, useEffect } from "react"
-import Image from "next/image"
-import Link from "next/link"
-import { cn } from "@/lib/utils"
+import { useState, useEffect } from "react";
+import Image from "next/image";
+import Link from "next/link";
+import { cn } from "@/lib/utils";
 
 export default function Navbar() {
-  const [isScrolled, setIsScrolled] = useState(false)
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+  const [isScrolled, setIsScrolled] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   useEffect(() => {
     const handleScroll = () => {
       if (window.scrollY > 10) {
-        setIsScrolled(true)
+        setIsScrolled(true);
       } else {
-        setIsScrolled(false)
+        setIsScrolled(false);
       }
-    }
+    };
 
-    window.addEventListener("scroll", handleScroll)
-    return () => window.removeEventListener("scroll", handleScroll)
-  }, [])
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
+  // Smooth scroll function
+  const handleSmoothScroll = (
+    e: React.MouseEvent<HTMLAnchorElement>,
+    targetId: string
+  ) => {
+    e.preventDefault();
+    const targetElement = document.getElementById(targetId);
+    if (targetElement) {
+      targetElement.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+      });
+    }
+    // Update browser URL with hash
+    window.history.pushState(null, "", `/#${targetId}`);
+    // Close mobile menu if open
+    setIsMobileMenuOpen(false);
+  };
 
   return (
     <header
       className={cn(
         "fixed top-0 left-0 right-0 z-50 transition-all duration-300 py-4 px-4 md:px-8",
-        isScrolled ? "bg-white shadow-sm" : "bg-transparent",
+        isScrolled ? "bg-white shadow-sm" : "bg-transparent"
       )}
       data-cy="navbar"
     >
       <div className="max-w-7xl mx-auto flex items-center justify-between">
         {/* Logo - Visible on both mobile and desktop */}
-        <Link href="/" className="flex items-center z-20" data-cy="navbar-logo">
-          <div className="absolute h-12 w-40">
-            <Image src="/logo.png" alt="Trekking Miles" fill className="object-contain" priority />
+        <Link
+          href="/"
+          onClick={(e) => handleSmoothScroll(e, "home")}
+          className="flex items-center z-20"
+          data-cy="navbar-logo"
+        >
+          <div className="absolute h-16 w-44">
+            <Image
+              src="/logo.png"
+              alt="Trekking Miles"
+              fill
+              className="object-contain"
+              priority
+            />
           </div>
         </Link>
 
@@ -53,21 +83,40 @@ export default function Navbar() {
             stroke="currentColor"
             className="w-6 h-6"
           >
-            <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5"
+            />
           </svg>
         </button>
 
         {/* Desktop Navigation */}
         <nav className="hidden md:flex items-center gap-6 mr-5">
-          <Link href="/about" className="text-dark-green hover:text-gray-900 font-Raleway font-medium text-lg" data-cy="nav-about">
+          <Link
+            href="/#about"
+            onClick={(e) => handleSmoothScroll(e, "about")}
+            className="text-dark-green hover:text-gray-900 font-Raleway font-medium text-lg cursor-pointer"
+            data-cy="nav-about"
+          >
             About
           </Link>
-          <Link href="/testimonial" className="text-dark-green hover:text-gray-900 font-Raleway font-medium text-lg" data-cy="nav-testimonial">
+          <Link
+            href="/#testimonial"
+            onClick={(e) => handleSmoothScroll(e, "testimonial")}
+            className="text-dark-green hover:text-gray-900 font-Raleway font-medium text-lg cursor-pointer"
+            data-cy="nav-testimonial"
+          >
             Testimonial
           </Link>
-          <Link href="/pricing" className="text-dark-green hover:text-gray-900 font-Raleway font-medium text-lg" data-cy="nav-pricing">
+          {/* <a
+            href="/#pricing"
+            onClick={(e) => handleSmoothScroll(e, "pricing")}
+            className="text-dark-green hover:text-gray-900 font-Raleway font-medium text-lg cursor-pointer"
+            data-cy="nav-pricing"
+          >
             Pricing
-          </Link>
+          </a> */}
           <Link
             href="/login"
             className="text-dark-green hover:text-gray-900 font-Raleway font-medium text-lg"
@@ -89,26 +138,26 @@ export default function Navbar() {
           <div className="fixed inset-0 bg-white z-10 flex items-center justify-center">
             <nav className="flex flex-col gap-6 items-center">
               <Link
-                href="/about"
-                className="text-dark-green hover:text-gray-900 font-medium py-2 font-Raleway"
+                href="/#about"
+                onClick={(e) => handleSmoothScroll(e, "about")}
+                className="text-dark-green hover:text-gray-900 font-medium py-2 font-Raleway cursor-pointer"
                 data-cy="mobile-nav-about"
-                onClick={() => setIsMobileMenuOpen(false)}
               >
                 About
               </Link>
               <Link
-                href="/testimonial"
-                className="text-dark-green hover:text-gray-900 font-medium py-2 font-Raleway"
+                href="/#testimonial"
+                onClick={(e) => handleSmoothScroll(e, "testimonial")}
+                className="text-dark-green hover:text-gray-900 font-medium py-2 font-Raleway cursor-pointer"
                 data-cy="mobile-nav-testimonial"
-                onClick={() => setIsMobileMenuOpen(false)}
               >
                 Testimonial
               </Link>
               <Link
-                href="/pricing"
-                className="text-dark-green hover:text-gray-900 font-medium py-2 font-Raleway"
+                href="/#pricing"
+                onClick={(e) => handleSmoothScroll(e, "pricing")}
+                className="text-dark-green hover:text-gray-900 font-medium py-2 font-Raleway cursor-pointer"
                 data-cy="mobile-nav-pricing"
-                onClick={() => setIsMobileMenuOpen(false)}
               >
                 Pricing
               </Link>
@@ -133,6 +182,5 @@ export default function Navbar() {
         )}
       </div>
     </header>
-  )
+  );
 }
-
