@@ -220,6 +220,30 @@ model UserForm {
   @@map("user_form") // Explicit table name mapping
 }
 
+model Enquiry {
+  id                 String   @id @default(uuid())
+  name               String
+  phone              String
+  email              String
+  locations          String
+  status             String
+  pointOfContact     String?
+  enquiryDate        String
+  assignedStaff      String?
+  tourType           String?
+  estimatedDates     String?
+  budget             Int?
+  currency           String?
+  notes              String?
+  pickupLocation     String?
+  dropLocation       String?
+  numberOfTravellers String?
+  numberOfKids       String?
+  travelingWithPets  String?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+}
+
 enum Role {
   USER
   ADMIN
