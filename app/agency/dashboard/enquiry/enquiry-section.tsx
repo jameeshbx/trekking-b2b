@@ -73,17 +73,18 @@ export default function Enquiry() {
   }, [])
 
   useEffect(() => {
-    if (isClient) {
-      const storedColumns = localStorage.getItem("enquiryColumns")
-      if (storedColumns) {
-        try {
-          setColumns(JSON.parse(storedColumns))
-        } catch (error) {
-          console.error("Failed to parse stored columns:", error)
-        }
-      }
+    async function fetchEnquiries() {
+      const res = await fetch("/api/enquiries")
+      const data = await res.json()
+      // Map data to columns by status
+      const cols = initialColumns.map((col) => ({
+        ...col,
+        enquiries: data.filter((e: EnquiryType) => e.status === col.id),
+      }))
+      setColumns(cols)
     }
-  }, [isClient])
+    fetchEnquiries()
+  }, [])
 
   useEffect(() => {
     if (isClient) {
@@ -98,7 +99,7 @@ export default function Enquiry() {
     }))
   }
 
-  const handleAddEnquiry = () => {
+  const handleAddEnquiry = async () => {
     const today = new Date()
     const formattedDate = `${today.getDate().toString().padStart(2, "0")}-${(today.getMonth() + 1)
       .toString()
@@ -111,13 +112,23 @@ export default function Enquiry() {
       enquiryDate: formattedDate,
     }
 
-    const updatedColumns = JSON.parse(JSON.stringify(columns))
-    const enquiryColumnIndex = updatedColumns.findIndex((col: Column) => col.id === "enquiry")
+    // First, create the enquiry
+    await fetch("/api/enquiries", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(newEnquiryWithId),
+    })
 
-    if (enquiryColumnIndex !== -1) {
-      updatedColumns[enquiryColumnIndex].enquiries.push(newEnquiryWithId)
-      setColumns(updatedColumns)
-    }
+    // Then, fetch all enquiries (GET)
+    const res = await fetch("/api/enquiries")
+    const data = await res.json()
+
+    // Now data should be an array
+    const cols = initialColumns.map((col) => ({
+      ...col,
+      enquiries: Array.isArray(data) ? data.filter((e: EnquiryType) => e.status === col.id) : [],
+    }))
+    setColumns(cols)
 
     toast.success("Enquiry Added", {
       description: `New enquiry for ${newEnquiry.name} has been added successfully.`,
@@ -307,8 +318,9 @@ export default function Enquiry() {
         <DialogContent className="sm:max-w-[600px] p-0 overflow-hidden w-[calc(100vw-20px)] max-h-[90vh] overflow-y-auto">
           <div className="p-4 sm:p-6">
             <DialogTitle className="text-lg sm:text-xl font-semibold font-poppins">Add Enquiry</DialogTitle>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 mt-4">
-              <div className="space-y-1 sm:space-y-2 col-span-2 sm:col-span-1">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 mt-4">
+              {/* First Row - Name, Phone, Email */}
+              <div className="space-y-1 sm:space-y-2">
                 <label className="text-xs sm:text-sm font-medium font-poppins">Name</label>
                 <Input
                   value={newEnquiry.name}
@@ -317,7 +329,7 @@ export default function Enquiry() {
                   className="text-sm sm:text-base"
                 />
               </div>
-              <div className="space-y-1 sm:space-y-2 col-span-2 sm:col-span-1">
+              <div className="space-y-1 sm:space-y-2">
                 <label className="text-xs sm:text-sm font-medium font-poppins">Phone No.</label>
                 <div className="flex">
                   <div className="flex items-center border rounded-l-md px-2 bg-gray-50">
@@ -339,7 +351,7 @@ export default function Enquiry() {
                   />
                 </div>
               </div>
-              <div className="space-y-1 sm:space-y-2 col-span-2 sm:col-span-1">
+              <div className="space-y-1 sm:space-y-2">
                 <label className="text-xs sm:text-sm font-medium font-poppins">Email</label>
                 <Input
                   type="email"
@@ -349,7 +361,9 @@ export default function Enquiry() {
                   className="text-sm sm:text-base"
                 />
               </div>
-              <div className="space-y-1 sm:space-y-2 col-span-2 sm:col-span-1">
+
+              {/* Second Row - Location, Tour type, Estimated dates */}
+              <div className="space-y-1 sm:space-y-2">
                 <label className="text-xs sm:text-sm font-medium font-poppins">Location(s)</label>
                 <Input
                   value={newEnquiry.locations}
@@ -358,7 +372,7 @@ export default function Enquiry() {
                   className="text-sm sm:text-base"
                 />
               </div>
-              <div className="space-y-1 sm:space-y-2 col-span-2 sm:col-span-1">
+              <div className="space-y-1 sm:space-y-2">
                 <label className="text-xs sm:text-sm font-medium font-poppins">Tour type</label>
                 <Select value={newEnquiry.tourType} onValueChange={(value) => handleInputChange("tourType", value)}>
                   <SelectTrigger className="text-sm sm:text-base">
@@ -377,7 +391,7 @@ export default function Enquiry() {
                   </SelectContent>
                 </Select>
               </div>
-              <div className="space-y-1 sm:space-y-2 col-span-2 sm:col-span-1">
+              <div className="space-y-1 sm:space-y-2">
                 <label className="text-xs sm:text-sm font-medium">Estimated dates</label>
                 <Popover>
                   <PopoverTrigger asChild>
@@ -425,7 +439,9 @@ export default function Enquiry() {
                   </PopoverContent>
                 </Popover>
               </div>
-              <div className="space-y-1 sm:space-y-2 col-span-2 sm:col-span-1 font-poppins">
+
+              {/* Third Row - Currency and Budget */}
+              <div className="space-y-1 sm:space-y-2 font-poppins">
                 <label className="text-xs sm:text-sm font-medium">Currency</label>
                 <Select value={newEnquiry.currency} onValueChange={(value) => handleInputChange("currency", value)}>
                   <SelectTrigger className="text-sm sm:text-base">
@@ -467,8 +483,41 @@ export default function Enquiry() {
                   </div>
                 </div>
               </div>
-              <div className="col-span-2 space-y-1 sm:space-y-2 font-poppins">
-                <label className="text-xs sm:text-sm font-medium">Notes</label>
+
+              {/* Pickup and Drop locations section */}
+              <div className="col-span-3 space-y-3 font-poppins">
+                <label className="text-xs sm:text-sm font-medium">Pickup and drop locations</label>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2">
+                      <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                      <span className="text-xs sm:text-sm font-medium">Pickup</span>
+                    </div>
+                    <Input
+                      value={newEnquiry.pickupLocation || ""}
+                      onChange={(e) => handleInputChange("pickupLocation", e.target.value)}
+                      placeholder="Pickup location"
+                      className="text-sm sm:text-base"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2">
+                      <div className="w-2 h-2 bg-red-500 rounded-full"></div>
+                      <span className="text-xs sm:text-sm font-medium">Drop off</span>
+                    </div>
+                    <Input
+                      value={newEnquiry.dropLocation || ""}
+                      onChange={(e) => handleInputChange("dropLocation", e.target.value)}
+                      placeholder="Drop off location"
+                      className="text-sm sm:text-base"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Other details - full width */}
+              <div className="col-span-3 space-y-1 sm:space-y-2 font-poppins">
+                <label className="text-xs sm:text-sm font-medium">Other details</label>
                 <Textarea
                   value={newEnquiry.notes}
                   onChange={(e) => handleInputChange("notes", e.target.value)}
@@ -476,7 +525,60 @@ export default function Enquiry() {
                   placeholder="Additional details about the enquiry"
                 />
               </div>
-              <div className="space-y-1 sm:space-y-2 col-span-2 sm:col-span-1">
+
+              {/* Fourth Row - No. of travellers, No. of kids */}
+              <div className="space-y-1 sm:space-y-2">
+                <label className="text-xs sm:text-sm font-medium font-poppins">No. of travellers</label>
+                <Input
+                  type="number"
+                  value={newEnquiry.numberOfTravellers || ""}
+                  onChange={(e) => handleInputChange("numberOfTravellers", e.target.value)}
+                  placeholder="4"
+                  className="text-sm sm:text-base"
+                />
+              </div>
+              <div className="space-y-1 sm:space-y-2">
+                <label className="text-xs sm:text-sm font-medium font-poppins">No. of kids</label>
+                <Input
+                  type="number"
+                  value={newEnquiry.numberOfKids || ""}
+                  onChange={(e) => handleInputChange("numberOfKids", e.target.value)}
+                  placeholder="2"
+                  className="text-sm sm:text-base"
+                />
+              </div>
+
+              {/* Are you traveling with pets */}
+              <div className="space-y-1 sm:space-y-2">
+                <label className="text-xs sm:text-sm font-medium font-poppins">Are you traveling with pets?</label>
+                <div className="flex items-center gap-4 mt-2">
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="radio"
+                      name="pets"
+                      value="yes"
+                      checked={newEnquiry.travelingWithPets === "yes"}
+                      onChange={() => handleInputChange("travelingWithPets", "yes")}
+                      className="w-4 h-4 text-green-600"
+                    />
+                    <span className="text-sm">Yes</span>
+                  </label>
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="radio"
+                      name="pets"
+                      value="no"
+                      checked={newEnquiry.travelingWithPets === "no"}
+                      onChange={() => handleInputChange("travelingWithPets", "no")}
+                      className="w-4 h-4 text-green-600"
+                    />
+                    <span className="text-sm">No</span>
+                  </label>
+                </div>
+              </div>
+
+              {/* Fifth Row - Point of contact, Assign staff */}
+              <div className="space-y-1 sm:space-y-2 col-span-2">
                 <label className="text-xs sm:text-sm font-medium font-poppins">Point of contact</label>
                 <Select
                   value={newEnquiry.pointOfContact || ""}
@@ -501,7 +603,7 @@ export default function Enquiry() {
                   </SelectContent>
                 </Select>
               </div>
-              <div className="space-y-1 sm:space-y-2 col-span-2 sm:col-span-1">
+              <div className="space-y-1 sm:space-y-2">
                 <label className="text-xs sm:text-sm font-medium font-poppins">Assign staff</label>
                 <Select
                   value={newEnquiry.assignedStaff}
