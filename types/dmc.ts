@@ -29,3 +29,31 @@ export interface DMCRegistrationResponse {
   data?: DMCRegistrationData;
   error?: string;
 }
+
+export interface BankDetails {
+  accountHolderName: string
+  bankName: string
+  branchName: string
+  accountNumber: string
+  ifscCode: string
+  bankCountry: string
+  currency: string
+  notes?: string
+}
+
+export interface PaymentMethod {
+  type: "BANK_ACCOUNT" | "CREDIT_CARD" | "DEBIT_CARD" | "UPI" | "QR_CODE" | "PAYMENT_GATEWAY"
+  name: string
+  identifier: string
+  bankName?: string
+  branchName?: string
+  ifscCode?: string
+  bankCountry?: string
+  currency?: string
+  cardHolder?: string
+  expiryDate?: string
+  upiProvider?: string
+  paymentLink?: string
+  qrCodeId?: string
+  notes?: string
+}
