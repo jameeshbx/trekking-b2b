@@ -1,44 +1,52 @@
-"use client"
+"use client";
 
-import Image from "next/image"
-import { Button } from "@/components/ui/button"
-import { X } from "lucide-react"
-import { useState } from "react"
+import Image from "next/image";
+import { Button } from "@/components/ui/button";
+import { X } from "lucide-react";
+import { useState } from "react";
 
 export default function HeroSection() {
-  const [showPopup, setShowPopup] = useState(false)
+  const [showPopup, setShowPopup] = useState(false);
 
   const handleButtonClick = (e: React.MouseEvent) => {
-    e.preventDefault()
-    setShowPopup(true)
-  }
+    e.preventDefault();
+    setShowPopup(true);
+  };
 
   const closePopup = () => {
-    setShowPopup(false)
-  }
+    setShowPopup(false);
+  };
 
   return (
-    <section className="w-full bg-white relative min-h-[70vh] md:min-h-screen">
+    <section
+      className="w-full bg-white relative min-h-[70vh] md:min-h-screen"
+      id="home"
+    >
       {/* Popup Modal - Same style as ContactSection */}
       {showPopup && (
         <div className="fixed inset-0 flex items-center justify-center z-50 p-4 pointer-events-auto">
-          <div 
+          <div
             className="relative bg-white rounded-xl p-8 max-w-md w-full shadow-2xl border border-gray-100"
-            style={{ boxShadow: '0 20px 50px rgba(0,0,0,0.1)' }}
+            style={{ boxShadow: "0 20px 50px rgba(0,0,0,0.1)" }}
           >
-            <button 
+            <button
               onClick={closePopup}
               className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition-colors"
               aria-label="Close popup"
             >
               <X className="h-5 w-5" />
             </button>
-            
+
             <div className="text-center">
-              <h3 className="text-2xl font-bold text-[#1a4738] mb-3">Coming Soon!</h3>
-              <p className="text-gray-600 mb-6">This is our beta version. We&apos;re working hard to launch the full experience soon.</p>
-              
-              <button 
+              <h3 className="text-2xl font-bold text-[#1a4738] mb-3">
+                Coming Soon!
+              </h3>
+              <p className="text-gray-600 mb-6">
+                This is our beta version. We&apos;re working hard to launch the
+                full experience soon.
+              </p>
+
+              <button
                 onClick={closePopup}
                 className="bg-[#1a4738] text-white px-6 py-3 rounded-lg font-medium hover:bg-[#1a4738]/90 transition-colors"
               >
@@ -46,9 +54,9 @@ export default function HeroSection() {
               </button>
             </div>
           </div>
-          
+
           {/* Click outside to close - subtle overlay */}
-          <div 
+          <div
             className="absolute inset-0 bg-black/5 backdrop-blur-sm -z-10"
             onClick={closePopup}
           />
@@ -74,7 +82,16 @@ export default function HeroSection() {
               <h1 className="text-4xl sm:text-5xl font-Raleway leading-tight tracking-tight md:text-5xl lg:text-6xl text-[#0F3D2E] m-[revert] sm:mt-[65px] md:mt-[40px]">
                 Your Travel <br className="hidden md:block" /> Business&apos;s{" "}
                 <span className="relative inline-block">
-                  <span className="relative z-10 font-Beiruti text-orange">A</span><span className="relative z-10 font-Raleway">ll-<span className="relative z-10 font-Beiruti text-orange">I</span>n-One</span>
+                  <span className="relative z-10 font-Beiruti text-orange">
+                    A
+                  </span>
+                  <span className="relative z-10 font-Raleway">
+                    ll-
+                    <span className="relative z-10 font-Beiruti text-orange">
+                      I
+                    </span>
+                    n-One
+                  </span>
                   <Image
                     src="/img/Vector (3).svg"
                     alt="All-in-One decoration"
@@ -87,13 +104,14 @@ export default function HeroSection() {
               </h1>
 
               <p className="mt-4 sm:mt-[30px] text-lg sm:text-xl text-gray-600 max-w-lg mx-auto md:mx-0 font-Poppins lg:-mt-8 md:mt-6">
-                Notice the 
-                <span className="text-orange font-Beiruti"> AI</span>
-                ? That&apos;s what makes it smart.
+                Notice the
+                <span className="text-orange font-Beiruti"> AI</span>?
+                That&apos;s what makes it smart.
               </p>
 
               <p className="mt-4 sm:mt-[30px] text-lg sm:text-xl text-gray-600 max-w-lg mx-auto md:mx-0 font-Poppins lg:mt-8 md:mt-6">
-                Smart Tools for Smarter Agencies — Manage Itineraries, Bookings, and DMC Communications with Ease.
+                Smart Tools for Smarter Agencies — Manage Itineraries, Bookings,
+                and DMC Communications with Ease.
               </p>
 
               <div className="mt-4 sm:mt-[30px] md:mt-[30px]">
@@ -127,5 +145,5 @@ export default function HeroSection() {
         </div>
       </div>
     </section>
-  )
+  );
 }

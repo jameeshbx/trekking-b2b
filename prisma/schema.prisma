@@ -227,6 +227,7 @@ model UserForm {
   @@map("user_form") // Explicit table name mapping
 }
 
+<<<<<<< HEAD
 model PaymentMethod {
   id          String            @id @default(uuid())
   dmcId       String?           // Made optional
@@ -261,6 +262,8 @@ model PaymentMethod {
   @@index([type])
 }
 
+=======
+>>>>>>> ed510a3a51f2eb7ad74928465796de276b70550b
 model Enquiry {
   id                 String   @id @default(uuid())
   name               String
@@ -285,6 +288,7 @@ model Enquiry {
   updatedAt          DateTime @updatedAt
 }
 
+<<<<<<< HEAD
 enum PaymentMethodType {
   BANK_ACCOUNT
   CREDIT_CARD
@@ -294,6 +298,8 @@ enum PaymentMethodType {
   PAYMENT_GATEWAY
 }
 
+=======
+>>>>>>> ed510a3a51f2eb7ad74928465796de276b70550b
 enum Role {
   USER
   ADMIN
