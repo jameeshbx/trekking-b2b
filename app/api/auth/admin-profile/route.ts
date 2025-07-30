@@ -3,38 +3,46 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { prisma } from "@/lib/prisma"; 
+import { prisma } from "@/lib/prisma";
 
 export async function GET() {
-  const session = await getServerSession(authOptions)
-  console.log("SESSION:", session)
+  const session = await getServerSession(authOptions);
 
-  if (!session || !session.user) {
+  if (!session || !session.user?.id) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  if (!session.user.id) {
-    console.log("Session user has no ID!")
-     return NextResponse.json({ error: "Session user has no id" }, { status: 401 })
-  }     
+  try {
+    const user = await prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: {
+        id: true,             // for user identification
+        name: true,           // for profile info
+        email: true,          // shared: for both profile & account info
+        role: true,           // for account info
+        isOnline: true,       // for account status
+        password: true   // (optional) don’t include this unless truly needed
+      },
+    });
 
-  const user = await prisma.user.findUnique({ 
-    where: { id: session.user.id },
-    select: {
-      id: true,
-      name: true,
-      email: true,
-      mobile: true, 
-      bio: true      
-    },
-  });
+    if (!user) {
+      return NextResponse.json({ error: "User not found" }, { status: 404 });
+    }
 
-      console.log("USER:", user)
+    // Create a username from email (take part before @)
+
+  return NextResponse.json({
+  name: user.name || "",
+  email: user.email,
+  username: user.email, // or use a separate field if available
+  role: user.role,
+  location: "India",
+  status: user.isOnline ? "Active" : "Inactive"
+});
 
 
-  if (!user) {
-    return NextResponse.json({ error: "User not found" }, { status: 404 }); 
+  } catch (error) {
+    console.error("Error fetching profile/account info:", error);
+    return NextResponse.json({ error: "Server error" }, { status: 500 });
   }
-
-  return NextResponse.json(user);
 }

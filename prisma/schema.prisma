@@ -3,8 +3,9 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider     = "postgresql"
+  url          = env("DATABASE_URL")
+  relationMode = "prisma"
 }
 
 model File {
@@ -20,17 +21,18 @@ model File {
   dmcRegistrationCertificate DMCForm?    @relation("DMCRegistrationCertificate")
   managerProfile             Manager?    @relation("ManagerProfile")
   userProfile                UserForm?   @relation("UserProfileImage")
+  userProfileImage User? @relation("UserProfileImage")
+  paymentMethodQRCode        PaymentMethod? @relation("PaymentMethodQRCode")
 
-  @@map("file") 
+  @@map("file")
 }
+
 
 model User {
   id             String         @id @default(cuid())
   email          String         @unique
   password       String
-  name           String?
-  bio            String? 
-  mobile         String? 
+  name           String? 
   companyName    String
   businessType   BusinessType
   createdAt      DateTime       @default(now())
@@ -43,6 +45,13 @@ model User {
   passwordResets PasswordReset?
   agency         Agency?        @relation(fields: [agencyId], references: [id]) 
   dmc            DMC?           @relation(fields: [dmcId], references: [id])
+
+   
+  profileImageId   String?        @unique
+  profileImage   File?  @relation("UserProfileImage", fields: [profileImageId], references: [id])
+
+  // Comments authored by this user
+  comments       Comment[]      @relation("CommentAuthor") 
 
   @@index([email])
   @@index([role])
@@ -157,6 +166,7 @@ model AgencyForm {
 
 model DMCForm {
   id                        String    @id @default(uuid())
+  agencyId                  String?
   name                      String
   config                    Json      @default("{}")
   contactPerson             String?
@@ -185,9 +195,13 @@ model DMCForm {
   updatedAt                 DateTime  @updatedAt
   status                    DMCStatus @default(ACTIVE)
   registrationCertificate   File?     @relation("DMCRegistrationCertificate", fields: [registrationCertificateId], references: [id])
+  paymentMethods            PaymentMethod[]
 
   @@index([name])
   @@index([email])
+  @@index([createdBy])
+  @@index([agencyId])
+  @@index([status])
 }
 
 model Manager {
@@ -202,6 +216,9 @@ model Manager {
   profile   File?    @relation("ManagerProfile", fields: [profileId], references: [id])
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt @default(now())
+
+  // Comments on this manager
+  comments  Comment[] @relation("ManagerComments")
 }
 
 model UserForm {
@@ -220,6 +237,89 @@ model UserForm {
   profileImage     File?     @relation("UserProfileImage", fields: [profileImageId], references: [id])
 
   @@map("user_form") // Explicit table name mapping
+}
+
+model PaymentMethod {
+  id          String            @id @default(uuid())
+  dmcId       String?           // Made optional
+  dmc         DMCForm?          @relation(fields: [dmcId], references: [id])
+  type        PaymentMethodType
+  // Common fields
+  name        String?
+  identifier  String? // Account number, UPI ID, etc.
+  // Bank-specific fields
+  bankName    String?
+  branchName  String?
+  ifscCode    String?
+  bankCountry String?
+  currency    String?
+  // Card-specific fields
+  cardHolder  String?
+  expiryDate  String?
+  // UPI-specific fields
+  upiProvider String?
+  // QR Code
+  qrCodeId    String?   @unique
+  qrCode      File?     @relation("PaymentMethodQRCode", fields: [qrCodeId], references: [id], onDelete: Cascade)
+  // Payment Gateway
+  paymentLink String?
+  // Metadata
+  notes       String?
+  isActive    Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([dmcId])
+  @@index([type])
+}
+
+model Enquiry {
+  id                 String   @id @default(uuid())
+  name               String
+  phone              String
+  email              String
+  locations          String
+  status             String
+  pointOfContact     String?
+  enquiryDate        String
+  assignedStaff      String?
+  tourType           String?
+  estimatedDates     String?
+  budget             Int?
+  currency           String?
+  notes              String?
+  pickupLocation     String?
+  dropLocation       String?
+  numberOfTravellers String?
+  numberOfKids       String?
+  travelingWithPets  String?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+}
+
+model Comment {
+  id        String   @id @default(uuid())
+  content   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  // Relations
+  managerId String
+  manager   Manager @relation("ManagerComments", fields: [managerId], references: [id], onDelete: Cascade)
+  
+  authorId  String
+  author    User    @relation("CommentAuthor", fields: [authorId], references: [id], onDelete: Cascade)
+  
+  @@map("comments")
+}
+
+enum PaymentMethodType {
+  BANK_ACCOUNT
+  CREDIT_CARD
+  DEBIT_CARD
+  UPI
+  QR_CODE
+  PAYMENT_GATEWAY
 }
 
 enum Role {
