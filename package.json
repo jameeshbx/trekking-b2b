@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
+    "postinstall": "npx prisma generate",
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
@@ -13,7 +14,7 @@
   "dependencies": {
     "@hello-pangea/dnd": "^18.0.1",
     "@hookform/resolvers": "^5.0.1",
-    "@prisma/client": "^6.10.1",
+    "@prisma/client": "^6.12.0",
     "@radix-ui/react-accordion": "^1.2.8",
     "@radix-ui/react-checkbox": "^1.1.5",
     "@radix-ui/react-collapsible": "^1.1.4",
@@ -62,13 +63,14 @@
     "@types/nodemailer": "^6.4.17",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@types/xlsx": "^0.0.36",
     "autoprefixer": "^10.4.21",
     "cypress": "^14.2.0",
     "cypress-image-snapshot": "^4.0.1",
     "eslint": "^9",
     "eslint-config-next": "15.2.3",
     "postcss": "^8.5.3",
-    "prisma": "^6.7.0",
+    "prisma": "^6.12.0",
     "prisma-erd-generator": "^2.0.4",
     "tailwindcss": "^4.0.14",
     "typescript": "^5"

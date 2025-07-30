@@ -1,10 +1,8 @@
 "use client"
-
 import type React from "react"
-
 import { useState } from "react"
 import Image from "next/image"
-import { Upload, PlusCircle, X, CreditCard, QrCode, Smartphone, Globe, Eye, Plus } from "lucide-react"
+import { Upload, Edit } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -12,45 +10,47 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Label } from "@/components/ui/label"
 import { toast } from "@/components/ui/use-toast"
 import { Toaster } from "@/components/ui/toaster"
-import { Textarea } from "@/components/ui/textarea"
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
 import { countries, cities, destinations } from "@/data/add-dmc"
-import type { DMCRegistrationData } from "@/types/dmc"
+import { z } from "zod"
+import { fetchDMCs } from "@/lib/api"
+import { StandaloneBankDetails } from "./standalone-bank-details"
+import { useDMCForm } from "@/context/dmc-form-context"
+
+// Validation schemas
+const dmcSchema = z.object({
+  dmcName: z.string().min(2, "DMC name must be at least 2 characters"),
+  primaryContact: z.string().min(2, "Primary contact must be at least 2 characters"),
+  phoneNumber: z.string().min(10, "Phone number must be at least 10 digits"),
+  designation: z.string().min(2, "Designation must be at least 2 characters"),
+  ownerName: z.string().min(2, "Owner name must be at least 2 characters"),
+  ownerPhoneNumber: z.string().min(10, "Owner phone must be at least 10 digits"),
+  email: z.string().email("Invalid email address"),
+  website: z.string().url("Invalid URL").or(z.literal("")),
+  primaryCountry: z.string().min(1, "Primary country is required"),
+  destinationsCovered: z.string().min(1, "Destinations covered is required"),
+  cities: z.string().min(1, "Cities is required"),
+  gstRegistration: z.enum(["Yes", "No"]),
+  gstNo: z.string().optional(),
+  yearOfRegistration: z.string().min(4, "Year must be 4 digits").max(4),
+  panNo: z.string().length(10, "PAN must be 10 characters"),
+  panType: z.string().min(1, "PAN type is required"),
+  headquarters: z.string().min(2, "Headquarters must be at least 2 characters"),
+  country: z.string().min(1, "Country is required"),
+  yearOfExperience: z.string().min(1, "Year of experience is required"),
+  registrationCertificate: z.instanceof(File).optional(),
+  primaryPhoneExtension: z.string(),
+  ownerPhoneExtension: z.string(),
+})
 
 export function DMCRegistrationForm() {
   const [uploadedFile, setUploadedFile] = useState<string | null>(null)
-  const [formData, setFormData] = useState<DMCRegistrationData>({
-    dmcName: "",
-    primaryContact: "",
-    phoneNumber: "",
-    designation: "",
-    ownerName: "",
-    ownerPhoneNumber: "",
-    email: "",
-    website: "",
-    primaryCountry: "",
-    destinationsCovered: "",
-    cities: "",
-    gstRegistration: "Yes",
-    gstNo: "",
-    yearOfRegistration: "",
-    panNo: "",
-    panType: "",
-    headquarters: "",
-    country: "",
-    yearOfExperience: "",
-    registrationCertificate: null,
-    primaryPhoneExtension: "+91",
-    ownerPhoneExtension: "+91",
-  })
-
-  const [showBankDetailsModal, setShowBankDetailsModal] = useState(false)
-  const [showCardNumber, setShowCardNumber] = useState(false)
-  const [showCVV, setShowCVV] = useState(false)
+  const { formData, setFormData, isEditing, editingId, resetForm } = useDMCForm()
+  const [showStandaloneBankDetails, setShowStandaloneBankDetails] = useState(false)
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target
-    setFormData((prev) => ({ ...prev, [name]: value }))
+    setFormData({ ...formData, [name]: value })
   }
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -65,83 +65,139 @@ export function DMCRegistrationForm() {
     }
   }
 
+  const validateForm = () => {
+    try {
+      dmcSchema.parse(formData)
+      return true
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        error.errors.forEach((err) => {
+          toast({
+            title: "Validation Error",
+            description: err.message,
+            variant: "destructive",
+          })
+        })
+      }
+      return false
+    }
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    setIsSubmitting(true)
+
+    if (!validateForm()) {
+      setIsSubmitting(false)
+      return
+    }
 
     try {
-      // Create FormData object for file upload
-      const submitData = new FormData()
-
-      // Add all form fields to FormData
+      const formDataToSend = new FormData()
+      // Append all form data
       Object.entries(formData).forEach(([key, value]) => {
-        if (value !== null) {
-          submitData.append(key, value)
+        if (value !== null && value !== undefined && key !== "id") {
+          if (key === "registrationCertificate" && value instanceof File) {
+            formDataToSend.append(key, value, value.name)
+          } else {
+            formDataToSend.append(key, String(value))
+          }
         }
       })
 
-      // Add phone extensions
-      submitData.append("primaryPhoneExtension", formData.primaryPhoneExtension)
-      submitData.append("ownerPhoneExtension", formData.ownerPhoneExtension)
+      let response
+      let successMessage
 
-      // Make API call
-      const response = await fetch("/api/dmc", {
-        method: "POST",
-        body: JSON.stringify(Object.fromEntries(submitData)),
-        headers: {
-          "Content-Type": "application/json",
-        },
-      })
-
-      const result = await response.json()
+      if (isEditing && editingId) {
+        // Update existing DMC
+        response = await fetch(`/api/auth/agency-add-dmc/${editingId}`, {
+          method: "PUT",
+          body: formDataToSend,
+          credentials: "include",
+        })
+        successMessage = "DMC has been updated successfully"
+      } else {
+        // Create new DMC
+        response = await fetch("/api/auth/agency-add-dmc", {
+          method: "POST",
+          body: formDataToSend,
+          credentials: "include",
+        })
+        successMessage = "DMC has been registered successfully"
+      }
 
       if (!response.ok) {
-        throw new Error(result.message || "Failed to register DMC")
+        let errorMessage = `Failed to ${isEditing ? "update" : "register"} DMC`
+        try {
+          const errorData = await response.json()
+          errorMessage = errorData.error || errorData.message || errorMessage
+        } catch (parseError) {
+          console.error("Error parsing error response:", parseError)
+        }
+        throw new Error(errorMessage)
       }
+
+      await response.json()
 
       toast({
         title: "Success",
-        description: "DMC has been registered successfully",
+        description: successMessage,
       })
 
-      // Reset form after successful submission
-      setFormData({
-        dmcName: "",
-        primaryContact: "",
-        phoneNumber: "",
-        designation: "",
-        ownerName: "",
-        ownerPhoneNumber: "",
-        email: "",
-        website: "",
-        primaryCountry: "",
-        destinationsCovered: "",
-        cities: "",
-        gstRegistration: "Yes",
-        gstNo: "",
-        yearOfRegistration: "",
-        panNo: "",
-        panType: "",
-        headquarters: "",
-        country: "",
-        yearOfExperience: "",
-        registrationCertificate: null,
-        primaryPhoneExtension: "+91",
-        ownerPhoneExtension: "+91",
-      })
+      // Reset form and editing state
+      resetForm()
       setUploadedFile(null)
 
+      // Refresh DMC list with default parameters
+      try {
+        await fetchDMCs({
+          search: "",
+          sortBy: "createdAt",
+          sortOrder: "desc",
+          page: 1,
+          limit: 10,
+        })
+      } catch (fetchError) {
+        console.error("Error refreshing DMC list:", fetchError)
+        toast({
+          title: "Warning",
+          description: `DMC ${isEditing ? "updated" : "created"} but failed to refresh list`,
+          variant: "default",
+        })
+      }
     } catch (error) {
       console.error("Error submitting form:", error)
       toast({
         title: "Error",
-        description: error instanceof Error ? error.message : "Failed to register DMC",
+        description: error instanceof Error ? error.message : `Failed to ${isEditing ? "update" : "register"} DMC`,
         variant: "destructive",
       })
+    } finally {
+      setIsSubmitting(false)
     }
   }
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
+      {isEditing && (
+        <div className="bg-blue-50 border border-blue-200 rounded-md p-4 mb-6">
+          <div className="flex items-center">
+            <div className="flex-shrink-0">
+              <Edit className="h-5 w-5 text-blue-400" />
+            </div>
+            <div className="ml-3">
+              <h3 className="text-sm font-medium text-blue-800">Edit Mode</h3>
+              <div className="mt-2 text-sm text-blue-700">
+                <p>
+                  You are currently editing an existing DMC. Make your changes and click &ldquo;Update DMC&rdquo; to
+                  save.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mt-28">
         {/* DMC Name */}
         <div className="space-y-2 w-full">
@@ -179,11 +235,14 @@ export function DMCRegistrationForm() {
             Phone number
           </label>
           <div className="flex">
-            <Select value={formData.primaryPhoneExtension} onValueChange={(value) => setFormData((prev) => ({ ...prev, primaryPhoneExtension: value }))}>
+            <Select
+              value={formData.primaryPhoneExtension}
+              onValueChange={(value) => setFormData((prev) => ({ ...prev, primaryPhoneExtension: value }))}
+            >
               <SelectTrigger className="w-28 h-12 rounded-r-none border-r-0">
                 <SelectValue placeholder="+91" />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="max-h-60 overflow-y-auto">
                 <SelectItem value="+91">
                   <div className="flex items-center">
                     <Image
@@ -257,11 +316,14 @@ export function DMCRegistrationForm() {
             Phone number
           </label>
           <div className="flex">
-            <Select value={formData.ownerPhoneExtension} onValueChange={(value) => setFormData((prev) => ({ ...prev, ownerPhoneExtension: value }))}>
+            <Select
+              value={formData.ownerPhoneExtension}
+              onValueChange={(value) => setFormData((prev) => ({ ...prev, ownerPhoneExtension: value }))}
+            >
               <SelectTrigger className="w-28 h-12 rounded-r-none border-r-0">
                 <SelectValue placeholder="+91" />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="max-h-60 overflow-y-auto">
                 <SelectItem value="+91">
                   <div className="flex items-center">
                     <Image
@@ -329,7 +391,7 @@ export function DMCRegistrationForm() {
           />
         </div>
 
-        {/* Primary Country */}
+        {/* Primary Country - Made scrollable */}
         <div className="space-y-2 w-full">
           <label htmlFor="primaryCountry" className="block text-sm font-medium text-gray-700 font-Poppins">
             Primary country
@@ -341,7 +403,7 @@ export function DMCRegistrationForm() {
             <SelectTrigger className="w-full h-12">
               <SelectValue placeholder="Select..." />
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent className="max-h-60 overflow-y-auto">
               {countries.map((country) => (
                 <SelectItem key={country.code} value={country.name}>
                   {country.name}
@@ -351,7 +413,7 @@ export function DMCRegistrationForm() {
           </Select>
         </div>
 
-        {/* Destinations Covered */}
+        {/* Destinations Covered - Made scrollable */}
         <div className="space-y-2 w-full">
           <label htmlFor="destinationsCovered" className="block text-sm font-medium text-gray-700 font-Poppins">
             Destinations Covered
@@ -363,7 +425,7 @@ export function DMCRegistrationForm() {
             <SelectTrigger className="w-full h-12">
               <SelectValue placeholder="Select..." />
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent className="max-h-60 overflow-y-auto">
               {destinations.map((destination) => (
                 <SelectItem key={destination} value={destination}>
                   {destination}
@@ -373,7 +435,7 @@ export function DMCRegistrationForm() {
           </Select>
         </div>
 
-        {/* Cities */}
+        {/* Cities - Made scrollable */}
         <div className="space-y-2 w-full">
           <label htmlFor="cities" className="block text-sm font-medium text-gray-700 font-Poppins">
             Cities
@@ -385,7 +447,7 @@ export function DMCRegistrationForm() {
             <SelectTrigger className="w-full h-12">
               <SelectValue placeholder="Select..." />
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent className="max-h-60 overflow-y-auto">
               {cities.map((city) => (
                 <SelectItem key={city} value={city}>
                   {city}
@@ -403,7 +465,7 @@ export function DMCRegistrationForm() {
             onValueChange={(value) => {
               setFormData((prev) => ({
                 ...prev,
-                gstRegistration: value as "Yes" | "No"
+                gstRegistration: value as "Yes" | "No",
               }))
             }}
             className="flex items-center gap-4"
@@ -482,8 +544,8 @@ export function DMCRegistrationForm() {
             <SelectContent>
               <SelectItem value="Individual">Individual</SelectItem>
               <SelectItem value="Company">Company</SelectItem>
-              <SelectItem value="HUF">HUF</SelectItem>
-              <SelectItem value="Firm">Firm</SelectItem>
+              <SelectItem value="Trust">Trust</SelectItem>
+              <SelectItem value="Other">Other</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -502,7 +564,7 @@ export function DMCRegistrationForm() {
           />
         </div>
 
-        {/* Country */}
+        {/* Country - Made scrollable */}
         <div className="space-y-2 w-full">
           <label htmlFor="country" className="block text-sm font-medium text-gray-700 font-Poppins">
             Country
@@ -514,7 +576,7 @@ export function DMCRegistrationForm() {
             <SelectTrigger className="w-full h-12">
               <SelectValue placeholder="Select..." />
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent className="max-h-60 overflow-y-auto">
               {countries.map((country) => (
                 <SelectItem key={country.code} value={country.name}>
                   {country.name}
@@ -543,7 +605,7 @@ export function DMCRegistrationForm() {
           </div>
         </div>
 
-        {/* Business Registration / Registration Certificate - Fixed alignment */}
+        {/* Business Registration / Registration Certificate */}
         <div className="space-y-2 w-full">
           <label htmlFor="registrationCertificate" className="block text-sm font-medium text-gray-700 font-Poppins">
             Business registration / Registration certificate
@@ -577,379 +639,34 @@ export function DMCRegistrationForm() {
       </div>
 
       <div className="flex flex-wrap gap-4 mt-6">
+        {isEditing && (
+          <Button
+            type="button"
+            variant="outline"
+            className="h-12 px-6 rounded-md bg-transparent"
+            onClick={() => {
+              resetForm()
+              setUploadedFile(null)
+              toast({
+                title: "Cancelled",
+                description: "Edit mode cancelled",
+              })
+            }}
+          >
+            Cancel Edit
+          </Button>
+        )}
         <Button
-          type="button"
-          className="h-12 px-6 bg-greenlight hover:bg-emerald-600 text-white rounded-md flex items-center gap-2"
-          onClick={() => setShowBankDetailsModal(true)}
+          type="submit"
+          className="h-12 px-6 bg-custom-green hover:bg-gray-900 text-white rounded-md ml-auto"
+          disabled={isSubmitting}
         >
-          <PlusCircle className="h-4 w-4" />
-          Add bank details
-        </Button>
-
-        <Button type="submit" className="h-12 px-6 bg-custom-green hover:bg-gray-900 text-white rounded-md ml-auto">
-          Submit
+          {isSubmitting ? (isEditing ? "Updating..." : "Submitting...") : isEditing ? "Update DMC" : "Submit"}
         </Button>
       </div>
 
-      {/* Bank Details Modal */}
-      {showBankDetailsModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 overflow-y-auto">
-          <div className="bg-white rounded-lg w-full max-w-3xl max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between p-4 border-b">
-              <h3 className="text-lg font-medium">Bank details</h3>
-              <Button variant="ghost" size="icon" onClick={() => setShowBankDetailsModal(false)}>
-                <X className="h-5 w-5" />
-              </Button>
-            </div>
-
-            <div className="p-4">
-              {/* Bank Details Section */}
-              <div className="mb-6">
-                <div className="flex items-center justify-between mb-4">
-                  <div className="flex items-center gap-2">
-                    <div className="bg-gray-100 p-2 rounded">
-                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <path
-                          d="M3 21H21"
-                          stroke="currentColor"
-                          strokeWidth="2"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        />
-                        <path
-                          d="M3 10H21"
-                          stroke="currentColor"
-                          strokeWidth="2"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        />
-                        <path
-                          d="M5 6L12 3L19 6"
-                          stroke="currentColor"
-                          strokeWidth="2"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        />
-                        <path
-                          d="M4 10V21"
-                          stroke="currentColor"
-                          strokeWidth="2"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        />
-                        <path
-                          d="M20 10V21"
-                          stroke="currentColor"
-                          strokeWidth="2"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        />
-                        <path
-                          d="M8 14V17"
-                          stroke="currentColor"
-                          strokeWidth="2"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        />
-                        <path
-                          d="M12 14V17"
-                          stroke="currentColor"
-                          strokeWidth="2"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        />
-                        <path
-                          d="M16 14V17"
-                          stroke="currentColor"
-                          strokeWidth="2"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        />
-                      </svg>
-                    </div>
-                    <span className="font-medium">Bank Details</span>
-                  </div>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="h-8 rounded-full bg-greenlight text-white border-0 hover:bg-emerald-600"
-                  >
-                    <Plus className="h-4 w-4 mr-1" />
-                    Add more
-                  </Button>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <label htmlFor="accountHolderName" className="block text-sm font-medium text-gray-700">
-                      Account Holder Name
-                    </label>
-                    <Input id="accountHolderName" className="w-full h-10" />
-                  </div>
-
-                  <div className="space-y-2">
-                    <label htmlFor="bankName" className="block text-sm font-medium text-gray-700">
-                      Bank Name
-                    </label>
-                    <Input id="bankName" className="w-full h-10" />
-                  </div>
-
-                  <div className="space-y-2">
-                    <label htmlFor="branchName" className="block text-sm font-medium text-gray-700">
-                      Branch Name / Location
-                    </label>
-                    <Input id="branchName" className="w-full h-10" />
-                  </div>
-
-                  <div className="space-y-2">
-                    <label htmlFor="accountNumber" className="block text-sm font-medium text-gray-700">
-                      Account Number
-                    </label>
-                    <Input id="accountNumber" className="w-full h-10" />
-                  </div>
-
-                  <div className="space-y-2">
-                    <label htmlFor="ifscCode" className="block text-sm font-medium text-gray-700">
-                      IFSC / SWIFT Code
-                    </label>
-                    <Input id="ifscCode" className="w-full h-10" />
-                  </div>
-
-                  <div className="space-y-2">
-                    <label htmlFor="bankCountry" className="block text-sm font-medium text-gray-700">
-                      Bank Country
-                    </label>
-                    <Select>
-                      <SelectTrigger className="w-full h-10">
-                        <SelectValue placeholder="Select country" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {countries.map((country) => (
-                          <SelectItem key={country.code} value={country.name}>
-                            {country.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="space-y-2">
-                    <label htmlFor="currency" className="block text-sm font-medium text-gray-700">
-                      Currency
-                    </label>
-                    <Select>
-                      <SelectTrigger className="w-full h-10">
-                        <SelectValue placeholder="US Dollar" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="usd">US Dollar</SelectItem>
-                        <SelectItem value="eur">Euro</SelectItem>
-                        <SelectItem value="gbp">British Pound</SelectItem>
-                        <SelectItem value="inr">Indian Rupee</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <p className="text-xs text-gray-500 mt-1">*Currency accepted</p>
-                  </div>
-
-                  <div className="space-y-2 md:col-span-2">
-                    <label htmlFor="notes" className="block text-sm font-medium text-gray-700">
-                      Enter any notes if required
-                    </label>
-                    <Textarea id="notes" className="w-full min-h-[60px]" />
-                  </div>
-                </div>
-
-                <div className="flex justify-end mt-4">
-                  <Button className="bg-custom-green hover:bg-green-900 text-white">Save Details</Button>
-                </div>
-              </div>
-
-              {/* Credit/Debit Card Section */}
-              <Accordion type="single" collapsible className="border rounded-md mb-4">
-                <AccordionItem value="card" className="border-0">
-                  <AccordionTrigger className="px-4 py-3 hover:no-underline">
-                    <div className="flex items-center gap-2">
-                      <div className="bg-gray-100 p-2 rounded">
-                        <CreditCard className="h-5 w-5" />
-                      </div>
-                      <span className="font-medium">Credit/Debit card</span>
-                    </div>
-                  </AccordionTrigger>
-                  <AccordionContent className="px-4 pb-4">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="space-y-2 md:col-span-2">
-                        <label htmlFor="cardName" className="block text-sm font-medium text-gray-700">
-                          Enter your name...
-                        </label>
-                        <Input id="cardName" className="w-full h-10" />
-                      </div>
-
-                      <div className="space-y-2 md:col-span-2">
-                        <label htmlFor="cardNumber" className="block text-sm font-medium text-gray-700">
-                          Enter card number
-                        </label>
-                        <div className="relative">
-                          <Input
-                            id="cardNumber"
-                            className="w-full h-10 pr-10"
-                            type={showCardNumber ? "text" : "password"}
-                          />
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="absolute right-0 top-0 h-10 w-10"
-                            onClick={() => setShowCardNumber(!showCardNumber)}
-                            type="button"
-                          >
-                            <Eye className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </div>
-
-                      <div className="space-y-2">
-                        <label htmlFor="cvv" className="block text-sm font-medium text-gray-700">
-                          CVV
-                        </label>
-                        <div className="relative">
-                          <Input id="cvv" className="w-full h-10 pr-10" type={showCVV ? "text" : "password"} />
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="absolute right-0 top-0 h-10 w-10"
-                            onClick={() => setShowCVV(!showCVV)}
-                            type="button"
-                          >
-                            <Eye className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </div>
-
-                      <div className="space-y-2">
-                        <label htmlFor="expiryDate" className="block text-sm font-medium text-gray-700">
-                          Expiry Date Month
-                        </label>
-                        <Input id="expiryDate" className="w-full h-10" placeholder="MM/YY" />
-                      </div>
-                    </div>
-
-                    <div className="flex justify-end mt-4">
-                      <Button className="bg-custom-green hover:bg-green-900 text-white">Save Details</Button>
-                    </div>
-                  </AccordionContent>
-                </AccordionItem>
-              </Accordion>
-
-              {/* UPI Section */}
-              <Accordion type="single" collapsible className="border rounded-md mb-4">
-                <AccordionItem value="upi" className="border-0">
-                  <AccordionTrigger className="px-4 py-3 hover:no-underline">
-                    <div className="flex items-center gap-2">
-                      <div className="bg-gray-100 p-2 rounded">
-                        <Smartphone className="h-5 w-5" />
-                      </div>
-                      <span className="font-medium">UPI</span>
-                    </div>
-                  </AccordionTrigger>
-                  <AccordionContent className="px-4 pb-4">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <label htmlFor="upiProvider" className="block text-sm font-medium text-gray-700">
-                          UPI Provider
-                        </label>
-                        <Select>
-                          <SelectTrigger className="w-full h-10">
-                            <SelectValue placeholder="Google Pay UPI" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="gpay">Google Pay UPI</SelectItem>
-                            <SelectItem value="phonepe">PhonePe</SelectItem>
-                            <SelectItem value="paytm">Paytm</SelectItem>
-                            <SelectItem value="bhim">BHIM UPI</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-
-                      <div className="space-y-2">
-                        <label htmlFor="upiId" className="block text-sm font-medium text-gray-700">
-                          Enter UPI ID
-                        </label>
-                        <Input id="upiId" className="w-full h-10" />
-                      </div>
-                    </div>
-
-                    <div className="flex justify-end mt-4">
-                      <Button className="bg-custom-green hover:bg-green-900 text-white">Save Details</Button>
-                    </div>
-                  </AccordionContent>
-                </AccordionItem>
-              </Accordion>
-
-              {/* QR Code Section */}
-              <Accordion type="single" collapsible className="border rounded-md mb-4">
-                <AccordionItem value="qr" className="border-0">
-                  <AccordionTrigger className="px-4 py-3 hover:no-underline">
-                    <div className="flex items-center gap-2">
-                      <div className="bg-gray-100 p-2 rounded">
-                        <QrCode className="h-5 w-5" />
-                      </div>
-                      <span className="font-medium">QR Code</span>
-                    </div>
-                  </AccordionTrigger>
-                  <AccordionContent className="px-4 pb-4">
-                    <div className="flex flex-col items-center justify-center gap-4">
-                      <div className="flex items-center gap-2">
-                        <Input id="qrCode" type="file" className="hidden" />
-                        <div className="border-2 border-dashed border-gray-300 rounded-md p-6 text-center">
-                          <p className="text-sm text-gray-500">Upload QR Code</p>
-                        </div>
-                        <Button
-                          variant="outline"
-                          className="h-10 bg-greenlight hover:bg-emerald-600 text-white border-0"
-                          onClick={() => document.getElementById("qrCode")?.click()}
-                        >
-                          Upload
-                        </Button>
-                      </div>
-                    </div>
-
-                    <div className="flex justify-end mt-4">
-                      <Button className="bg-custom-green hover:bg-green-900 text-white">Save Details</Button>
-                    </div>
-                  </AccordionContent>
-                </AccordionItem>
-              </Accordion>
-
-              {/* Payment Gateway Section */}
-              <Accordion type="single" collapsible className="border rounded-md">
-                <AccordionItem value="gateway" className="border-0">
-                  <AccordionTrigger className="px-4 py-3 hover:no-underline">
-                    <div className="flex items-center gap-2">
-                      <div className="bg-gray-100 p-2 rounded">
-                        <Globe className="h-5 w-5" />
-                      </div>
-                      <span className="font-medium">Payment Gateway</span>
-                    </div>
-                  </AccordionTrigger>
-                  <AccordionContent className="px-4 pb-4">
-                    <div className="space-y-4">
-                      <div className="space-y-2">
-                        <label htmlFor="paymentLink" className="block text-sm font-medium text-gray-700">
-                          Paste the link
-                        </label>
-                        <Input id="paymentLink" className="w-full h-10" />
-                      </div>
-                    </div>
-
-                    <div className="flex justify-end mt-4">
-                      <Button className="bg-custom-green hover:bg-green-900 text-white">Save Details</Button>
-                    </div>
-                  </AccordionContent>
-                </AccordionItem>
-              </Accordion>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Bank Details Modal - Updated to use standalone APIs */}
+      <StandaloneBankDetails isOpen={showStandaloneBankDetails} onClose={() => setShowStandaloneBankDetails(false)} />
 
       <Toaster />
     </form>

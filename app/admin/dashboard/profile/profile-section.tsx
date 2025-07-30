@@ -6,7 +6,7 @@ import { useState,useEffect, useRef} from "react"
 import { Eye, Facebook, Twitter, Instagram, Camera  } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dailog" 
-import { teamMembers, commentData } from "@/data/profile"                                            
+import { teamMembers, commentData } from "@/data/profile"  
 
 interface ProfileData {
   name: string;
@@ -23,13 +23,10 @@ export default function ProfilePage() {
   const [showComments, setShowComments] = useState(false) 
   const [showPassword, setShowPassword] = useState(false)
   const [commentText, setCommentText] = useState("")
-   const [, setLoading] = useState(true)
-  const [, setError] = useState<string | null>(null)
+  const [, setLoading] = useState(true);
+  const [, setError] = useState<string | null>(null);
   const [uploadingImage, setUploadingImage] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
-
-
-  // Updated profile state with proper typing
   const [profileData, setProfileData] = useState<ProfileData | null>(null);
 
 
@@ -153,6 +150,8 @@ export default function ProfilePage() {
     fetchProfile();
   }, []);
 
+  
+
 
 
   return (
@@ -193,21 +192,24 @@ export default function ProfilePage() {
                 onError={handleImageError}
               />
 
-        {/* Always visible upload icon inside the circle */}
-         <div className="absolute inset-0 flex items-center justify-center">
-             <button
-                  onClick={() => fileInputRef.current?.click()}
-                  disabled={uploadingImage}
-                  className="w-8 h-8 bg-black/40 hover:bg-black/60 rounded-full flex items-center justify-center transition-all duration-200 backdrop-blur-sm disabled:cursor-not-allowed"
-                  title={profileData?.profileImage ? "Change profile picture" : "Upload profile picture"}
-                >
-                  {uploadingImage ? (
-                    <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                  ) : (
-                    <Camera size={14} className="text-white" />
-                  )}
-                </button>
-         </div>
+        {!profileData?.profileImage && (
+  <div className="absolute inset-0 flex items-center justify-center">
+    <button
+      onClick={() => fileInputRef.current?.click()}
+      disabled={uploadingImage}
+      className="w-8 h-8 bg-black/40 hover:bg-black/60 rounded-full flex items-center justify-center transition-all duration-200 backdrop-blur-sm disabled:cursor-not-allowed"
+      title="Upload profile picture"
+    >
+      {uploadingImage ? (
+        <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
+      ) : (
+        <Camera size={14} className="text-white" />
+      )}
+    </button>
+  </div>
+)}
+
+
          </div>
 
          
