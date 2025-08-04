@@ -19,13 +19,16 @@ const Footer = () => {
           {/* Logo and company info */}
           <div className="flex flex-col items-center sm:items-start">
             <Link href="/" className="flex items-center">
-              <Image 
-                src="/logo.png" 
-                alt="Trekking Miles Logo" 
-                width={170} 
-                height={90} 
-                className="h-auto"
+                  <div className="absolute h-68 w-75 ml-[-96px]">
+                          <Image
+                src="/elneera-logo.png"
+                alt="Trekking Miles"
+                width={176}  // Original dimensions
+                height={64}
+                className="w-[300px] h-auto object-contain" // Tailwind CSS scaling
+                priority
               />
+                        </div>
             </Link>
           </div>
           

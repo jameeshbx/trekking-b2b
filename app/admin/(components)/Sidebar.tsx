@@ -199,7 +199,7 @@ const Sidebar = ({ expanded }: SidebarProps) => {
           <Link href="/" data-cy="sidebar-logo-link">
             {isMobile ? (
               <Image
-                src="/logo trekking.png"
+                src="/elneera-logo.png"
                 alt="Company Logo"
                 width={64}
                 height={64}
@@ -209,9 +209,9 @@ const Sidebar = ({ expanded }: SidebarProps) => {
               />
             ) : isCollapsed ? (
               <Image
-                src="/logo trekking.png"
+                src="/elneera-logo.png"
                 alt="Company Logo"
-                width={80}
+                width={480}
                 height={80}
                 priority
                 className="mx-auto"
@@ -219,11 +219,11 @@ const Sidebar = ({ expanded }: SidebarProps) => {
               />
             ) : (
               <Image
-                src="/logo trekking.png"
+                src="/elneera-logo.png"
                 alt="Company Logo"
-                width={120}
+                width={420}
                 height={60}
-                className="mb-2"
+                className="-mb-22 mt-[-61px] w-[320px]"
                 priority
                 data-cy="sidebar-logo"
               />

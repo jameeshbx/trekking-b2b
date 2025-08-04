@@ -275,43 +275,64 @@ model PaymentMethod {
   @@index([type])
 }
 
+model Customer {
+  id             String   @id @default(cuid())
+  name           String
+  email          String   @unique
+  phone          String?
+  whatsappNumber String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  // Relations
+  enquiries        Enquiry[]
+  itineraries      Itinerary[]
+  feedbacks        CustomerFeedback[]
+  sentItineraries  SentItinerary[]
+
+  @@map("customers")
+}
+
+
 model Enquiry {
-  id                   String   @id @default(cuid())
-  name                 String
-  phone                String
-  email                String
-  locations            String?
-  tourType             String?
-  estimatedDates       String?
-  currency             String   @default("USD")
-  budget               Int      @default(1000)
-  notes                String?
-  assignedStaff        String?
-  pointOfContact       String?
-  pickupLocation       String?
-  dropLocation         String?
-  numberOfTravellers   String?
-  numberOfKids         String?
-  travelingWithPets    String   @default("no")
-  flightsRequired      String   @default("no")
-  leadSource           String   @default("Direct")
-  tags                 String   @default("sightseeing")
-  mustSeeSpots         String?
-  pacePreference       String   @default("relaxed")
-  status               String   @default("enquiry")
-  enquiryDate          String
-  createdAt            DateTime @default(now())
-  updatedAt            DateTime @updatedAt
+  id                 String        @id @default(cuid())
+  name               String
+  phone              String
+  email              String
+  locations          String
+  tourType           String
+  estimatedDates     String
+  currency           String        @default("USD")
+  budget             Int           @default(1000)
+  notes              String?
+  assignedStaff      String?
+  pointOfContact     String?
+  leadSource         String        @default("Direct")
+  flightsRequired    String        @default("no")
+  pickupLocation     String?
+  dropLocation       String?
+  numberOfTravellers String?
+  numberOfKids       String?
+  travelingWithPets  String?
+  status             String        @default("enquiry")
+  enquiryDate        String
+  tags               String?       @default("sightseeing")
+  mustSeeSpots       String?
+  pacePreference     String?       @default("relaxed")
+  createdAt          DateTime      @default(now())
+  updatedAt          DateTime      @updatedAt
+    // Relations
+  customerId   String?
+  customer     Customer? @relation(fields: [customerId], references: [id])
+  itineraries  Itinerary[]
 
-  // Add this missing relation field
-  itineraries          Itinerary[]
-
-  @@map("Enquiry") // This maps the model to the correct table name
+  @@map("enquiries")
 }
 
 model Itinerary {
   id                   String   @id @default(cuid())
   enquiryId            String
+  customerId           String?
   destinations         String?
   startDate            String?
   endDate              String?
@@ -336,11 +357,64 @@ model Itinerary {
   status               String   @default("draft")
   createdAt            DateTime @default(now())
   updatedAt            DateTime @updatedAt
+  mustSeeSpots         String?  // New field
+  pacePreference       String?  @default("relaxed") // New field
+  pdfUrl                 String?  // Added missing field
+  itineraryType          String?  // Added missing field
+  activeStatus           Boolean  @default(true) // Added missing field
+accommodation Json @default("[]")  // Default empty array
+  dailyItinerary Json @default("[]")
 
-  // Relationship with enquiry
-  enquiry Enquiry @relation(fields: [enquiryId], references: [id], onDelete: Cascade)
+  
+  enquiry      Enquiry   @relation(fields: [enquiryId], references: [id])
+  
+  customer     Customer? @relation(fields: [customerId], references: [id])
+  feedbacks    CustomerFeedback[]
+  sentItineraries SentItinerary[]
 
   @@map("itineraries")
+}
+
+model CustomerFeedback {
+  id          String   @id @default(cuid())
+  type        String   @default("note") // "note", "feedback", "change_request"
+  title       String
+  description String
+  status      String   @default("pending") // "pending", "confirmed", "changes", "note"
+  documentUrl String?  // URL to uploaded document
+  documentName String? // Original filename
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  customerId   String
+  customer     Customer  @relation(fields: [customerId], references: [id])
+  itineraryId  String?
+  itinerary    Itinerary? @relation(fields: [itineraryId], references: [id])
+
+  @@map("customer_feedbacks")
+}
+
+model SentItinerary {
+  id             String   @id @default(cuid())
+  customerName   String
+  email          String
+  whatsappNumber String? 
+  notes          String?
+  documentUrl    String?  // URL to supporting document
+  documentName   String?  // Original filename
+  status         String   @default("sent") // "sent", "delivered", "read"
+  sentDate       DateTime @default(now())
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  // Relations
+  customerId   String
+  customer     Customer  @relation(fields: [customerId], references: [id])
+  itineraryId  String?
+  itinerary    Itinerary? @relation(fields: [itineraryId], references: [id])
+
+  @@map("sent_itineraries")
 }
 
 model Comment {
@@ -427,5 +501,5 @@ enum PanType {
 
 enum UserStatus {
   ACTIVE
-  INACTIVE
+  INACTIVE
 }
