@@ -57,14 +57,15 @@ export default function Navbar() {
           className="flex items-center z-20"
           data-cy="navbar-logo"
         >
-          <div className="absolute h-16 w-44">
+          <div className="absolute h-68 w-75 mk-[-96px]">
             <Image
-              src="/logo.png"
-              alt="Trekking Miles"
-              fill
-              className="object-contain"
-              priority
-            />
+  src="/elneera-logo.png"
+  alt="Trekking Miles"
+  width={176}  // Original dimensions
+  height={64}
+  className="w-[300px] h-auto object-contain" // Tailwind CSS scaling
+  priority
+/>
           </div>
         </Link>
 

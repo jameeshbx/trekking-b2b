@@ -138,11 +138,11 @@ export default function LoginForm() {
 
                 <div className="flex items-center justify-center md:justify-start">
                   <Image
-                    src="/login/cropped-logo-1_1567c4bc-84c5-4188-81e0-d5dd9ed8ef8d (1) 1.svg"
+                    src="/elneera-white.png"
                     alt="Trekking Miles Logo"
-                    width={300}
+                    width={200}
                     height={80}
-                    className="object-contain"
+                    className="object-contain mt-[-125px] w-[360px] "
                   />
                 </div>
 
