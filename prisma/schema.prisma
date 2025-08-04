@@ -9,6 +9,7 @@ datasource db {
   relationMode = "prisma"
 }
 
+
 model File {
   id                         String      @id @default(uuid())
   url                        String
@@ -48,8 +49,8 @@ model User {
   dmc            DMC?           @relation(fields: [dmcId], references: [id])
 
    
-  profileImageId   String?        @unique
-  profileImage   File?  @relation("UserProfileImage", fields: [profileImageId], references: [id])
+  profileImgId   String?        @unique
+  profileImage   File?  @relation("UserProfileImage", fields: [profileImgId], references: [id])  
 
   // Comments authored by this user
   comments       Comment[]      @relation("CommentAuthor") 
@@ -275,27 +276,71 @@ model PaymentMethod {
 }
 
 model Enquiry {
-  id                 String   @id @default(uuid())
-  name               String
-  phone              String
-  email              String
-  locations          String
-  status             String
-  pointOfContact     String?
-  enquiryDate        String
-  assignedStaff      String?
-  tourType           String?
-  estimatedDates     String?
-  budget             Int?
-  currency           String?
-  notes              String?
-  pickupLocation     String?
-  dropLocation       String?
-  numberOfTravellers String?
-  numberOfKids       String?
-  travelingWithPets  String?
-  createdAt          DateTime @default(now())
-  updatedAt          DateTime @updatedAt
+  id                   String   @id @default(cuid())
+  name                 String
+  phone                String
+  email                String
+  locations            String?
+  tourType             String?
+  estimatedDates       String?
+  currency             String   @default("USD")
+  budget               Int      @default(1000)
+  notes                String?
+  assignedStaff        String?
+  pointOfContact       String?
+  pickupLocation       String?
+  dropLocation         String?
+  numberOfTravellers   String?
+  numberOfKids         String?
+  travelingWithPets    String   @default("no")
+  flightsRequired      String   @default("no")
+  leadSource           String   @default("Direct")
+  tags                 String   @default("sightseeing")
+  mustSeeSpots         String?
+  pacePreference       String   @default("relaxed")
+  status               String   @default("enquiry")
+  enquiryDate          String
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  // Add this missing relation field
+  itineraries          Itinerary[]
+
+  @@map("Enquiry") // This maps the model to the correct table name
+}
+
+model Itinerary {
+  id                   String   @id @default(cuid())
+  enquiryId            String
+  destinations         String?
+  startDate            String?
+  endDate              String?
+  travelType           String?
+  adults               Int      @default(0)
+  children             Int      @default(0)
+  under6               Int      @default(0)
+  from7to12            Int      @default(0)
+  flightsRequired      String?
+  pickupLocation       String?
+  dropLocation         String?
+  currency             String   @default("USD")
+  budget               Int      @default(0)
+  activityPreferences  String?
+  hotelPreferences     String?
+  mealPreference       String?
+  dietaryPreference    String?
+  transportPreferences String?
+  travelingWithPets    String?
+  additionalRequests   String?
+  moreDetails          String?
+  status               String   @default("draft")
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  // Relationship with enquiry
+  enquiry Enquiry @relation(fields: [enquiryId], references: [id], onDelete: Cascade)
+
+  @@map("itineraries")
 }
 
 model Comment {

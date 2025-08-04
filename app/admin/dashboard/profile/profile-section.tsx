@@ -1,12 +1,13 @@
 "use client"
 
 import type React from "react"
-import Image from 'next/image';                                                                                                                                                  
-import { useState,useEffect, useRef} from "react"
-import { Eye, Facebook, Twitter, Instagram, Camera  } from "lucide-react"
+import Image from 'next/image';
+import { useState, useEffect, useRef } from "react"
+import { Eye, Facebook, Twitter, Instagram, Camera } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dailog" 
-import { teamMembers, commentData } from "@/data/profile"  
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dailog"
+import { commentData } from "@/data/profile"
+
 
 interface ProfileData {
   name: string;
@@ -19,8 +20,19 @@ interface ProfileData {
   profileImage?: string; // Add profile image field
 }
 
+// Add this new interface
+interface Manager {
+  id: string;
+  name: string;
+  email: string;
+  status: string;
+  lastLoggedIn?: string;
+  profileImage?: string;
+  avatarColor?: string;
+}
+
 export default function ProfilePage() {
-  const [showComments, setShowComments] = useState(false) 
+  const [showComments, setShowComments] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
   const [commentText, setCommentText] = useState("")
   const [, setLoading] = useState(true);
@@ -29,13 +41,20 @@ export default function ProfilePage() {
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [profileData, setProfileData] = useState<ProfileData | null>(null);
 
+  // Add this line with your other state declarations
+  const [managers, setManagers] = useState<Manager[]>([]);
 
+  
+
+  // Add these two new state declarations:
+  const [, setManagersLoading] = useState(true);
+  const [, setManagersError] = useState<string | null>(null);
   // Function to handle image errors and provide fallback
- const handleImageError = (e: React.SyntheticEvent<HTMLImageElement, Event>) => {
-  e.currentTarget.src = "/placeholder.svg"; 
-};
+  const handleImageError = (e: React.SyntheticEvent<HTMLImageElement, Event>) => {
+    e.currentTarget.src = "/placeholder.svg";
+  };
 
-   
+
   // Handle file selection
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -95,13 +114,13 @@ export default function ProfilePage() {
     setCommentText("")
   }
 
-   // Fetch profile data
+  // Fetch profile data
   useEffect(() => {
     const fetchProfile = async () => {
       try {
         setLoading(true)
         const res = await fetch("/api/auth/admin-profile");
-        
+
         if (res.ok) {
           const data = await res.json();
           setProfileData({
@@ -112,7 +131,7 @@ export default function ProfilePage() {
             location: data.location || "N/A",
             status: data.status || "N/A",
             password: "", // Don't fetch actual password for security
-           profileImage: data.profileImage || undefined 
+            profileImage: data.profileImage || undefined,
           });
           setError(null);
         } else {
@@ -143,15 +162,35 @@ export default function ProfilePage() {
         });
       } finally {
         setLoading(false);
-        
+
       }
     };
 
     fetchProfile();
   }, []);
 
-  
-
+  // Add this new useEffect for fetching managers
+  useEffect(() => {
+    const fetchManagers = async () => {
+      try {
+        setManagersLoading(true);
+        setManagersError(null);
+        const res = await fetch("/api/auth/add-managers");
+        if (res.ok) {
+          const data = await res.json();
+          setManagers(data);
+        } else {
+          throw new Error("Failed to fetch managers");
+        }
+      } catch (error) {
+        console.error("Error fetching managers:", error);
+        setManagersError("Failed to load team members. Please try again.");
+      } finally {
+        setManagersLoading(false);
+      }
+    };
+    fetchManagers();
+  }, []);
 
 
   return (
@@ -177,14 +216,14 @@ export default function ProfilePage() {
             priority={false}
           />
         </div>
-        
+
         <div className="absolute inset-0 backdrop-blur-[12px] bg-white/40"></div>
 
         <div className="flex items-center gap-4 relative z-10">
-          
-         <div className="relative group">
-          <div className="h-12 w-12 rounded-full overflow-hidden border-2 border-white/60 backdrop-blur-sm relative">
-            <Image
+
+          <div className="relative group">
+            <div className="h-12 w-12 rounded-full overflow-hidden border-2 border-white/60 backdrop-blur-sm relative">
+              <Image
                 src={profileData?.profileImage || "/file.svg"}
                 alt="Profile"
                 fill
@@ -192,28 +231,28 @@ export default function ProfilePage() {
                 onError={handleImageError}
               />
 
-        {!profileData?.profileImage && (
-  <div className="absolute inset-0 flex items-center justify-center">
-    <button
-      onClick={() => fileInputRef.current?.click()}
-      disabled={uploadingImage}
-      className="w-8 h-8 bg-black/40 hover:bg-black/60 rounded-full flex items-center justify-center transition-all duration-200 backdrop-blur-sm disabled:cursor-not-allowed"
-      title="Upload profile picture"
-    >
-      {uploadingImage ? (
-        <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
-      ) : (
-        <Camera size={14} className="text-white" />
-      )}
-    </button>
-  </div>
-)}
+              {!profileData?.profileImage && (
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <button
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={uploadingImage}
+                    className="w-8 h-8 bg-black/40 hover:bg-black/60 rounded-full flex items-center justify-center transition-all duration-200 backdrop-blur-sm disabled:cursor-not-allowed"
+                    title="Upload profile picture"
+                  >
+                    {uploadingImage ? (
+                      <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    ) : (
+                      <Camera size={14} className="text-white" />
+                    )}
+                  </button>
+                </div>
+              )}
 
 
-         </div>
-
-         
             </div>
+
+
+          </div>
           <div>
 
             <h1 className="font-medium text-lg text-gray-800 drop-shadow-[0_1px_1px_rgba(255,255,255,0.8)]">
@@ -224,8 +263,8 @@ export default function ProfilePage() {
             </p>
           </div>
         </div>
-        <Button 
-          variant="outline" 
+        <Button
+          variant="outline"
           className="rounded-full bg-white/80 text-sm px-5 py-2 h-10 border-white/60 relative z-10 hover:bg-white backdrop-blur-sm transition-all shadow-[0_2px_8px_rgba(0,0,0,0.05)] hover:shadow-[0_4px_12px_rgba(0,0,0,0.1)]"
         >
           <span className="font-medium">OVERVIEW</span>
@@ -237,7 +276,7 @@ export default function ProfilePage() {
         {/* Profile Information */}
         <div className="p-6 bg-white rounded-lg shadow-md">
           <h2 className="text-lg font-bold mb-4">Profile Information</h2>
-        
+
 
           <div className="space-y-4">
             <div className="grid grid-cols-3 gap-2">
@@ -324,13 +363,16 @@ export default function ProfilePage() {
           </div>
 
           <div className="space-y-4">
-            {teamMembers.map((member) => (
-              <div key={member.id} className="flex items-center justify-between">
+            {managers.map((manager) => (
+              <div key={manager.id} className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <div className={`h-10 w-10 rounded-full overflow-hidden ${member.avatarColor}`}>
+                  <div className={`h-10 w-10 rounded-full overflow-hidden ${manager.avatarColor}`}>
+
+                    {/* Adding Profile-image for managers */}
+
                     <Image
-                      src={member.avatarUrl || "/placeholder.svg"}
-                      alt={member.name}
+                      src={manager.profileImage || "/file.svg"}
+                      alt="Team Member"
                       width={40}
                       height={40}
                       className="h-full w-full object-cover"
@@ -338,8 +380,8 @@ export default function ProfilePage() {
                     />
                   </div>
                   <div>
-                    <p className="font-medium text-sm">{member.name}</p>
-                    <p className="text-xs text-gray-500">Last logged in at {member.lastLoggedIn}</p>
+                    <p className="font-medium text-sm">{manager.name}</p>
+                    <p className="text-xs text-gray-500">Last logged in at {manager.lastLoggedIn}</p>
                   </div>
                   <div className="flex items-center gap-2">
                     <div className="w-5 h-5">
@@ -376,11 +418,11 @@ export default function ProfilePage() {
             <div className="flex items-start gap-3 mb-4">
               <div className="h-10 w-10 rounded-full overflow-hidden flex-shrink-0">
                 <Image
-                  src={commentData.authorAvatar || "/placeholder.svg"}
+                  src={commentData.authorAvatar || "/file.svg"}
                   alt={commentData.author}
                   width={40}
                   height={40}
-                  className="h-full w-full object-cover" 
+                  className="h-full w-full object-cover"
                   onError={handleImageError}
                 />
               </div>
