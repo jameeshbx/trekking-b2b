@@ -4,18 +4,14 @@ const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined;
 };
 
-const prismaClientSingleton = () => {
-  return new PrismaClient({
-    log: ["query"],
-    datasources: {
-      db: {
-        url: process.env.DATABASE_URL
-      }
-    }
-  })
-}
 
-export const prisma = globalForPrisma.prisma ?? prismaClientSingleton()
+const prisma = global.prisma || new PrismaClient({
+  datasources: {
+    db: {
+      url: process.env.DATABASE_URL,
+    },
+  },
+})
 
 if (process.env.NODE_ENV !== "production") globalForPrisma.prisma = prisma
 
@@ -23,3 +19,10 @@ if (process.env.NODE_ENV !== "production") globalForPrisma.prisma = prisma
 process.on('beforeExit', async () => {
   await prisma.$disconnect()
 })
+
+declare global {
+  var prisma: PrismaClient | undefined
+}
+
+export default prisma
+

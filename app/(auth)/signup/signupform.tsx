@@ -52,6 +52,7 @@ export default function SignupForm() {
       password: formData.get("password") as string,
       companyName: formData.get("companyName") as string,
       userType: formData.get("userType") as SignupFormData["userType"],
+      
     }
 
     try {

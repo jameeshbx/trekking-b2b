@@ -9,6 +9,7 @@ datasource db {
   relationMode = "prisma"
 }
 
+
 model File {
   id                         String      @id @default(uuid())
   url                        String
@@ -274,6 +275,7 @@ model PaymentMethod {
   @@index([type])
 }
 
+<<<<<<< HEAD
 model Customer {
   id             String   @id @default(cuid())
   name           String
@@ -326,12 +328,49 @@ model Enquiry {
   itineraries  Itinerary[]
 
   @@map("enquiries")
+=======
+model Enquiry {
+  id                   String   @id @default(cuid())
+  name                 String
+  phone                String
+  email                String
+  locations            String?
+  tourType             String?
+  estimatedDates       String?
+  currency             String   @default("USD")
+  budget               Int      @default(1000)
+  notes                String?
+  assignedStaff        String?
+  pointOfContact       String?
+  pickupLocation       String?
+  dropLocation         String?
+  numberOfTravellers   String?
+  numberOfKids         String?
+  travelingWithPets    String   @default("no")
+  flightsRequired      String   @default("no")
+  leadSource           String   @default("Direct")
+  tags                 String   @default("sightseeing")
+  mustSeeSpots         String?
+  pacePreference       String   @default("relaxed")
+  status               String   @default("enquiry")
+  enquiryDate          String
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  // Add this missing relation field
+  itineraries          Itinerary[]
+
+  @@map("Enquiry") // This maps the model to the correct table name
+>>>>>>> 453b1bb5cc7cdcac0d9f43b61552ff98ad3d89dd
 }
 
 model Itinerary {
   id                   String   @id @default(cuid())
   enquiryId            String
+<<<<<<< HEAD
   customerId           String?
+=======
+>>>>>>> 453b1bb5cc7cdcac0d9f43b61552ff98ad3d89dd
   destinations         String?
   startDate            String?
   endDate              String?
@@ -356,6 +395,7 @@ model Itinerary {
   status               String   @default("draft")
   createdAt            DateTime @default(now())
   updatedAt            DateTime @updatedAt
+<<<<<<< HEAD
   mustSeeSpots         String?  // New field
   pacePreference       String?  @default("relaxed") // New field
   pdfUrl                 String?  // Added missing field
@@ -370,10 +410,16 @@ accommodation Json @default("[]")  // Default empty array
   customer     Customer? @relation(fields: [customerId], references: [id])
   feedbacks    CustomerFeedback[]
   sentItineraries SentItinerary[]
+=======
+
+  // Relationship with enquiry
+  enquiry Enquiry @relation(fields: [enquiryId], references: [id], onDelete: Cascade)
+>>>>>>> 453b1bb5cc7cdcac0d9f43b61552ff98ad3d89dd
 
   @@map("itineraries")
 }
 
+<<<<<<< HEAD
 model CustomerFeedback {
   id          String   @id @default(cuid())
   type        String   @default("note") // "note", "feedback", "change_request"
@@ -416,6 +462,8 @@ model SentItinerary {
   @@map("sent_itineraries")
 }
 
+=======
+>>>>>>> 453b1bb5cc7cdcac0d9f43b61552ff98ad3d89dd
 model Comment {
   id        String   @id @default(uuid())
   content   String
