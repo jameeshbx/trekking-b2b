@@ -4,6 +4,7 @@ import { z } from "zod";
 import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcryptjs";
 
+
 declare module "next-auth" {
   interface Session {
     user: {
@@ -15,6 +16,8 @@ declare module "next-auth" {
       agencyId?: string | null; // Add agencyId to session
     };
   }
+
+  
   
   interface User {
     id: string;
@@ -72,6 +75,7 @@ export const authOptions: NextAuthOptions = {
       },
     }),
   ],
+  
   session: {
     strategy: "jwt",
     maxAge: 30 * 24 * 60 * 60, // 30 days

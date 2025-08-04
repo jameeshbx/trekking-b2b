@@ -648,7 +648,7 @@ export function DMCRegistrationForm({ onDMCAdded }: DMCRegistrationFormProps) {
             value={formData.website}
             onChange={handleInputChange}
             className={`w-full h-12 focus:border-emerald-500 hover:border-emerald-500 transition-colors ${
-              errors.website ? "border-red-500" : ""
+              errors.website ? "border-red-500" : "" 
             }`}
           />
           {errors.website && (
