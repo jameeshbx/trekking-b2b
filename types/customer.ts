@@ -2,10 +2,10 @@ export interface Customer {
   id: string
   name: string
   email: string
-  phone?: string | null
-  whatsappNumber?: string | null
-  createdAt?: string
-  updatedAt?: string
+  phone?: string
+  whatsappNumber?: string
+  createdAt: string
+  updatedAt: string
 }
 
 export interface Itinerary {
@@ -13,47 +13,33 @@ export interface Itinerary {
   dateGenerated: string
   pdf: string
   activeStatus: boolean
-  itinerary: string
-  status: string
-  customerName: string
-  destinations?: string | null
-  startDate?: string | null
-  endDate?: string | null
-  budget?: number | null
-  currency?: string | null
-  pdfUrl?: string | null
+  customerId?: string
+  enquiryId?: string
 }
 
 export interface CustomerFeedback {
   id: string
-  customerId?: string | null
-  enquiryId?: string | null
-  itineraryId?: string | null
-  type: string
   title: string
   description: string
-  time: string
+  type: string
   status: string
-  customerName: string
-  documentUrl?: string | null
-  documentName?: string | null
-  createdAt: Date;
-};
+  documentUrl?: string
+  documentName?: string
+  createdAt: string
+  customerId?: string
+  enquiryId?: string
+}
+
 export interface SentItinerary {
   id: string
   date: string
-  customerId?: string | null
-  enquiryId?: string | null
   customerName: string
   email: string
   whatsappNumber: string
-  notes: string
-  documents: { name: string }[];
-  status: string
-  documentUrl?: string | null
-  documentName?: string | null
-  sentDate: string
-  itineraryId?: string | null
+  notes?: string
+  documents?: string
+  customerId?: string
+  enquiryId?: string
 }
 
 export interface FormData {
@@ -71,16 +57,8 @@ export interface NewNote {
   document: File | null
 }
 
-export interface ApiResponse<T> {
-  success: boolean
-  message?: string
-  error?: string
-  details?: string
-  data?: T
-}
-
 export interface CustomerDashboardData {
-  customer: Customer
+  customer?: Customer
   itineraries: Itinerary[]
   feedbacks: CustomerFeedback[]
   sentItineraries: SentItinerary[]

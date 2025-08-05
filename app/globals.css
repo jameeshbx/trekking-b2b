@@ -37,6 +37,7 @@
   --dark-pink:#FD007F;
   --greyish:#6B7280;
   --light-orange:#EFB41D;
+  --pink:#FF9D7E;
 
   
   
@@ -85,6 +86,7 @@
 }
 
 @theme inline {
+  --color-pink: var(--pink);
   --color-light-orange: var(--light-orange);
   --color-greenook: var(--greenook);
   --color-custom-green: var(--custom-green);

@@ -1,10 +1,9 @@
 "use client"
 
 import type React from "react"
-import { useState, useEffect, Suspense} from "react"
+import { useState, useEffect } from "react"
 import { Download, Upload, Plus, X, AlertCircle, CheckCircle, Clock, FileText } from "lucide-react"
 import { LoadingSpinner } from "@/components/ui/loading-spinner"
-import { useSearchParams } from "next/navigation"
 
 import type {
   Customer,
@@ -15,10 +14,8 @@ import type {
   NewNote,
   CustomerDashboardData,
 } from "@/types/customer"
-import LoadingComponent from "../Itenary-form/loading"
 
-const ShareCustomerDashboardContent = () => {
-  const searchParams = useSearchParams()
+const ShareCustomerDashboard = () => {
   const [formData, setFormData] = useState<FormData>({
     name: "",
     email: "",
@@ -49,10 +46,10 @@ const ShareCustomerDashboardContent = () => {
 
   // Fetch data on component mount
   useEffect(() => {
-    
-    const customerIdParam = searchParams.get("customerId")
-    const enquiryIdParam = searchParams.get("enquiryId")
-    const itineraryIdParam = searchParams.get("itineraryId")
+    const urlParams = new URLSearchParams(window.location.search)
+    const customerIdParam = urlParams.get("customerId")
+    const enquiryIdParam = urlParams.get("enquiryId")
+    const itineraryIdParam = urlParams.get("itineraryId")
 
     setCustomerId(customerIdParam)
     setEnquiryId(enquiryIdParam)
@@ -64,7 +61,7 @@ const ShareCustomerDashboardContent = () => {
       setError("Either Customer ID or Enquiry ID is required")
       setLoading(false)
     }
-  }, [searchParams])
+  }, [])
 
   const fetchCustomerData = async (
     customerIdParam: string | null,
@@ -94,16 +91,15 @@ const ShareCustomerDashboardContent = () => {
       }
 
       const data: CustomerDashboardData = await response.json()
-
-      if (data.customer) {
-        setCustomer(data.customer)
-        setFormData((prev) => ({
-          ...prev,
-          name: data.customer.name || "",
-          email: data.customer.email || "",
-          whatsappNumber: data.customer.whatsappNumber || data.customer.phone || "",
-        }))
-      }
+ if (data.customer) {
+    setCustomer(data.customer)
+    setFormData((prev) => ({
+      ...prev,
+      name: data.customer?.name || "",
+      email: data.customer?.email || "",
+      whatsappNumber: data.customer?.whatsappNumber || data.customer?.phone || "",
+    }))
+  }
 
       setItineraries(data.itineraries || [])
       setCustomerFeedbacks(data.feedbacks || [])
@@ -676,12 +672,4 @@ const ShareCustomerDashboardContent = () => {
   )
 }
 
-
- 
-export default function SharecustomerFormPage() {
-  return (
-    <Suspense fallback={<LoadingComponent />}>
-      <ShareCustomerDashboardContent/>
-    </Suspense>
-  )
-}
+export default ShareCustomerDashboard

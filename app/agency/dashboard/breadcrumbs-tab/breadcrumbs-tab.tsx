@@ -94,13 +94,13 @@ const BreadcrumbNavigation = () => {
       id: "customer-transaction",
       label: "Customer transaction",
       icon: CreditCard,
-      path: `/agency/dashboard/customer-transaction?${createQueryParams().toString()}`,
+      path: `/agency/dashboard/customer-payment?${createQueryParams().toString()}`,
     },
     {
       id: "dmc-payout",
       label: "DMC payout",
       icon: Banknote,
-      path: `/agency/dashboard/dmc-payout?${createQueryParams().toString()}`,
+      path: `/agency/dashboard/dmc-payment?${createQueryParams().toString()}`,
     },
     {
       id: "booking-details",
