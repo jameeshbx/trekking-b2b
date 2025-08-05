@@ -80,12 +80,12 @@ const Sidebar = ({ expanded }: SidebarProps) => {
       dropdownItems: [
         {
           name: "Bookings",
-          href: "/agency/dashboard/booking-details",
+          href: "/agency/dashboard/reports/recent-booking",
           logo: <Image src="/dmcagency.svg" alt="Bookings" width={16} height={16} className="mr-2 min-w-[16px]" />,
         },
         {
           name: "Revenue by Destinations",
-          href: "/agency/reports/revenue-destinations",
+          href: "/agency/dashboard/reports/revenue-destination",
           logo: (
             <Image
               src="/dmcagency.svg"
@@ -98,7 +98,7 @@ const Sidebar = ({ expanded }: SidebarProps) => {
         },
         {
           name: "Revenue by DMC",
-          href: "/agency/reports/revenue-dmc",
+          href: "/agency/dashboard/reports/revenue-dmc",
           logo: (
             <Image src="/dmcagency.svg" alt="Revenue by DMC" width={16} height={16} className="mr-2 min-w-[16px]" />
           ),
