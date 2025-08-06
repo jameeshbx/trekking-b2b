@@ -46,27 +46,27 @@ const Sidebar = ({ expanded }: SidebarProps) => {
   const menuItems: MenuItem[] = [
     {
       title: "Dashboard",
-      href: "/admin/dashboard", // Fixed the typo from "daboard"
+      href: "/agency/dashboard", // Fixed the typo from "daboard"
       icon: <Image src="/dash.svg" alt="Dashboard" width={20} height={20} className="min-w-[20px]" />,
     },
     {
       title: "Enquiries", // Changed from "Login requests"
-      href: "/admin/enquiries", // Changed from "/admin/login-requests"
+      href: "/agency/dashboard/enquiry", // Changed from "/admin/login-requests"
       icon: <Image src="/login.svg" alt="Enquiries" width={20} height={20} className="min-w-[20px]" />,
     },
     {
       title: "Flights", // Changed from "Subscription Details"
-      href: "/admin/flights", // Changed from "/admin/advisors"
+      href: "/agency/dashboard/flights", // Changed from "/admin/advisors"
       icon: <Image src="/flight.png" alt="Flights" width={20} height={20} className="min-w-[20px]" />,
     },
     {
       title: "Accommodation",
-      href: "/admin/accommodation",
+      href: "/agency/dashboard/accommodation",
       icon: <Image src="/sleep.png" alt="Accommodation" width={20} height={20} className="min-w-[20px]" />,
     },
     {
       title: "Reports", // New dropdown item
-      href: "/admin/reports",
+      href: "/agency/dashboard/reports",
       icon: (
         <Image
           src="/subscription.svg" // Using the manage icon for reports
@@ -80,12 +80,12 @@ const Sidebar = ({ expanded }: SidebarProps) => {
       dropdownItems: [
         {
           name: "Bookings",
-          href: "/admin/reports/bookings",
+          href: "/agency/dashboard/reports/recent-booking",
           logo: <Image src="/dmcagency.svg" alt="Bookings" width={16} height={16} className="mr-2 min-w-[16px]" />,
         },
         {
           name: "Revenue by Destinations",
-          href: "/admin/reports/revenue-destinations",
+          href: "/agency/dashboard/reports/revenue-destination",
           logo: (
             <Image
               src="/dmcagency.svg"
@@ -98,7 +98,7 @@ const Sidebar = ({ expanded }: SidebarProps) => {
         },
         {
           name: "Revenue by DMC",
-          href: "/admin/reports/revenue-dmc",
+          href: "/agency/dashboard/reports/revenue-dmc",
           logo: (
             <Image src="/dmcagency.svg" alt="Revenue by DMC" width={16} height={16} className="mr-2 min-w-[16px]" />
           ),
@@ -107,7 +107,7 @@ const Sidebar = ({ expanded }: SidebarProps) => {
     },
     {
       title: "Add Users", 
-      href: "/admin/add-users",
+      href: "/agency/dashboard/add-users",
       icon: (
         <Image
           src="/people.png"
@@ -120,7 +120,7 @@ const Sidebar = ({ expanded }: SidebarProps) => {
     },
     {
       title: "Add DMC",
-      href: "/admin/dashboard/add-dmc",
+      href: "/agency/dashboard/add-dmc",
       icon: <Image src="/Vector.svg" alt="Add DMC" width={20} height={20} className="min-w-[20px]" />,
     },
   ]
@@ -128,7 +128,7 @@ const Sidebar = ({ expanded }: SidebarProps) => {
   const accountItems = [
     {
           title: "Lisa Ray",
-          href: "/admin/dashboard/profile",
+          href: "/agency/dashboard/profile",
           icon: (
             <Image
               src= "/avatar/Image (3).png"
@@ -141,7 +141,7 @@ const Sidebar = ({ expanded }: SidebarProps) => {
         },
     {
       title: "Settings",
-      href: "/admin/settings",
+      href: "/agency/dashboard/settings",
       icon: (
         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path
