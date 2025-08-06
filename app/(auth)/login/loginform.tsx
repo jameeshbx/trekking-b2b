@@ -6,7 +6,7 @@ import { Eye, X, ArrowLeft } from "lucide-react"
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { signIn } from "next-auth/react"
-import { useRouter, useSearchParams } from "next/navigation"
+import { useRouter } from "next/navigation" 
 import { z } from "zod"
 import { toast } from "sonner"
 
@@ -21,7 +21,6 @@ export default function LoginForm() {
   const [showPassword, setShowPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const router = useRouter()
-  const searchParams = useSearchParams()
 
   useEffect(() => {
     const checkIfMobile = () => {
@@ -58,19 +57,41 @@ export default function LoginForm() {
         return
       }
 
-      const callbackUrl = searchParams.get("callbackUrl")
-      router.push(callbackUrl || "/admin/dashboard/profile")
-      router.refresh()
-    } catch (error) {
-      if (error instanceof z.ZodError) {
-        toast.error(error.errors[0].message)
-      } else {
-        toast.error("Something went wrong")
-      }
-    } finally {
-      setIsLoading(false)
+
+    // Fetch user data to determine type
+    const userResponse = await fetch('/api/auth/user')
+    if (!userResponse.ok) throw new Error('Failed to fetch user data')
+    
+    const userData = await userResponse.json()
+
+    // Redirect based on user type
+    let redirectPath = '/profile'
+    switch(userData.userType) {
+      case 'TEKKING_MYLES':
+        redirectPath = '/admin/dashboard/profile'
+        break
+      case 'AGENCY':
+        redirectPath = '/agency/dashboard/profile'
+        break
+      case 'DMC':
+        redirectPath = '/dmc/dashboard/profile'
+        break
     }
+
+    router.push(redirectPath)
+    router.refresh()
+
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      toast.error(error.errors[0].message)
+    } else {
+      toast.error("Something went wrong")
+    }
+  } finally {
+    setIsLoading(false)
   }
+}
+
 
   return (
     <div className="relative w-full overflow-hidden py-6 px-4 sm:px-6 lg:px-8 bg-custom-green z-[10]">

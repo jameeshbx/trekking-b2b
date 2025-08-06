@@ -80,7 +80,7 @@ export default function ProfilePage() {
           {/* Profile Information */}
           <div className="bg-white rounded-lg shadow-sm p-6">
             <h2 className="text-lg font-semibold mb-4">Profile Information</h2>
-            <p className="text-sm text-gray-600 mb-6">{profileData.bio}</p>
+           
 
             <div className="space-y-4">
               <div className="grid grid-cols-3 gap-2">

@@ -72,7 +72,11 @@ export default function SignupForm() {
       }
 
       toast.success("Account created successfully!")
-      router.push("/login")
+      
+       // Redirect all users to login page after successful signup
+        router.push("/login")
+
+
     } catch (error) {
       if (error instanceof z.ZodError) {
         toast.error(error.errors[0].message)
@@ -86,6 +90,7 @@ export default function SignupForm() {
     }
   }
 
+  
   return (
     <div className="relative w-full overflow-hidden py-6 px-4 sm:px-6 lg:px-8 bg-custom-green z-[10]">
       <div className="absolute inset-0 -z-[10]">
@@ -228,6 +233,7 @@ export default function SignupForm() {
                       ))}
                     </select>
                   </div>
+
 
                   <div className="space-y-2">
                     <label htmlFor="password" className="block text-sm font-semibold text-gray-700">
