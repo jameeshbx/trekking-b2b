@@ -3,6 +3,7 @@ import { TopBarContainer } from "@/app/admin/(components)/TobBarContainer"
 import { DMCRegistrationForm } from "@/app/agency/dashboard/add-dmc/add-dmc"
 import { DMCTable } from "@/app/agency/dashboard/add-dmc/dmc-table"
 import { useState, useEffect } from "react"
+import { DMCFormProvider } from "@/context/dmc-form-context"
 
 export default function Home() {
   // Track sidebar expanded state to match the layout
@@ -37,16 +38,18 @@ export default function Home() {
       </div>
 
       {/* Main content with padding to account for fixed header */}
+      <DMCFormProvider>
       <main className="flex-1 pt-16 overflow-x-hidden">
         <div className="max-w-full mx-auto space-y-8 bg-gray-50/50 p-4 sm:p-6 rounded-lg">
           <DMCRegistrationForm />
           <DMCTable />
 
           <div className="text-xs text-gray-500 mt-8">
-            © 2023, Made by <span className="text-emerald-500">Trekking Miles</span>.
+            © 2025, Made by <span className="text-emerald-500">Trekking Miles</span>.
           </div>
         </div>
       </main>
+      </DMCFormProvider>
     </div>
   )
 }

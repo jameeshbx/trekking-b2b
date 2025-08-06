@@ -1,4 +1,4 @@
-"use client";
+"use client";   
 import { useState, type ChangeEvent } from "react";
 import Image from "next/image";
 import { HexColorPicker } from "react-colorful";

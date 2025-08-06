@@ -52,6 +52,7 @@ export default function SignupForm() {
       password: formData.get("password") as string,
       companyName: formData.get("companyName") as string,
       userType: formData.get("userType") as SignupFormData["userType"],
+      
     }
 
     try {
@@ -141,13 +142,14 @@ export default function SignupForm() {
               <div className="relative z-10">
                 <div className="flex items-center justify-center md:justify-start">
                   <Image
-                    src="/login/cropped-logo-1_1567c4bc-84c5-4188-81e0-d5dd9ed8ef8d (1) 1.svg"
-                    alt="Trekking Miles Logo"
-                    width={300}
-                    height={80}
-                    className="object-contain"
-                  />
-                </div>
+                                     src="/elneera-white.png"
+                                     alt="Trekking Miles Logo"
+                                     width={200}
+                                     height={80}
+                                     className="object-contain mt-[-125px] w-[360px] "
+                                   />
+                                 </div>
+                
 
                 <h1 className="mt-8 md:mt-12 lg-mt-[-30] text-3xl font-nunito md:text-4xl font-semibold text-white text-center md:text-left">
                   Join Trekking Miles Today!

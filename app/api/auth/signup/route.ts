@@ -55,6 +55,7 @@ export async function POST(req: Request) {
       { message: "User created successfully", user: userWithoutPassword },
       { status: 201 }
     );
+    
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(

@@ -4,6 +4,7 @@ import { z } from "zod";
 import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcryptjs";
 
+
 declare module "next-auth" {
   interface Session {
     user: {
@@ -11,15 +12,19 @@ declare module "next-auth" {
       email?: string | null;
       name?: string | null;
       image?: string | null;
-      role?: string;
+      role: string;
+      agencyId?: string | null; // Add agencyId to session
     };
   }
+
+  
   
   interface User {
     id: string;
     email: string;
     name?: string | null;
     role: string;
+    agencyId?: string | null; // Add agencyId to user
   }
 }
 
@@ -47,13 +52,13 @@ export const authOptions: NextAuthOptions = {
           });
 
           if (!user) {
-            return null;
+            throw new Error("User not found");
           }
 
           const isPasswordValid = await bcrypt.compare(password, user.password);
 
           if (!isPasswordValid) {
-            return null;
+            throw new Error("Invalid password");
           }
 
           return {
@@ -61,6 +66,7 @@ export const authOptions: NextAuthOptions = {
             email: user.email,
             name: user.name,
             role: user.role,
+            agencyId: user.agencyId // Include agencyId
           };
         } catch (error) {
           console.error("Authorization error:", error);
@@ -69,8 +75,10 @@ export const authOptions: NextAuthOptions = {
       },
     }),
   ],
+  
   session: {
     strategy: "jwt",
+    maxAge: 30 * 24 * 60 * 60, // 30 days
   },
   pages: {
     signIn: "/login",
@@ -80,6 +88,7 @@ export const authOptions: NextAuthOptions = {
       if (user) {
         token.id = user.id;
         token.role = user.role;
+        token.agencyId = user.agencyId; // Include agencyId in JWT
       }
       return token;
     },
@@ -87,8 +96,11 @@ export const authOptions: NextAuthOptions = {
       if (session.user) {
         session.user.id = token.id as string;
         session.user.role = token.role as string;
+        session.user.agencyId = token.agencyId as string | null; // Add to session
       }
       return session;
     },
   },
+  secret: process.env.NEXTAUTH_SECRET,
+  debug: process.env.NODE_ENV === "development",
 };

@@ -1,10 +1,10 @@
 "use client"
 
 import { useState, useRef, useEffect } from "react"
-import { Search, ChevronDown, Plus, CalendarIcon } from "lucide-react"
+import { Search, ChevronDown, Plus, CalendarIcon,  } from 'lucide-react'
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { ArrowUpRight } from "lucide-react"
+import { ArrowUpRight } from 'lucide-react'
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
@@ -17,6 +17,9 @@ import { Calendar } from "@/components/ui/calendar"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { format } from "date-fns"
 import { cn } from "@/lib/utils"
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
+import { Label } from "@/components/ui/label"
+import { useRouter } from "next/navigation"
 
 const generateUniqueId = () => {
   return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
@@ -53,6 +56,7 @@ export default function Enquiry() {
     from: undefined,
     to: undefined,
   })
+  const router = useRouter()
 
   const [newEnquiry, setNewEnquiry] = useState<Omit<EnquiryType, "id" | "status" | "enquiryDate">>({
     name: "",
@@ -66,6 +70,16 @@ export default function Enquiry() {
     notes: "",
     assignedStaff: "",
     pointOfContact: "",
+    pickupLocation: "",
+    dropLocation: "",
+    numberOfTravellers: "",
+    numberOfKids: "",
+    travelingWithPets: "no",
+    flightsRequired: "no",
+    leadSource: "Direct",
+    tags: "sightseeing",
+    mustSeeSpots: "",
+    pacePreference: "relaxed",
   })
 
   useEffect(() => {
@@ -73,17 +87,23 @@ export default function Enquiry() {
   }, [])
 
   useEffect(() => {
-    if (isClient) {
-      const storedColumns = localStorage.getItem("enquiryColumns")
-      if (storedColumns) {
-        try {
-          setColumns(JSON.parse(storedColumns))
-        } catch (error) {
-          console.error("Failed to parse stored columns:", error)
-        }
+    const fetchEnquiries = async () => {
+      try {
+        const response = await fetch("/api/enquiries")
+        const result = await response.json()
+        const data = Array.isArray(result?.data) ? result.data : Array.isArray(result) ? result : []
+        const cols = initialColumns.map((col) => ({
+          ...col,
+          enquiries: data.filter((e: EnquiryType) => e.status === col.id),
+        }))
+        setColumns(cols)
+      } catch (error) {
+        console.error("Error fetching enquiries:", error)
+        setColumns(initialColumns.map((col) => ({ ...col, enquiries: [] })))
       }
     }
-  }, [isClient])
+    fetchEnquiries()
+  }, [])
 
   useEffect(() => {
     if (isClient) {
@@ -98,7 +118,7 @@ export default function Enquiry() {
     }))
   }
 
-  const handleAddEnquiry = () => {
+  const handleAddEnquiry = async () => {
     const today = new Date()
     const formattedDate = `${today.getDate().toString().padStart(2, "0")}-${(today.getMonth() + 1)
       .toString()
@@ -111,19 +131,45 @@ export default function Enquiry() {
       enquiryDate: formattedDate,
     }
 
-    const updatedColumns = JSON.parse(JSON.stringify(columns))
-    const enquiryColumnIndex = updatedColumns.findIndex((col: Column) => col.id === "enquiry")
+    try {
+      // Create the enquiry
+      const response = await fetch("/api/enquiries", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(newEnquiryWithId),
+      })
 
-    if (enquiryColumnIndex !== -1) {
-      updatedColumns[enquiryColumnIndex].enquiries.push(newEnquiryWithId)
-      setColumns(updatedColumns)
+      if (!response.ok) {
+        throw new Error("Failed to create enquiry")
+      }
+
+      // Fetch updated enquiries
+      const res = await fetch("/api/enquiries")
+      const data = await res.json()
+      const enquiries = Array.isArray(data?.data) ? data.data : Array.isArray(data) ? data : []
+
+      const cols = initialColumns.map((col) => ({
+        ...col,
+        enquiries: enquiries.filter((e: EnquiryType) => e.status === col.id),
+      }))
+
+      setColumns(cols)
+
+      toast.success("Enquiry Added", {
+        description: `New enquiry for ${newEnquiry.name} has been added successfully.`,
+      })
+
+      setIsDialogOpen(false)
+      resetForm()
+    } catch (error) {
+      console.error("Error adding enquiry:", error)
+      toast.error("Error", {
+        description: "Failed to add enquiry. Please try again.",
+      })
     }
+  }
 
-    toast.success("Enquiry Added", {
-      description: `New enquiry for ${newEnquiry.name} has been added successfully.`,
-    })
-
-    setIsDialogOpen(false)
+  const resetForm = () => {
     setNewEnquiry({
       name: "",
       phone: "",
@@ -136,6 +182,16 @@ export default function Enquiry() {
       notes: "",
       assignedStaff: "",
       pointOfContact: "",
+      pickupLocation: "",
+      dropLocation: "",
+      numberOfTravellers: "",
+      numberOfKids: "",
+      travelingWithPets: "no",
+      flightsRequired: "no",
+      leadSource: "Direct",
+      tags: "sightseeing",
+      mustSeeSpots: "",
+      pacePreference: "relaxed",
     })
     setDateRange({
       from: undefined,
@@ -179,6 +235,107 @@ export default function Enquiry() {
     })
   }
 
+  // Handle navigation to itinerary form
+  const handleNavigateToItinerary = (enquiry: EnquiryType) => {
+    // Store enquiry data in localStorage for immediate access
+    localStorage.setItem("currentEnquiry", JSON.stringify(enquiry))
+    // Navigate to itinerary form with enquiry ID
+    router.push(`/agency/dashboard/Itenary-form?enquiryId=${enquiry.id}`)
+  }
+
+  const renderTagSpecificFields = () => {
+    if (newEnquiry.tags === "sightseeing") {
+      return (
+        <>
+          {/* Must-see spots */}
+          <div className="col-span-3 space-y-1 sm:space-y-2">
+            <label className="text-xs sm:text-sm font-medium font-poppins text-gray-600">
+              Must-see spots <span className="text-gray-400">(Optional)</span>
+            </label>
+            <Textarea
+              value={newEnquiry.mustSeeSpots || ""}
+              onChange={(e) => handleInputChange("mustSeeSpots", e.target.value)}
+              placeholder="List the must-see spots or attractions"
+              className="min-h-[80px] text-sm sm:text-base"
+            />
+          </div>
+          {/* Pace preference */}
+          <div className="col-span-3 space-y-1 sm:space-y-2">
+            <label className="text-xs sm:text-sm font-medium font-poppins text-gray-600">
+              Pace preference <span className="text-gray-400">(optional)</span>
+            </label>
+            <RadioGroup
+              value={newEnquiry.pacePreference}
+              onValueChange={(value) => handleInputChange("pacePreference", value)}
+            >
+              <div className="flex gap-6">
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem
+                    value="relaxed"
+                    id="pace-relaxed"
+                    className="h-4 w-4 text-green-600 border-gray-300 focus:ring-green-600"
+                  />
+                  <Label htmlFor="pace-relaxed" className="text-sm">
+                    Relaxed
+                  </Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem
+                    value="packed"
+                    id="pace-packed"
+                    className="h-4 w-4 text-green-600 border-gray-300 focus:ring-green-600"
+                  />
+                  <Label htmlFor="pace-packed" className="text-sm">
+                    Packed
+                  </Label>
+                </div>
+              </div>
+            </RadioGroup>
+          </div>
+        </>
+      )
+    } else if (newEnquiry.tags === "full-package") {
+      return (
+        <>
+          {/* Flights required */}
+          <div className="space-y-1 sm:space-y-2">
+            <label className="text-xs sm:text-sm font-medium font-poppins">
+              Flights required? <span className="text-gray-400">(optional)</span>
+            </label>
+            <RadioGroup
+              value={newEnquiry.flightsRequired}
+              onValueChange={(value) => handleInputChange("flightsRequired", value)}
+            >
+              <div className="flex gap-6">
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem
+                    value="yes"
+                    id="flights-yes"
+                    className="h-4 w-4 text-green-600 border-gray-300 focus:ring-green-600"
+                  />
+                  <Label htmlFor="flights-yes" className="text-sm">
+                    Yes
+                  </Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem
+                    value="no"
+                    id="flights-no"
+                    className="h-4 w-4 text-green-600 border-gray-300 focus:ring-green-600"
+                  />
+                  <Label htmlFor="flights-no" className="text-sm">
+                    No
+                  </Label>
+                </div>
+              </div>
+            </RadioGroup>
+          </div>
+        </>
+      )
+    }
+    return null
+  }
+
   return (
     <div className="min-h-screen bg-gray-100 flex flex-col w-full overflow-x-hidden">
       {/* Header */}
@@ -191,9 +348,11 @@ export default function Enquiry() {
               className="pl-8 h-9 bg-white border-emerald-500 focus:border-emerald-500 hover:border-emerald-500 transition-colors font-poppins w-full"
             />
           </div>
-
           <div className="flex items-center gap-2">
-            <Button variant="outline" className="flex items-center gap-1 font-poppins text-sm sm:text-base">
+            <Button
+              variant="outline"
+              className="flex items-center gap-1 font-poppins text-sm sm:text-base bg-transparent"
+            >
               Sort by
               <ChevronDown className="h-4 w-4" />
             </Button>
@@ -230,7 +389,9 @@ export default function Enquiry() {
                         <div className="flex items-center gap-3">
                           <div className="bg-amber-100 p-2 sm:p-3 rounded-md">
                             <Image
-                              src={column.icon || "/placeholder.svg?height=32&width=32"}
+                              src={
+                                typeof column.icon === "string" ? column.icon : "/placeholder.svg?height=32&width=32"
+                              }
                               alt={column.title}
                               width={32}
                               height={32}
@@ -267,11 +428,18 @@ export default function Enquiry() {
                                     <p className="text-xs sm:text-sm text-green-500 font-poppins">
                                       Enquiry on: {enquiry.enquiryDate}
                                     </p>
-                                    <button className="flex items-center justify-center w-6 h-6 sm:w-7 sm:h-7 rounded-full border-1 border-black">
-                                      <ArrowUpRight className="w-3 h-3 sm:w-4 sm:h-4" />
-                                    </button>
+                                   <div className="relative group">
+  <button
+    className="flex items-center justify-center w-6 h-6 sm:w-7 sm:h-7 rounded-full border-1 border-black hover:bg-gray-100 transition-colors"
+    onClick={() => handleNavigateToItinerary(enquiry)}
+  >
+   <ArrowUpRight className="w-4 h-4 text-gray-600" />
+  </button>
+  <div className="absolute bottom-full right-0 mb-2 px-2 py-1 text-xs text-white bg-gray-800 rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity z-10">
+    Generate Itinerary
+  </div>
+</div>
                                   </div>
-
                                   {hoveredEnquiry === enquiry.id && (
                                     <div className="absolute -bottom-20 right-0 bg-green-100 p-2 sm:p-3 rounded-md shadow-sm w-40 sm:w-48 z-10">
                                       <p className="text-xs sm:text-sm text-green-800 font-medium font-poppins">
@@ -304,11 +472,60 @@ export default function Enquiry() {
 
       {/* Add Enquiry Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="sm:max-w-[600px] p-0 overflow-hidden w-[calc(100vw-20px)] max-h-[90vh] overflow-y-auto">
+        <DialogContent className="sm:max-w-[800px] p-0 overflow-hidden w-[calc(100vw-20px)] max-h-[90vh] overflow-y-auto">
           <div className="p-4 sm:p-6">
             <DialogTitle className="text-lg sm:text-xl font-semibold font-poppins">Add Enquiry</DialogTitle>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 mt-4">
-              <div className="space-y-1 sm:space-y-2 col-span-2 sm:col-span-1">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 mt-4">
+              {/* First Row - Lead source, Tags, Name */}
+              <div className="space-y-1 sm:space-y-2">
+                <label className="text-xs sm:text-sm font-medium font-poppins">Lead source</label>
+                <RadioGroup
+                  value={newEnquiry.leadSource}
+                  onValueChange={(value) => handleInputChange("leadSource", value)}
+                >
+                  <div className="flex gap-6">
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem
+                        value="Direct"
+                        id="lead-direct"
+                        className="h-4 w-4 text-green-600 border-gray-300 focus:ring-green-600"
+                      />
+                      <Label htmlFor="lead-direct" className="text-sm">
+                        Direct
+                      </Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem
+                        value="Sub agent"
+                        id="lead-agent"
+                        className="h-4 w-4 text-green-600 border-gray-300 focus:ring-green-600"
+                      />
+                      <Label htmlFor="lead-agent" className="text-sm">
+                        Sub agent
+                      </Label>
+                    </div>
+                  </div>
+                </RadioGroup>
+              </div>
+
+              <div className="space-y-1 sm:space-y-2">
+                <label className="text-xs sm:text-sm font-medium font-poppins">Tags</label>
+                <Select value={newEnquiry.tags} onValueChange={(value) => handleInputChange("tags", value)}>
+                  <SelectTrigger className="text-sm sm:text-base">
+                    <SelectValue placeholder="Select tag" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="sightseeing" className="text-sm sm:text-base">
+                      Sightseeing
+                    </SelectItem>
+                    <SelectItem value="full-package" className="text-sm sm:text-base">
+                      Full package
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-1 sm:space-y-2">
                 <label className="text-xs sm:text-sm font-medium font-poppins">Name</label>
                 <Input
                   value={newEnquiry.name}
@@ -317,7 +534,9 @@ export default function Enquiry() {
                   className="text-sm sm:text-base"
                 />
               </div>
-              <div className="space-y-1 sm:space-y-2 col-span-2 sm:col-span-1">
+
+              {/* Second Row - Phone, Email, Location(s) */}
+              <div className="space-y-1 sm:space-y-2">
                 <label className="text-xs sm:text-sm font-medium font-poppins">Phone No.</label>
                 <div className="flex">
                   <div className="flex items-center border rounded-l-md px-2 bg-gray-50">
@@ -339,7 +558,8 @@ export default function Enquiry() {
                   />
                 </div>
               </div>
-              <div className="space-y-1 sm:space-y-2 col-span-2 sm:col-span-1">
+
+              <div className="space-y-1 sm:space-y-2">
                 <label className="text-xs sm:text-sm font-medium font-poppins">Email</label>
                 <Input
                   type="email"
@@ -349,7 +569,8 @@ export default function Enquiry() {
                   className="text-sm sm:text-base"
                 />
               </div>
-              <div className="space-y-1 sm:space-y-2 col-span-2 sm:col-span-1">
+
+              <div className="space-y-1 sm:space-y-2">
                 <label className="text-xs sm:text-sm font-medium font-poppins">Location(s)</label>
                 <Input
                   value={newEnquiry.locations}
@@ -358,27 +579,10 @@ export default function Enquiry() {
                   className="text-sm sm:text-base"
                 />
               </div>
-              <div className="space-y-1 sm:space-y-2 col-span-2 sm:col-span-1">
-                <label className="text-xs sm:text-sm font-medium font-poppins">Tour type</label>
-                <Select value={newEnquiry.tourType} onValueChange={(value) => handleInputChange("tourType", value)}>
-                  <SelectTrigger className="text-sm sm:text-base">
-                    <SelectValue placeholder="Select tour type" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Adventure" className="text-sm sm:text-base">
-                      Adventure
-                    </SelectItem>
-                    <SelectItem value="Cultural" className="text-sm sm:text-base">
-                      Cultural
-                    </SelectItem>
-                    <SelectItem value="Beach" className="text-sm sm:text-base">
-                      Beach
-                    </SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-1 sm:space-y-2 col-span-2 sm:col-span-1">
-                <label className="text-xs sm:text-sm font-medium">Estimated dates</label>
+
+              {/* Third Row - From Date, To Date */}
+              <div className="space-y-1 sm:space-y-2">
+                <label className="text-xs sm:text-sm font-medium">From Date</label>
                 <Popover>
                   <PopoverTrigger asChild>
                     <Button
@@ -389,35 +593,20 @@ export default function Enquiry() {
                       )}
                     >
                       <CalendarIcon className="mr-2 h-4 w-4" />
-                      {dateRange.from ? (
-                        dateRange.to ? (
-                          <>
-                            {format(dateRange.from, "dd MMM yy")} - {format(dateRange.to, "dd MMM yy")}
-                          </>
-                        ) : (
-                          format(dateRange.from, "dd MMM yy")
-                        )
-                      ) : (
-                        <span>Select dates</span>
-                      )}
+                      {dateRange.from ? format(dateRange.from, "dd MMM yy") : <span>Select date</span>}
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent className="w-auto p-0" align="start">
                     <Calendar
                       initialFocus
-                      mode="range"
-                      defaultMonth={new Date(2025, 2)}
-                      selected={dateRange}
-                      onSelect={(range) => {
-                        setDateRange({
-                          from: range?.from,
-                          to: range?.to || undefined,
-                        })
-                        if (range?.from && range?.to) {
-                          handleInputChange(
-                            "estimatedDates",
-                            `${format(range.from, "dd MMM yy")} - ${format(range.to, "dd MMM yy")}`,
-                          )
+                      mode="single"
+                      selected={dateRange.from}
+                      onSelect={(date) => {
+                        setDateRange((prev) => ({ ...prev, from: date }))
+                        if (date) {
+                          const formatted = format(date, "dd MMM yy")
+                          const currentEnd = dateRange.to ? ` - ${format(dateRange.to, "dd MMM yy")}` : ""
+                          handleInputChange("estimatedDates", `${formatted}${currentEnd}`)
                         }
                       }}
                       numberOfMonths={1}
@@ -425,8 +614,44 @@ export default function Enquiry() {
                   </PopoverContent>
                 </Popover>
               </div>
-              <div className="space-y-1 sm:space-y-2 col-span-2 sm:col-span-1 font-poppins">
-                <label className="text-xs sm:text-sm font-medium">Currency</label>
+
+              <div className="space-y-1 sm:space-y-2">
+                <label className="text-xs sm:text-sm font-medium">To Date</label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className={cn(
+                        "w-full justify-start text-left font-normal text-sm sm:text-base",
+                        !dateRange.to && "text-muted-foreground",
+                      )}
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {dateRange.to ? format(dateRange.to, "dd MMM yy") : <span>Select date</span>}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      initialFocus
+                      mode="single"
+                      selected={dateRange.to}
+                      onSelect={(date) => {
+                        setDateRange((prev) => ({ ...prev, to: date }))
+                        if (date && dateRange.from) {
+                          const startFormatted = format(dateRange.from, "dd MMM yy")
+                          const endFormatted = format(date, "dd MMM yy")
+                          handleInputChange("estimatedDates", `${startFormatted} - ${endFormatted}`)
+                        }
+                      }}
+                      numberOfMonths={1}
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
+
+              {/* Currency */}
+              <div className="space-y-1 sm:space-y-2">
+                <label className="text-xs sm:text-sm font-medium font-poppins">Currency</label>
                 <Select value={newEnquiry.currency} onValueChange={(value) => handleInputChange("currency", value)}>
                   <SelectTrigger className="text-sm sm:text-base">
                     <SelectValue />
@@ -441,34 +666,127 @@ export default function Enquiry() {
                     <SelectItem value="GBP" className="text-sm sm:text-base">
                       GBP
                     </SelectItem>
-                    <SelectItem value="JPY" className="text-sm sm:text-base">
-                      JPY
-                    </SelectItem>
-                    <SelectItem value="AUD" className="text-sm sm:text-base">
-                      AUD
+                    <SelectItem value="INR" className="text-sm sm:text-base">
+                      INR
                     </SelectItem>
                   </SelectContent>
                 </Select>
               </div>
-              <div className="space-y-1 sm:space-y-2 col-span-2 font-poppins">
+
+              {/* Budget */}
+              <div className="col-span-3 space-y-1 sm:space-y-2 font-poppins">
                 <label className="text-xs sm:text-sm font-medium">Budget</label>
                 <div className="pt-2 px-2">
                   <Slider
-                    defaultValue={[1000]}
-                    max={5000}
+                    defaultValue={[newEnquiry.budget || 1000]}
+                    max={50000}
                     min={100}
                     step={100}
                     onValueChange={(value) => handleInputChange("budget", value[0])}
                   />
                   <div className="flex justify-between mt-2 text-xs sm:text-sm text-gray-500">
                     <span>$100</span>
-                    <div className="bg-green-100 px-2 py-1 rounded text-green-800">${newEnquiry.budget}</div>
-                    <span>$5000</span>
+                    <div className="bg-green-100 px-2 py-1 rounded text-green-800">${newEnquiry.budget || 1000}</div>
+                    <span>$50000</span>
                   </div>
                 </div>
               </div>
-              <div className="col-span-2 space-y-1 sm:space-y-2 font-poppins">
-                <label className="text-xs sm:text-sm font-medium">Notes</label>
+
+              {/* Traveling with pets */}
+              <div className="col-span-3 space-y-1 sm:space-y-2">
+                <label className="text-xs sm:text-sm font-medium font-poppins">
+                  Are you traveling with pets? <span className="text-gray-400">(optional)</span>
+                </label>
+                <RadioGroup
+                  value={newEnquiry.travelingWithPets}
+                  onValueChange={(value) => handleInputChange("travelingWithPets", value)}
+                >
+                  <div className="flex gap-6">
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem
+                        value="yes"
+                        id="pets-yes-full"
+                        className="h-4 w-4 text-green-600 border-gray-300 focus:ring-green-600"
+                      />
+                      <Label htmlFor="pets-yes-full" className="text-sm">
+                        Yes
+                      </Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem
+                        value="no"
+                        id="pets-no-full"
+                        className="h-4 w-4 text-green-600 border-gray-300 focus:ring-green-600"
+                      />
+                      <Label htmlFor="pets-no-full" className="text-sm">
+                        No
+                      </Label>
+                    </div>
+                  </div>
+                </RadioGroup>
+              </div>
+
+              {/* Tour type */}
+              <div className="space-y-1 sm:space-y-2">
+                <label className="text-xs sm:text-sm font-medium font-poppins">Tour type</label>
+                <Select value={newEnquiry.tourType} onValueChange={(value) => handleInputChange("tourType", value)}>
+                  <SelectTrigger className="text-sm sm:text-base">
+                    <SelectValue placeholder="Select tour type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="solo" className="text-sm sm:text-base">
+                      Solo
+                    </SelectItem>
+                    <SelectItem value="family" className="text-sm sm:text-base">
+                      Family
+                    </SelectItem>
+                    <SelectItem value="group" className="text-sm sm:text-base">
+                      Group
+                    </SelectItem>
+                    <SelectItem value="friends" className="text-sm sm:text-base">
+                      Friends
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Tag-specific fields */}
+              {renderTagSpecificFields()}
+
+              {/* Pickup and Drop locations section */}
+              <div className="col-span-3 space-y-3 font-poppins">
+                <label className="text-xs sm:text-sm font-medium">Pickup and drop locations</label>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2">
+                      <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                      <span className="text-xs sm:text-sm font-medium">Pickup</span>
+                    </div>
+                    <Input
+                      value={newEnquiry.pickupLocation || ""}
+                      onChange={(e) => handleInputChange("pickupLocation", e.target.value)}
+                      placeholder="Ernakulam, KSRTC"
+                      className="text-sm sm:text-base"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2">
+                      <div className="w-2 h-2 bg-red-500 rounded-full"></div>
+                      <span className="text-xs sm:text-sm font-medium">Drop off</span>
+                    </div>
+                    <Input
+                      value={newEnquiry.dropLocation || ""}
+                      onChange={(e) => handleInputChange("dropLocation", e.target.value)}
+                      placeholder="Ernakulam, KSRTC"
+                      className="text-sm sm:text-base"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Other details - full width */}
+              <div className="col-span-3 space-y-1 sm:space-y-2 font-poppins">
+                <label className="text-xs sm:text-sm font-medium">Other details</label>
                 <Textarea
                   value={newEnquiry.notes}
                   onChange={(e) => handleInputChange("notes", e.target.value)}
@@ -476,8 +794,33 @@ export default function Enquiry() {
                   placeholder="Additional details about the enquiry"
                 />
               </div>
-              <div className="space-y-1 sm:space-y-2 col-span-2 sm:col-span-1">
-                <label className="text-xs sm:text-sm font-medium font-poppins">Point of contact</label>
+
+              {/* Fourth Row - No. of travellers, No. of kids */}
+              <div className="space-y-1 sm:space-y-2">
+                <label className="text-xs sm:text-sm font-medium font-poppins">No. of travellers</label>
+                <Input
+                  type="number"
+                  value={newEnquiry.numberOfTravellers || ""}
+                  onChange={(e) => handleInputChange("numberOfTravellers", e.target.value)}
+                  placeholder="4"
+                  className="text-sm sm:text-base"
+                />
+              </div>
+
+              <div className="space-y-1 sm:space-y-2">
+                <label className="text-xs sm:text-sm font-medium font-poppins">No. of kids</label>
+                <Input
+                  type="number"
+                  value={newEnquiry.numberOfKids || ""}
+                  onChange={(e) => handleInputChange("numberOfKids", e.target.value)}
+                  placeholder="2"
+                  className="text-sm sm:text-base"
+                />
+              </div>
+
+              {/* Fifth Row - Point of contact, Assign staff */}
+              <div className="space-y-1 sm:space-y-2 col-span-2">
+                <label className="text-xs sm:text-sm font-medium font-poppins">Source of Lead</label>
                 <Select
                   value={newEnquiry.pointOfContact || ""}
                   onValueChange={(value) => handleInputChange("pointOfContact", value)}
@@ -498,10 +841,18 @@ export default function Enquiry() {
                     <SelectItem value="Website" className="text-sm sm:text-base">
                       Website
                     </SelectItem>
+                      <SelectItem value="Website" className="text-sm sm:text-base">
+                      Facebook
+                    </SelectItem>
+                      <SelectItem value="Website" className="text-sm sm:text-base">
+                      Instagram                    
+                      </SelectItem>
+                      
                   </SelectContent>
                 </Select>
               </div>
-              <div className="space-y-1 sm:space-y-2 col-span-2 sm:col-span-1">
+
+              <div className="space-y-1 sm:space-y-2">
                 <label className="text-xs sm:text-sm font-medium font-poppins">Assign staff</label>
                 <Select
                   value={newEnquiry.assignedStaff}
@@ -531,6 +882,7 @@ export default function Enquiry() {
               </div>
             </div>
           </div>
+
           <div className="border-t p-3 sm:p-4 flex justify-end font-poppins">
             <Button
               onClick={handleAddEnquiry}
