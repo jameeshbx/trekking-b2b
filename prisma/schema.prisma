@@ -197,6 +197,7 @@ model DMCForm {
   createdAt                 DateTime  @default(now())
   updatedAt                 DateTime  @updatedAt
   status                    DMCStatus @default(ACTIVE)
+   sharedItems               SharedDMCItem[] @relation("SharedDMCItems")
   registrationCertificate   File?     @relation("DMCRegistrationCertificate", fields: [registrationCertificateId], references: [id])
   paymentMethods            PaymentMethod[]
 
@@ -433,6 +434,79 @@ model Comment {
   
   @@map("comments")
 }
+
+model Staff {
+  id        String   @id @default(uuid())
+  name      String
+  email     String   @unique
+  phone     String?
+  role      String   @default("STAFF")
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  // Relations
+  assignedShares SharedDMC[] @relation("AssignedStaff")
+  
+  @@map("staff")
+}
+
+model SharedDMC {
+  id              String          @id @default(uuid())
+  dateGenerated   DateTime        @default(now())
+  pdfUrl          String?
+  isActive        Boolean         @default(false)
+  status          SharedDMCStatus @default(PENDING)
+  assignedStaffId String?
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+  
+  // Relations
+  assignedStaff   Staff?         @relation("AssignedStaff", fields: [assignedStaffId], references: [id])
+  selectedDMCs    SharedDMCItem[]
+  
+  @@index([assignedStaffId])
+  @@map("shared_dmcs")
+}
+
+
+model SharedDMCItem {
+  id           String        @id @default(uuid())
+  sharedDMCId  String
+  dmcId        String
+  status       DMCItemStatus @default(AWAITING_TRANSFER)
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  
+  // Relations
+  sharedDMC    SharedDMC @relation(fields: [sharedDMCId], references: [id], onDelete: Cascade)
+  dmc          DMCForm   @relation("SharedDMCItems", fields: [dmcId], references: [id])
+  
+  @@unique([sharedDMCId, dmcId])
+  @@index([sharedDMCId])
+  @@index([dmcId])
+  @@map("shared_dmc_items")
+}
+
+// Add these enums
+enum SharedDMCStatus {
+  PENDING
+  SENT
+  RECEIVED
+  COMPLETED
+}
+
+enum DMCItemStatus {
+  AWAITING_TRANSFER
+  AWAITING_DMC_EUROPE
+  AWAITING_TRAILS_DMC
+  ITINERARY_VIEWED
+  AWAITING_INTERNAL_REVIEW
+  QUOTATION_RECEIVED
+}
+
+
+
 
 enum PaymentMethodType {
   BANK_ACCOUNT
