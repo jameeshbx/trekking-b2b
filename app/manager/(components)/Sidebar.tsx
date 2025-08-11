@@ -125,19 +125,7 @@ const Sidebar = ({ expanded }: SidebarProps) => {
         />
       ),
     },
-    {
-      title: "Add DMC",
-      href: "/admin/dashboard/add-dmc",
-      icon: (
-        <Image
-          src="/Vector.svg"
-          alt="Manage Users"
-          width={20}
-          height={20}
-          className="min-w-[20px]"
-        />
-      ),
-    },
+    
   ];
 
   const accountItems = [
