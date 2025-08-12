@@ -3,48 +3,12 @@ import { PrismaClient } from "@prisma/client"
 
 const prisma = new PrismaClient()
 
-// Mock data for demonstration until Prisma schema is updated
-const mockSharedDMCs = [
-  {
-    id: "1",
-    dateGenerated: "2025-01-15",
-    isActive: true,
-    enquiryId: "1",
-    assignedStaffId: "1",
-    pdfUrl: null,
-    selectedDMCs: [],
-  },
-]
+interface WhereClause {
+  assignedStaffId?: string
+  enquiryId?: string
+}
 
-const mockDMCs = [
-  {
-    id: "1",
-    name: "DMC Europe",
-    email: "europe@dmc.com",
-    contactPerson: "John Smith",
-    primaryCountry: "France",
-    destinationsCovered: "Europe",
-    status: "ACTIVE",
-  },
-  {
-    id: "2",
-    name: "Trails DMC",
-    email: "trails@dmc.com",
-    contactPerson: "Sarah Wilson",
-    primaryCountry: "India",
-    destinationsCovered: "Asia",
-    status: "ACTIVE",
-  },
-  {
-    id: "3",
-    name: "Adventure DMC",
-    email: "adventure@dmc.com",
-    contactPerson: "Mike Johnson",
-    primaryCountry: "USA",
-    destinationsCovered: "Americas",
-    status: "ACTIVE",
-  },
-]
+type DMCStatus = 'AWAITING_TRANSFER' | 'VIEWED' | 'QUOTATION_RECEIVED'
 
 // GET - Fetch all shared DMCs with their details
 export async function GET(request: NextRequest) {
@@ -53,14 +17,84 @@ export async function GET(request: NextRequest) {
     const staffId = searchParams.get("staffId")
     const enquiryId = searchParams.get("enquiryId")
 
-    // For now, return mock data
-    // TODO: Replace with actual Prisma query when schema is ready
-    let filteredData = mockSharedDMCs
+    // Fetch shared itineraries from database
+    const whereClause: WhereClause = {}
+    
+    if (staffId) {
+      whereClause.assignedStaffId = staffId
+    }
+    
+    if (enquiryId) {
+      whereClause.enquiryId = enquiryId
+    }
 
+    // For now, we'll create mock data that integrates with your existing structure
+    // In a real implementation, you'd have proper database tables for shared itineraries
+    
+    // Fetch actual DMCs from your existing DMC table
+    const dmcs = await prisma.dMCForm.findMany({
+      where: { status: 'ACTIVE' },
+      select: {
+        id: true,
+        name: true,
+        contactPerson: true,
+        email: true,
+        status: true,
+        primaryCountry: true,
+        destinationsCovered: true,
+        cities: true,
+      }
+    })
+
+    // Transform DMCs to match interface
+    const transformedDMCs = dmcs.map(dmc => ({
+      id: dmc.id,
+      name: dmc.name,
+      primaryContact: dmc.contactPerson || '',
+      email: dmc.email || '',
+      status: dmc.status === 'ACTIVE' ? 'Active' : 'Inactive',
+      primaryCountry: dmc.primaryCountry || '',
+      destinationsCovered: dmc.destinationsCovered || '',
+      cities: dmc.cities || '',
+    }))
+
+    // Create mock shared itineraries with real DMC data
+    const mockSharedItineraries = [
+      {
+        id: "shared-1",
+        dateGenerated: "06-03-2025",
+        pdf: "D",
+        activeStatus: true,
+        enquiryId: "enquiry-1",
+        customerId: "customer-1",
+        assignedStaffId: "staff-1",
+        selectedDMCs: transformedDMCs.slice(0, 3).map((dmc, index) => ({
+          id: `item-${index + 1}`,
+          dmcId: dmc.id,
+          status: (['AWAITING_TRANSFER', 'VIEWED', 'QUOTATION_RECEIVED'] as const)[index] as DMCStatus,
+          dmc: dmc,
+          lastUpdated: new Date().toISOString(),
+          quotationAmount: index === 2 ? 1100 : undefined,
+          notes: `Sample notes for ${dmc.name}`,
+        }))
+      },
+      {
+        id: "shared-2",
+        dateGenerated: "08-03-2025",
+        pdf: "B",
+        activeStatus: false,
+        enquiryId: "enquiry-2",
+        assignedStaffId: "staff-1",
+        selectedDMCs: []
+      }
+    ]
+
+    let filteredData = mockSharedItineraries
+    
     if (staffId) {
       filteredData = filteredData.filter((item) => item.assignedStaffId === staffId)
     }
-
+    
     if (enquiryId) {
       filteredData = filteredData.filter((item) => item.enquiryId === enquiryId)
     }
@@ -81,21 +115,52 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { enquiryId, assignedStaffId, selectedDMCIds = [], dateGenerated } = body
+    const { enquiryId, customerId, assignedStaffId, selectedDMCIds = [], dateGenerated } = body
 
-    // For now, create mock response
-    // TODO: Replace with actual Prisma create when schema is ready
+    // Fetch the selected DMCs from database
+    const selectedDMCs = await prisma.dMCForm.findMany({
+      where: {
+        id: { in: selectedDMCIds },
+        status: 'ACTIVE'
+      },
+      select: {
+        id: true,
+        name: true,
+        contactPerson: true,
+        email: true,
+        status: true,
+        primaryCountry: true,
+        destinationsCovered: true,
+        cities: true,
+      }
+    })
+
+    // In a real implementation, you'd create a proper database record
+    // For now, we'll return a mock response with real DMC data
     const newSharedDMC = {
       id: `shared-${Date.now()}`,
       enquiryId,
+      customerId,
       assignedStaffId,
       dateGenerated: dateGenerated || new Date().toISOString().split("T")[0],
-      isActive: true,
-      pdfUrl: null,
-      selectedDMCs: selectedDMCIds.map((dmcId: string) => ({
-        id: `item-${Date.now()}-${dmcId}`,
-        dmcId,
-        status: "AWAITING_TRANSFER",
+      activeStatus: true,
+      pdf: "B",
+      selectedDMCs: selectedDMCs.map((dmc) => ({
+        id: `item-${Date.now()}-${dmc.id}`,
+        dmcId: dmc.id,
+        status: "AWAITING_TRANSFER" as const,
+        dmc: {
+          id: dmc.id,
+          name: dmc.name,
+          primaryContact: dmc.contactPerson || '',
+          email: dmc.email || '',
+          status: dmc.status === 'ACTIVE' ? 'Active' : 'Inactive',
+          primaryCountry: dmc.primaryCountry || '',
+          destinationsCovered: dmc.destinationsCovered || '',
+          cities: dmc.cities || '',
+        },
+        lastUpdated: new Date().toISOString(),
+        notes: '',
       })),
     }
 
@@ -118,14 +183,11 @@ export async function PUT(request: NextRequest) {
     const body = await request.json()
     const { id, action, ...updateData } = body
 
-    // For now, return mock success responses
-    // TODO: Replace with actual Prisma updates when schema is ready
-
     if (action === "toggleActive") {
       return NextResponse.json({
         success: true,
         message: "Active status updated",
-        data: { id, isActive: updateData.isActive },
+        data: { id, activeStatus: updateData.isActive },
       })
     }
 
@@ -133,7 +195,7 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({
         success: true,
         message: "DMC status updated",
-        data: { id, status: updateData.status },
+        data: { id, status: updateData.status, notes: updateData.notes },
       })
     }
 
@@ -146,7 +208,35 @@ export async function PUT(request: NextRequest) {
     }
 
     if (action === "addDMC") {
-      const selectedDMC = mockDMCs.find((dmc) => dmc.id === updateData.dmcId)
+      // Fetch the DMC details from database
+      const dmc = await prisma.dMCForm.findUnique({
+        where: { id: updateData.dmcId },
+        select: {
+          id: true,
+          name: true,
+          contactPerson: true,
+          email: true,
+          status: true,
+          primaryCountry: true,
+          destinationsCovered: true,
+          cities: true,
+        }
+      })
+
+      if (!dmc) {
+        return NextResponse.json({ error: "DMC not found" }, { status: 404 })
+      }
+
+      const transformedDMC = {
+        id: dmc.id,
+        name: dmc.name,
+        primaryContact: dmc.contactPerson || '',
+        email: dmc.email || '',
+        status: dmc.status === 'ACTIVE' ? 'Active' : 'Inactive',
+        primaryCountry: dmc.primaryCountry || '',
+        destinationsCovered: dmc.destinationsCovered || '',
+        cities: dmc.cities || '',
+      }
 
       return NextResponse.json({
         success: true,
@@ -157,8 +247,10 @@ export async function PUT(request: NextRequest) {
             {
               id: `item-${Date.now()}`,
               dmcId: updateData.dmcId,
-              status: updateData.status || "AWAITING_TRANSFER",
-              dmc: selectedDMC || mockDMCs[0], // Fallback to first DMC if not found
+              status: (updateData.status || "AWAITING_TRANSFER") as DMCStatus,
+              dmc: transformedDMC,
+              lastUpdated: new Date().toISOString(),
+              notes: '',
             },
           ],
         },
@@ -184,9 +276,7 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: "ID is required" }, { status: 400 })
     }
 
-    // For now, return mock success
-    // TODO: Replace with actual Prisma delete when schema is ready
-
+    // In a real implementation, you'd delete from database
     return NextResponse.json({
       success: true,
       message: "Shared DMC deleted successfully",

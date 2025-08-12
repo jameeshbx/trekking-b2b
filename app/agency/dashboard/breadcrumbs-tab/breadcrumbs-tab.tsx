@@ -112,7 +112,7 @@ const BreadcrumbNavigation = () => {
       id: "feedbacks",
       label: "Feedbacks",
       icon: ThumbsUp,
-      path: `/agency/dashboard/feedbacks?${createQueryParams().toString()}`,
+      path: `/agency/dashboard/feedback?${createQueryParams().toString()}`,
     },
   ]
 

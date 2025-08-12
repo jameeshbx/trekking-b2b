@@ -1,3 +1,5 @@
+'use client'
+
 import Enquirysection from "./enquiry-section";
 import { TopBarContainer } from "@/app/admin/(components)/TobBarContainer";
 
