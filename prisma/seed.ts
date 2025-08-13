@@ -1,4 +1,3 @@
-// prisma/seed.ts
 import { PrismaClient } from "@prisma/client"
 
 const prisma = new PrismaClient()
@@ -7,7 +6,7 @@ async function main() {
   console.log("🌱 Starting database seeding...")
 
   // Create sample customers
-  const customer1 = await prisma.customer.create({
+  const customer1 = await prisma.customers.create({
     data: {
       id: "cust_001",
       name: "John Smith",
@@ -17,9 +16,9 @@ async function main() {
     },
   })
 
-  const customer2 = await prisma.customer.create({
+  const customer2 = await prisma.customers.create({
     data: {
-      id: "cust_002", 
+      id: "cust_002",
       name: "Sarah Johnson",
       email: "sarah.johnson@email.com",
       phone: "+1987654321",
@@ -30,7 +29,7 @@ async function main() {
   console.log("✅ Created sample customers")
 
   // Create sample enquiries
-  const enquiry1 = await prisma.enquiry.create({
+  const enquiry1 = await prisma.enquiries.create({
     data: {
       id: "enq_001",
       name: "John Smith",
@@ -53,11 +52,11 @@ async function main() {
     },
   })
 
-  const enquiry2 = await prisma.enquiry.create({
+  const enquiry2 = await prisma.enquiries.create({
     data: {
       id: "enq_002",
       name: "Sarah Johnson",
-      email: "sarah.johnson@email.com", 
+      email: "sarah.johnson@email.com",
       phone: "+1987654321",
       locations: "Tokyo, Osaka, Kyoto",
       tourType: "Adventure",
@@ -79,7 +78,7 @@ async function main() {
   console.log("✅ Created sample enquiries")
 
   // Create sample itineraries
-  const itinerary1 = await prisma.itinerary.create({
+  const itinerary1 = await prisma.itineraries.create({
     data: {
       id: "itin_001",
       enquiryId: enquiry1.id,
@@ -115,16 +114,16 @@ async function main() {
           city: "Paris",
           activities: ["Arrival at CDG Airport", "Check-in at Hotel", "Evening Seine River Cruise"],
           accommodation: "Hotel Le Meurice",
-          meals: ["Welcome Dinner at Eiffel Tower Restaurant"]
+          meals: ["Welcome Dinner at Eiffel Tower Restaurant"],
         },
         {
           day: 2,
-          date: "2024-06-16", 
+          date: "2024-06-16",
           city: "Paris",
           activities: ["Louvre Museum Tour", "Lunch at Café de Flore", "Evening at Montmartre"],
           accommodation: "Hotel Le Meurice",
-          meals: ["Breakfast", "Lunch", "Dinner"]
-        }
+          meals: ["Breakfast", "Lunch", "Dinner"],
+        },
       ],
       accommodation: [
         {
@@ -133,24 +132,23 @@ async function main() {
           checkIn: "2024-06-15",
           checkOut: "2024-06-20",
           roomType: "Deluxe Room with Eiffel Tower View",
-          nights: 5
+          nights: 5,
         },
         {
-          city: "Rome", 
+          city: "Rome",
           hotel: "Hotel de Russie",
           checkIn: "2024-06-20",
           checkOut: "2024-06-25",
           roomType: "Superior Room",
-          nights: 5
-        }
+          nights: 5,
+        },
       ],
       pdfUrl: "/uploads/itineraries/itinerary-001.pdf",
-      itineraryType: "Premium",
       activeStatus: true,
     },
   })
 
-  const itinerary2 = await prisma.itinerary.create({
+  const itinerary2 = await prisma.itineraries.create({
     data: {
       id: "itin_002",
       enquiryId: enquiry2.id,
@@ -186,8 +184,8 @@ async function main() {
           city: "Tokyo",
           activities: ["Arrival at Narita", "Check-in", "Explore Shibuya"],
           accommodation: "Ryokan Traditional Inn",
-          meals: ["Welcome Vegetarian Dinner"]
-        }
+          meals: ["Welcome Vegetarian Dinner"],
+        },
       ],
       accommodation: [
         {
@@ -196,11 +194,10 @@ async function main() {
           checkIn: "2024-07-10",
           checkOut: "2024-07-15",
           roomType: "Traditional Tatami Room",
-          nights: 5
-        }
+          nights: 5,
+        },
       ],
       pdfUrl: "/uploads/itineraries/itinerary-002.pdf",
-      itineraryType: "Standard",
       activeStatus: true,
     },
   })
@@ -208,18 +205,19 @@ async function main() {
   console.log("✅ Created sample itineraries")
 
   // Create sample customer feedbacks
-  await prisma.customerFeedback.create({
+  await prisma.customer_feedbacks.create({
     data: {
       customerId: customer1.id,
       itineraryId: itinerary1.id,
       type: "feedback",
       title: "Hotel Upgrade Request",
-      description: "Would like to upgrade to a suite in Rome for our anniversary. Can you please check availability and pricing?",
+      description:
+        "Would like to upgrade to a suite in Rome for our anniversary. Can you please check availability and pricing?",
       status: "pending",
     },
   })
 
-  await prisma.customerFeedback.create({
+  await prisma.customer_feedbacks.create({
     data: {
       customerId: customer1.id,
       itineraryId: itinerary1.id,
@@ -230,13 +228,14 @@ async function main() {
     },
   })
 
-  await prisma.customerFeedback.create({
+  await prisma.customer_feedbacks.create({
     data: {
       customerId: customer2.id,
       itineraryId: itinerary2.id,
       type: "change_request",
       title: "Add Mount Fuji Day Trip",
-      description: "I would like to add a day trip to Mount Fuji with early morning photography session. Can this be arranged?",
+      description:
+        "I would like to add a day trip to Mount Fuji with early morning photography session. Can this be arranged?",
       status: "changes",
     },
   })
@@ -244,7 +243,7 @@ async function main() {
   console.log("✅ Created sample customer feedbacks")
 
   // Create sample sent itineraries
-  await prisma.sentItinerary.create({
+  await prisma.sent_itineraries.create({
     data: {
       customerId: customer1.id,
       itineraryId: itinerary1.id,
@@ -257,7 +256,7 @@ async function main() {
     },
   })
 
-  await prisma.sentItinerary.create({
+  await prisma.sent_itineraries.create({
     data: {
       customerId: customer2.id,
       itineraryId: itinerary2.id,
@@ -273,12 +272,14 @@ async function main() {
   console.log("✅ Created sample sent itineraries")
 
   console.log("🎉 Database seeding completed successfully!")
-  
+
   // Print sample URLs for testing
   console.log("\n📋 Sample URLs for testing:")
   console.log(`Share Dashboard - Customer 1: /share-customer-dashboard?customerId=${customer1.id}`)
   console.log(`Share Dashboard - Customer 2: /share-customer-dashboard?customerId=${customer2.id}`)
-  console.log(`Share Dashboard - Specific Itinerary: /share-customer-dashboard?customerId=${customer1.id}&itineraryId=${itinerary1.id}`)
+  console.log(
+    `Share Dashboard - Specific Itinerary: /share-customer-dashboard?customerId=${customer1.id}&itineraryId=${itinerary1.id}`,
+  )
 }
 
 main()

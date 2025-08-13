@@ -1,17 +1,17 @@
 "use client"
 
+import type React from "react"
+
 import { useState, useRef, useEffect } from "react"
-import { Search, ChevronDown, Plus, CalendarIcon,  } from 'lucide-react'
+import { Search, ChevronDown, Plus, CalendarIcon } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { ArrowUpRight } from 'lucide-react'
+import { ArrowUpRight } from "lucide-react"
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
 import { Slider } from "@/components/ui/slider"
 import { DragDropContext, Droppable, Draggable, type DropResult } from "@hello-pangea/dnd"
-import { initialColumns, type Enquiry as EnquiryType, type Column } from "@/data/enquiry"
-import Image from "next/image"
 import { toast } from "sonner"
 import { Calendar } from "@/components/ui/calendar"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
@@ -20,6 +20,44 @@ import { cn } from "@/lib/utils"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Label } from "@/components/ui/label"
 import { useRouter } from "next/navigation"
+import Image from "next/image"
+
+// Types
+interface Enquiry {
+  id: string
+  name: string
+  phone: string
+  email: string
+  locations: string
+  tourType: string
+  estimatedDates: string
+  currency: string
+  budget: number
+  notes: string
+  assignedStaff: string
+  pointOfContact: string
+  pickupLocation: string
+  dropLocation: string
+  numberOfTravellers: string
+  numberOfKids: string
+  travelingWithPets: string
+  flightsRequired: string
+  leadSource: string
+  tags: string
+  mustSeeSpots: string
+  pacePreference: string
+  status: string
+  enquiryDate: string
+  createdAt?: string
+  updatedAt?: string
+}
+
+interface Column {
+  id: string
+  title: string
+  icon: string
+  enquiries: Enquiry[]
+}
 
 const generateUniqueId = () => {
   return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
@@ -29,6 +67,21 @@ const generateUniqueId = () => {
   })
 }
 
+const initialColumns: Column[] = [
+  { id: "enquiry", title: "Enquiry", icon: "/Vectors.png?height=32&width=32", enquiries: [] },
+  { id: "itinerary_creation", title: "Itinerary Creation", icon: "/Vectors1.png?height=32&width=32", enquiries: [] },
+  { id: "customer_feedback", title: "Customer Feedback", icon: "/Vectors2.png?height=32&width=32", enquiries: [] },
+  { id: "itinerary_confirmed", title: "Itinerary Confirmed", icon: "/Vectors3.png?height=32&width=32", enquiries: [] },
+  { id: "dmc_quotation", title: "DMC Quotation", icon: "//Vectors4.png?height=32&width=32", enquiries: [] },
+  { id: "price_finalization", title: "Price Finalization", icon: "//Vectors5.png?height=32&width=32", enquiries: [] },
+  { id: "booking_request", title: "Booking Request", icon: "//Vectors1.png?height=32&width=32", enquiries: [] },
+  { id: "cancelled", title: "Cancelled", icon: "/Vectors4.png?height=32&width=32", enquiries: [] },
+  { id: "booking_progress", title: "Booking Progress", icon: "/Vectors3.png?height=32&width=32", enquiries: [] },
+  { id: "payment_forex", title: "Payment & Forex", icon: "/Vectors4.png?height=32&width=32", enquiries: [] },
+  { id: "trip_in_progress", title: "Trip In Progress", icon: "/Vectors5.png?height=32&width=32", enquiries: [] },
+  { id: "completed", title: "Completed", icon: "/Vectors2.png?height=32&width=32", enquiries: [] },
+]
+
 const columnMessages: Record<string, string> = {
   enquiry: "Awaiting Agency response",
   itinerary_creation: "Draft itinerary in review",
@@ -37,6 +90,7 @@ const columnMessages: Record<string, string> = {
   dmc_quotation: "Awaiting DMC quotes",
   price_finalization: "Adding margin and confirming",
   booking_request: "Booking Sent to DMC",
+  cancelled: "Cancelled by customer",
   booking_progress: "Awaiting DMC confirmation",
   payment_forex: "Processing Forex payments",
   trip_in_progress: "Successfully completed",
@@ -47,8 +101,12 @@ export default function Enquiry() {
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [columns, setColumns] = useState<Column[]>(initialColumns)
   const [isClient, setIsClient] = useState(false)
+  const [loading, setLoading] = useState(true)
   const scrollContainerRef = useRef<HTMLDivElement>(null)
   const [hoveredEnquiry, setHoveredEnquiry] = useState<string | null>(null)
+  const [searchTerm, setSearchTerm] = useState("")
+  const router = useRouter()
+
   const [dateRange, setDateRange] = useState<{
     from: Date | undefined
     to: Date | undefined
@@ -56,9 +114,8 @@ export default function Enquiry() {
     from: undefined,
     to: undefined,
   })
-  const router = useRouter()
 
-  const [newEnquiry, setNewEnquiry] = useState<Omit<EnquiryType, "id" | "status" | "enquiryDate">>({
+  const [newEnquiry, setNewEnquiry] = useState<Omit<Enquiry, "id" | "status" | "enquiryDate">>({
     name: "",
     phone: "",
     email: "",
@@ -84,32 +141,35 @@ export default function Enquiry() {
 
   useEffect(() => {
     setIsClient(true)
-  }, [])
-
-  useEffect(() => {
-    const fetchEnquiries = async () => {
-      try {
-        const response = await fetch("/api/enquiries")
-        const result = await response.json()
-        const data = Array.isArray(result?.data) ? result.data : Array.isArray(result) ? result : []
-        const cols = initialColumns.map((col) => ({
-          ...col,
-          enquiries: data.filter((e: EnquiryType) => e.status === col.id),
-        }))
-        setColumns(cols)
-      } catch (error) {
-        console.error("Error fetching enquiries:", error)
-        setColumns(initialColumns.map((col) => ({ ...col, enquiries: [] })))
-      }
-    }
     fetchEnquiries()
   }, [])
 
-  useEffect(() => {
-    if (isClient) {
-      localStorage.setItem("enquiryColumns", JSON.stringify(columns))
+  const fetchEnquiries = async () => {
+    try {
+      setLoading(true)
+      const response = await fetch("/api/enquiries")
+      const result = await response.json()
+
+      if (!response.ok) {
+        throw new Error(result.error || "Failed to fetch enquiries")
+      }
+
+      const enquiries = Array.isArray(result) ? result : []
+
+      const cols = initialColumns.map((col) => ({
+        ...col,
+        enquiries: enquiries.filter((e: Enquiry) => e.status === col.id),
+      }))
+
+      setColumns(cols)
+    } catch (error) {
+      console.error("Error fetching enquiries:", error)
+      toast.error("Failed to fetch enquiries")
+      setColumns(initialColumns.map((col) => ({ ...col, enquiries: [] })))
+    } finally {
+      setLoading(false)
     }
-  }, [columns, isClient])
+  }
 
   const handleInputChange = (field: string, value: string | number) => {
     setNewEnquiry((prev) => ({
@@ -119,20 +179,24 @@ export default function Enquiry() {
   }
 
   const handleAddEnquiry = async () => {
-    const today = new Date()
-    const formattedDate = `${today.getDate().toString().padStart(2, "0")}-${(today.getMonth() + 1)
-      .toString()
-      .padStart(2, "0")}-${today.getFullYear()}`
-
-    const newEnquiryWithId: EnquiryType = {
-      ...newEnquiry,
-      id: generateUniqueId(),
-      status: "enquiry",
-      enquiryDate: formattedDate,
-    }
-
     try {
-      // Create the enquiry
+      if (!newEnquiry.name || !newEnquiry.phone || !newEnquiry.email) {
+        toast.error("Please fill in all required fields")
+        return
+      }
+
+      const today = new Date()
+      const formattedDate = `${today.getDate().toString().padStart(2, "0")}-${(today.getMonth() + 1)
+        .toString()
+        .padStart(2, "0")}-${today.getFullYear()}`
+
+      const newEnquiryWithId: Enquiry = {
+        ...newEnquiry,
+        id: generateUniqueId(),
+        status: "enquiry",
+        enquiryDate: formattedDate,
+      }
+
       const response = await fetch("/api/enquiries", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -140,20 +204,9 @@ export default function Enquiry() {
       })
 
       if (!response.ok) {
-        throw new Error("Failed to create enquiry")
+        const errorData = await response.json()
+        throw new Error(errorData.error || "Failed to create enquiry")
       }
-
-      // Fetch updated enquiries
-      const res = await fetch("/api/enquiries")
-      const data = await res.json()
-      const enquiries = Array.isArray(data?.data) ? data.data : Array.isArray(data) ? data : []
-
-      const cols = initialColumns.map((col) => ({
-        ...col,
-        enquiries: enquiries.filter((e: EnquiryType) => e.status === col.id),
-      }))
-
-      setColumns(cols)
 
       toast.success("Enquiry Added", {
         description: `New enquiry for ${newEnquiry.name} has been added successfully.`,
@@ -161,10 +214,11 @@ export default function Enquiry() {
 
       setIsDialogOpen(false)
       resetForm()
+      await fetchEnquiries() // Refresh the data
     } catch (error) {
       console.error("Error adding enquiry:", error)
       toast.error("Error", {
-        description: "Failed to add enquiry. Please try again.",
+        description: error instanceof Error ? error.message : "Failed to add enquiry. Please try again.",
       })
     }
   }
@@ -199,13 +253,20 @@ export default function Enquiry() {
     })
   }
 
-  const onDragEnd = (result: DropResult) => {
+  const onDragEnd = async (result: DropResult) => {
     const { destination, source } = result
 
     if (!destination || (destination.droppableId === source.droppableId && destination.index === source.index)) {
       return
     }
 
+    // Find the moved enquiry
+    const sourceColumn = columns.find((col) => col.id === source.droppableId)
+    const movedEnquiry = sourceColumn?.enquiries[source.index]
+
+    if (!movedEnquiry) return
+
+    // Update local state immediately for smooth UX
     setColumns((prevColumns) => {
       const newColumns = JSON.parse(JSON.stringify(prevColumns))
       const sourceColIndex = newColumns.findIndex((col: Column) => col.id === source.droppableId)
@@ -220,53 +281,77 @@ export default function Enquiry() {
 
       const updatedItem = {
         ...movedItem,
-        status: destination.droppableId as EnquiryType["status"],
+        status: destination.droppableId as Enquiry["status"],
       }
 
       newColumns[destColIndex].enquiries.splice(destination.index, 0, updatedItem)
 
-      if (source.droppableId !== destination.droppableId) {
-        toast.success("Enquiry Updated", {
-          description: `${movedItem.name}'s enquiry moved to ${newColumns[destColIndex].title}`,
-        })
-      }
-
       return newColumns
     })
+
+    // Update in backend
+    try {
+      const response = await fetch("/api/enquiries", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: movedEnquiry.id,
+          status: destination.droppableId,
+        }),
+      })
+
+      if (!response.ok) {
+        throw new Error("Failed to update enquiry status")
+      }
+
+      const destColumn = initialColumns.find((col) => col.id === destination.droppableId)
+      toast.success("Enquiry Updated", {
+        description: `${movedEnquiry.name}'s enquiry moved to ${destColumn?.title}`,
+      })
+    } catch (error) {
+      console.error("Error updating enquiry:", error)
+      toast.error("Failed to update enquiry status")
+      // Revert the change by refetching data
+      await fetchEnquiries()
+    }
   }
 
-  // Handle navigation to itinerary form
-  const handleNavigateToItinerary = (enquiry: EnquiryType) => {
-    // Store enquiry data in localStorage for immediate access
-    localStorage.setItem("currentEnquiry", JSON.stringify(enquiry))
-    // Navigate to itinerary form with enquiry ID
+  const handleNavigateToItinerary = (enquiry: Enquiry) => {
+    // Store enquiry data for immediate access
+    if (typeof window !== "undefined") {
+      localStorage.setItem("currentEnquiry", JSON.stringify(enquiry))
+    }
     router.push(`/agency/dashboard/Itenary-form?enquiryId=${enquiry.id}`)
+  }
+
+  const handleViewLeads = () => {
+    router.push("/agency/dashboard/enquiry/view-leads")
   }
 
   const renderTagSpecificFields = () => {
     if (newEnquiry.tags === "sightseeing") {
       return (
         <>
-          {/* Must-see spots */}
           <div className="col-span-3 space-y-1 sm:space-y-2">
             <label className="text-xs sm:text-sm font-medium font-poppins text-gray-600">
               Must-see spots <span className="text-gray-400">(Optional)</span>
             </label>
             <Textarea
               value={newEnquiry.mustSeeSpots || ""}
-              onChange={(e) => handleInputChange("mustSeeSpots", e.target.value)}
+              onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) =>
+                handleInputChange("mustSeeSpots", e.target.value)
+              }
               placeholder="List the must-see spots or attractions"
               className="min-h-[80px] text-sm sm:text-base"
             />
           </div>
-          {/* Pace preference */}
           <div className="col-span-3 space-y-1 sm:space-y-2">
             <label className="text-xs sm:text-sm font-medium font-poppins text-gray-600">
               Pace preference <span className="text-gray-400">(optional)</span>
             </label>
             <RadioGroup
               value={newEnquiry.pacePreference}
-              onValueChange={(value) => handleInputChange("pacePreference", value)}
+              onValueChange={(value: string) => handleInputChange("pacePreference", value)}
             >
               <div className="flex gap-6">
                 <div className="flex items-center space-x-2">
@@ -296,44 +381,64 @@ export default function Enquiry() {
       )
     } else if (newEnquiry.tags === "full-package") {
       return (
-        <>
-          {/* Flights required */}
-          <div className="space-y-1 sm:space-y-2">
-            <label className="text-xs sm:text-sm font-medium font-poppins">
-              Flights required? <span className="text-gray-400">(optional)</span>
-            </label>
-            <RadioGroup
-              value={newEnquiry.flightsRequired}
-              onValueChange={(value) => handleInputChange("flightsRequired", value)}
-            >
-              <div className="flex gap-6">
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem
-                    value="yes"
-                    id="flights-yes"
-                    className="h-4 w-4 text-green-600 border-gray-300 focus:ring-green-600"
-                  />
-                  <Label htmlFor="flights-yes" className="text-sm">
-                    Yes
-                  </Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem
-                    value="no"
-                    id="flights-no"
-                    className="h-4 w-4 text-green-600 border-gray-300 focus:ring-green-600"
-                  />
-                  <Label htmlFor="flights-no" className="text-sm">
-                    No
-                  </Label>
-                </div>
+        <div className="space-y-1 sm:space-y-2">
+          <label className="text-xs sm:text-sm font-medium font-poppins">
+            Flights required? <span className="text-gray-400">(optional)</span>
+          </label>
+          <RadioGroup
+            value={newEnquiry.flightsRequired}
+            onValueChange={(value: string) => handleInputChange("flightsRequired", value)}
+          >
+            <div className="flex gap-6">
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem
+                  value="yes"
+                  id="flights-yes"
+                  className="h-4 w-4 text-green-600 border-gray-300 focus:ring-green-600"
+                />
+                <Label htmlFor="flights-yes" className="text-sm">
+                  Yes
+                </Label>
               </div>
-            </RadioGroup>
-          </div>
-        </>
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem
+                  value="no"
+                  id="flights-no"
+                  className="h-4 w-4 text-green-600 border-gray-300 focus:ring-green-600"
+                />
+                <Label htmlFor="flights-no" className="text-sm">
+                  No
+                </Label>
+              </div>
+            </div>
+          </RadioGroup>
+        </div>
       )
     }
     return null
+  }
+
+  // Filter enquiries based on search term
+  const filteredColumns = columns.map((column) => ({
+    ...column,
+    enquiries: column.enquiries.filter(
+      (enquiry) =>
+        enquiry.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        enquiry.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        enquiry.phone.includes(searchTerm) ||
+        enquiry.locations.toLowerCase().includes(searchTerm.toLowerCase()),
+    ),
+  }))
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-100 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-green-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Loading enquiries...</p>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -345,6 +450,8 @@ export default function Enquiry() {
             <Search className="absolute left-2 top-2.5 h-4 w-4 font-poppins" />
             <Input
               placeholder="Search for..."
+              value={searchTerm}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchTerm(e.target.value)}
               className="pl-8 h-9 bg-white border-emerald-500 focus:border-emerald-500 hover:border-emerald-500 transition-colors font-poppins w-full"
             />
           </div>
@@ -363,6 +470,13 @@ export default function Enquiry() {
               <Plus className="h-4 w-4" />
               <span>Add enquiry</span>
             </Button>
+            <Button
+              onClick={handleViewLeads}
+              className="bg-green-800 hover:bg-green-800 text-white border-2 border-green-600 text-sm sm:text-base flex items-center gap-1"
+            >
+              <Plus className="h-4 w-4" />
+              <span>View Leads</span>
+            </Button>
           </div>
         </div>
       </div>
@@ -376,7 +490,7 @@ export default function Enquiry() {
         >
           {isClient ? (
             <DragDropContext onDragEnd={onDragEnd}>
-              {columns.map((column) => (
+              {filteredColumns.map((column) => (
                 <Droppable droppableId={column.id} key={column.id}>
                   {(provided) => (
                     <div
@@ -390,7 +504,9 @@ export default function Enquiry() {
                           <div className="bg-amber-100 p-2 sm:p-3 rounded-md">
                             <Image
                               src={
-                                typeof column.icon === "string" ? column.icon : "/placeholder.svg?height=32&width=32"
+                                column.icon?.startsWith("//")
+                                  ? column.icon.replace("//", "/")
+                                  : column.icon || "/Vectors.png"
                               }
                               alt={column.title}
                               width={32}
@@ -428,17 +544,17 @@ export default function Enquiry() {
                                     <p className="text-xs sm:text-sm text-green-500 font-poppins">
                                       Enquiry on: {enquiry.enquiryDate}
                                     </p>
-                                   <div className="relative group">
-  <button
-    className="flex items-center justify-center w-6 h-6 sm:w-7 sm:h-7 rounded-full border-1 border-black hover:bg-gray-100 transition-colors"
-    onClick={() => handleNavigateToItinerary(enquiry)}
-  >
-   <ArrowUpRight className="w-4 h-4 text-gray-600" />
-  </button>
-  <div className="absolute bottom-full right-0 mb-2 px-2 py-1 text-xs text-white bg-gray-800 rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity z-10">
-    Generate Itinerary
-  </div>
-</div>
+                                    <div className="relative group">
+                                      <button
+                                        className="flex items-center justify-center w-6 h-6 sm:w-7 sm:h-7 rounded-full border-1 border-black hover:bg-gray-100 transition-colors"
+                                        onClick={() => handleNavigateToItinerary(enquiry)}
+                                      >
+                                        <ArrowUpRight className="w-4 h-4 text-gray-600" />
+                                      </button>
+                                      <div className="absolute bottom-full right-0 mb-2 px-2 py-1 text-xs text-white bg-gray-800 rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity z-10">
+                                        Generate Itinerary
+                                      </div>
+                                    </div>
                                   </div>
                                   {hoveredEnquiry === enquiry.id && (
                                     <div className="absolute -bottom-20 right-0 bg-green-100 p-2 sm:p-3 rounded-md shadow-sm w-40 sm:w-48 z-10">
@@ -476,12 +592,12 @@ export default function Enquiry() {
           <div className="p-4 sm:p-6">
             <DialogTitle className="text-lg sm:text-xl font-semibold font-poppins">Add Enquiry</DialogTitle>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 mt-4">
-              {/* First Row - Lead source, Tags, Name */}
+              {/* Lead source */}
               <div className="space-y-1 sm:space-y-2">
                 <label className="text-xs sm:text-sm font-medium font-poppins">Lead source</label>
                 <RadioGroup
                   value={newEnquiry.leadSource}
-                  onValueChange={(value) => handleInputChange("leadSource", value)}
+                  onValueChange={(value: string) => handleInputChange("leadSource", value)}
                 >
                   <div className="flex gap-6">
                     <div className="flex items-center space-x-2">
@@ -508,9 +624,10 @@ export default function Enquiry() {
                 </RadioGroup>
               </div>
 
+              {/* Tags */}
               <div className="space-y-1 sm:space-y-2">
                 <label className="text-xs sm:text-sm font-medium font-poppins">Tags</label>
-                <Select value={newEnquiry.tags} onValueChange={(value) => handleInputChange("tags", value)}>
+                <Select value={newEnquiry.tags} onValueChange={(value: string) => handleInputChange("tags", value)}>
                   <SelectTrigger className="text-sm sm:text-base">
                     <SelectValue placeholder="Select tag" />
                   </SelectTrigger>
@@ -525,19 +642,21 @@ export default function Enquiry() {
                 </Select>
               </div>
 
+              {/* Name */}
               <div className="space-y-1 sm:space-y-2">
-                <label className="text-xs sm:text-sm font-medium font-poppins">Name</label>
+                <label className="text-xs sm:text-sm font-medium font-poppins">Name *</label>
                 <Input
                   value={newEnquiry.name}
-                  onChange={(e) => handleInputChange("name", e.target.value)}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleInputChange("name", e.target.value)}
                   placeholder="Client name"
                   className="text-sm sm:text-base"
+                  required
                 />
               </div>
 
-              {/* Second Row - Phone, Email, Location(s) */}
+              {/* Phone */}
               <div className="space-y-1 sm:space-y-2">
-                <label className="text-xs sm:text-sm font-medium font-poppins">Phone No.</label>
+                <label className="text-xs sm:text-sm font-medium font-poppins">Phone No. *</label>
                 <div className="flex">
                   <div className="flex items-center border rounded-l-md px-2 bg-gray-50">
                     <Image
@@ -552,35 +671,39 @@ export default function Enquiry() {
                   </div>
                   <Input
                     value={newEnquiry.phone}
-                    onChange={(e) => handleInputChange("phone", e.target.value)}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleInputChange("phone", e.target.value)}
                     placeholder="Phone number"
                     className="rounded-l-none text-sm sm:text-base"
+                    required
                   />
                 </div>
               </div>
 
+              {/* Email */}
               <div className="space-y-1 sm:space-y-2">
-                <label className="text-xs sm:text-sm font-medium font-poppins">Email</label>
+                <label className="text-xs sm:text-sm font-medium font-poppins">Email *</label>
                 <Input
                   type="email"
                   value={newEnquiry.email}
-                  onChange={(e) => handleInputChange("email", e.target.value)}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleInputChange("email", e.target.value)}
                   placeholder="Email address"
                   className="text-sm sm:text-base"
+                  required
                 />
               </div>
 
+              {/* Locations */}
               <div className="space-y-1 sm:space-y-2">
                 <label className="text-xs sm:text-sm font-medium font-poppins">Location(s)</label>
                 <Input
                   value={newEnquiry.locations}
-                  onChange={(e) => handleInputChange("locations", e.target.value)}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleInputChange("locations", e.target.value)}
                   placeholder="Desired destinations"
                   className="text-sm sm:text-base"
                 />
               </div>
 
-              {/* Third Row - From Date, To Date */}
+              {/* From Date */}
               <div className="space-y-1 sm:space-y-2">
                 <label className="text-xs sm:text-sm font-medium">From Date</label>
                 <Popover>
@@ -601,7 +724,7 @@ export default function Enquiry() {
                       initialFocus
                       mode="single"
                       selected={dateRange.from}
-                      onSelect={(date) => {
+                      onSelect={(date: Date | undefined) => {
                         setDateRange((prev) => ({ ...prev, from: date }))
                         if (date) {
                           const formatted = format(date, "dd MMM yy")
@@ -615,6 +738,7 @@ export default function Enquiry() {
                 </Popover>
               </div>
 
+              {/* To Date */}
               <div className="space-y-1 sm:space-y-2">
                 <label className="text-xs sm:text-sm font-medium">To Date</label>
                 <Popover>
@@ -635,7 +759,7 @@ export default function Enquiry() {
                       initialFocus
                       mode="single"
                       selected={dateRange.to}
-                      onSelect={(date) => {
+                      onSelect={(date: Date | undefined) => {
                         setDateRange((prev) => ({ ...prev, to: date }))
                         if (date && dateRange.from) {
                           const startFormatted = format(dateRange.from, "dd MMM yy")
@@ -652,7 +776,10 @@ export default function Enquiry() {
               {/* Currency */}
               <div className="space-y-1 sm:space-y-2">
                 <label className="text-xs sm:text-sm font-medium font-poppins">Currency</label>
-                <Select value={newEnquiry.currency} onValueChange={(value) => handleInputChange("currency", value)}>
+                <Select
+                  value={newEnquiry.currency}
+                  onValueChange={(value: string) => handleInputChange("currency", value)}
+                >
                   <SelectTrigger className="text-sm sm:text-base">
                     <SelectValue />
                   </SelectTrigger>
@@ -682,7 +809,7 @@ export default function Enquiry() {
                     max={50000}
                     min={100}
                     step={100}
-                    onValueChange={(value) => handleInputChange("budget", value[0])}
+                    onValueChange={(value: number[]) => handleInputChange("budget", value[0])}
                   />
                   <div className="flex justify-between mt-2 text-xs sm:text-sm text-gray-500">
                     <span>$100</span>
@@ -699,7 +826,7 @@ export default function Enquiry() {
                 </label>
                 <RadioGroup
                   value={newEnquiry.travelingWithPets}
-                  onValueChange={(value) => handleInputChange("travelingWithPets", value)}
+                  onValueChange={(value: string) => handleInputChange("travelingWithPets", value)}
                 >
                   <div className="flex gap-6">
                     <div className="flex items-center space-x-2">
@@ -729,7 +856,10 @@ export default function Enquiry() {
               {/* Tour type */}
               <div className="space-y-1 sm:space-y-2">
                 <label className="text-xs sm:text-sm font-medium font-poppins">Tour type</label>
-                <Select value={newEnquiry.tourType} onValueChange={(value) => handleInputChange("tourType", value)}>
+                <Select
+                  value={newEnquiry.tourType}
+                  onValueChange={(value: string) => handleInputChange("tourType", value)}
+                >
                   <SelectTrigger className="text-sm sm:text-base">
                     <SelectValue placeholder="Select tour type" />
                   </SelectTrigger>
@@ -753,7 +883,7 @@ export default function Enquiry() {
               {/* Tag-specific fields */}
               {renderTagSpecificFields()}
 
-              {/* Pickup and Drop locations section */}
+              {/* Pickup and Drop locations */}
               <div className="col-span-3 space-y-3 font-poppins">
                 <label className="text-xs sm:text-sm font-medium">Pickup and drop locations</label>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -764,7 +894,9 @@ export default function Enquiry() {
                     </div>
                     <Input
                       value={newEnquiry.pickupLocation || ""}
-                      onChange={(e) => handleInputChange("pickupLocation", e.target.value)}
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                        handleInputChange("pickupLocation", e.target.value)
+                      }
                       placeholder="Ernakulam, KSRTC"
                       className="text-sm sm:text-base"
                     />
@@ -776,7 +908,9 @@ export default function Enquiry() {
                     </div>
                     <Input
                       value={newEnquiry.dropLocation || ""}
-                      onChange={(e) => handleInputChange("dropLocation", e.target.value)}
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                        handleInputChange("dropLocation", e.target.value)
+                      }
                       placeholder="Ernakulam, KSRTC"
                       className="text-sm sm:text-base"
                     />
@@ -784,46 +918,51 @@ export default function Enquiry() {
                 </div>
               </div>
 
-              {/* Other details - full width */}
+              {/* Other details */}
               <div className="col-span-3 space-y-1 sm:space-y-2 font-poppins">
                 <label className="text-xs sm:text-sm font-medium">Other details</label>
                 <Textarea
                   value={newEnquiry.notes}
-                  onChange={(e) => handleInputChange("notes", e.target.value)}
+                  onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => handleInputChange("notes", e.target.value)}
                   className="min-h-[100px] text-sm sm:text-base"
                   placeholder="Additional details about the enquiry"
                 />
               </div>
 
-              {/* Fourth Row - No. of travellers, No. of kids */}
+              {/* No. of travellers */}
               <div className="space-y-1 sm:space-y-2">
                 <label className="text-xs sm:text-sm font-medium font-poppins">No. of travellers</label>
                 <Input
                   type="number"
                   value={newEnquiry.numberOfTravellers || ""}
-                  onChange={(e) => handleInputChange("numberOfTravellers", e.target.value)}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                    handleInputChange("numberOfTravellers", e.target.value)
+                  }
                   placeholder="4"
                   className="text-sm sm:text-base"
                 />
               </div>
 
+              {/* No. of kids */}
               <div className="space-y-1 sm:space-y-2">
                 <label className="text-xs sm:text-sm font-medium font-poppins">No. of kids</label>
                 <Input
                   type="number"
                   value={newEnquiry.numberOfKids || ""}
-                  onChange={(e) => handleInputChange("numberOfKids", e.target.value)}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                    handleInputChange("numberOfKids", e.target.value)
+                  }
                   placeholder="2"
                   className="text-sm sm:text-base"
                 />
               </div>
 
-              {/* Fifth Row - Point of contact, Assign staff */}
+              {/* Source of Lead */}
               <div className="space-y-1 sm:space-y-2 col-span-2">
                 <label className="text-xs sm:text-sm font-medium font-poppins">Source of Lead</label>
                 <Select
                   value={newEnquiry.pointOfContact || ""}
-                  onValueChange={(value) => handleInputChange("pointOfContact", value)}
+                  onValueChange={(value: string) => handleInputChange("pointOfContact", value)}
                 >
                   <SelectTrigger className="text-sm sm:text-base">
                     <SelectValue placeholder="Select point of contact" />
@@ -841,22 +980,22 @@ export default function Enquiry() {
                     <SelectItem value="Website" className="text-sm sm:text-base">
                       Website
                     </SelectItem>
-                      <SelectItem value="Website" className="text-sm sm:text-base">
+                    <SelectItem value="Facebook" className="text-sm sm:text-base">
                       Facebook
                     </SelectItem>
-                      <SelectItem value="Website" className="text-sm sm:text-base">
-                      Instagram                    
-                      </SelectItem>
-                      
+                    <SelectItem value="Instagram" className="text-sm sm:text-base">
+                      Instagram
+                    </SelectItem>
                   </SelectContent>
                 </Select>
               </div>
 
+              {/* Assign staff */}
               <div className="space-y-1 sm:space-y-2">
                 <label className="text-xs sm:text-sm font-medium font-poppins">Assign staff</label>
                 <Select
                   value={newEnquiry.assignedStaff}
-                  onValueChange={(value) => handleInputChange("assignedStaff", value)}
+                  onValueChange={(value: string) => handleInputChange("assignedStaff", value)}
                 >
                   <SelectTrigger className="text-sm sm:text-base">
                     <SelectValue placeholder="Select staff member" />
@@ -887,7 +1026,7 @@ export default function Enquiry() {
             <Button
               onClick={handleAddEnquiry}
               className="bg-green-700 hover:bg-green-800 text-white w-full text-sm sm:text-base"
-              disabled={!newEnquiry.name || !newEnquiry.phone}
+              disabled={!newEnquiry.name || !newEnquiry.phone || !newEnquiry.email}
             >
               Add Enquiry
             </Button>

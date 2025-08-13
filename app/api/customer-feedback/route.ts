@@ -17,14 +17,14 @@ export async function GET(request: NextRequest) {
     // Build filter based on available parameters
     let filter = {}
     if (itineraryId) {
-      filter = { itineraryId }
+      filter = { itineraryId: itineraryId }
     } else if (enquiryId) {
       filter = { customerId: enquiryId } // For enquiry-based flow
     } else if (customerId) {
-      filter = { customerId }
+      filter = { customerId: customerId }
     }
 
-    const feedbacks = await prisma.customerFeedback.findMany({
+    const feedbacks = await prisma.customer_feedbacks.findMany({
       where: filter,
       select: {
         id: true,
@@ -86,7 +86,7 @@ export async function POST(request: NextRequest) {
     const finalCustomerId = customerId || enquiryId
 
     // Create new customer feedback
-    const feedback = await prisma.customerFeedback.create({
+    const feedback = await prisma.customer_feedbacks.create({
       data: {
         customerId: finalCustomerId,
         itineraryId: itineraryId || null,
@@ -136,7 +136,7 @@ export async function PUT(request: NextRequest) {
     }
 
     // Update feedback
-    const updatedFeedback = await prisma.customerFeedback.update({
+    const updatedFeedback = await prisma.customer_feedbacks.update({
       where: { id: feedbackId },
       data: {
         ...(status && { status }),
@@ -184,7 +184,7 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: "Feedback ID is required" }, { status: 400 })
     }
 
-    await prisma.customerFeedback.delete({
+    await prisma.customer_feedbacks.delete({
       where: { id: feedbackId },
     })
 

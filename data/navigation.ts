@@ -115,6 +115,23 @@ export interface NavigationData {
       title: "Enquiries",
       subtitle: "Manage enquiries and followup",
     },
+    "/agency/dashboard/enquiry/view-leads/exist-Itenary-view": {
+      breadcrumbs: [
+        { label: "Pages", href: "/agency" },
+        { label: "Dashboard", href: "/dashboard", active: true },
+      ],
+      title: "Itineraries",
+      subtitle: "View and Share",
+    },
+    "/agency/dashboard/enquiry/view-leads": {
+      breadcrumbs: [
+        { label: "Pages", href: "/agency" },
+        { label: "Dashboard", href: "/dashboard", active: true },
+      ],
+      title: "Manage Enquiries",
+      subtitle: "View all enquiries ",
+    },
+    
   }
   
   export function getNavigationData(path: string) {

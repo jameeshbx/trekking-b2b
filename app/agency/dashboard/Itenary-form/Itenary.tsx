@@ -1,5 +1,7 @@
 "use client"
 
+import type React from "react"
+
 import { useState, useEffect } from "react"
 import Image from "next/image"
 import { ChevronDown, Minus, Plus, Calendar, Check, Edit, X } from "lucide-react"
@@ -15,7 +17,7 @@ import { cn } from "@/lib/utils"
 import { Input } from "@/components/ui/input"
 import { useRouter, useSearchParams } from "next/navigation"
 import { Suspense } from "react"
-import  LoadingComponent  from "@/app/agency/dashboard/Itenary-form/loading" // Create this component
+import LoadingComponent from "@/app/agency/dashboard/Itenary-form/loading" // Create this component
 // Define types for the itinerary data (matching ItineraryView)
 interface Activity {
   time: string
@@ -168,7 +170,11 @@ const activityOptions = [
     icon: <Image src="/Icon3.png" alt="Adventure" width={16} height={16} />,
   },
   { id: "food", label: "Food & Culinary", icon: <Image src="/Icon1.png" alt="Food" width={16} height={16} /> },
-  { id: "shopping", label: "Shopping & Leisure", icon: <Image src="/Icon4.png" alt="Shopping" width={16} height={16} /> },
+  {
+    id: "shopping",
+    label: "Shopping & Leisure",
+    icon: <Image src="/Icon4.png" alt="Shopping" width={16} height={16} />,
+  },
   {
     id: "entertainment",
     label: "Entertainment & Nightlife",
@@ -240,8 +246,8 @@ function ItineraryFormContent() {
   const searchParams = useSearchParams()
 
   const updateItinerary = (newId: string) => {
-    setItineraryId(newId);
-  };
+    setItineraryId(newId)
+  }
 
   useEffect(() => {
     const loadData = async () => {
@@ -273,7 +279,6 @@ function ItineraryFormContent() {
                 const itineraries = await itineraryResponse.json()
                 if (itineraries && itineraries.length > 0) {
                   existingItinerary = itineraries[0]
-                  
                 }
               }
             } catch (error) {
@@ -294,7 +299,6 @@ function ItineraryFormContent() {
                     const itineraries = await itineraryResponse.json()
                     if (itineraries && itineraries.length > 0) {
                       existingItinerary = itineraries[0]
-                      
                     }
                   }
                 }
@@ -549,7 +553,7 @@ function ItineraryFormContent() {
             </Label>
             <Textarea
               value={formData.mustSeeSpots}
-              onChange={(e) => updateFormData("mustSeeSpots", e.target.value)}
+              onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => updateFormData("mustSeeSpots", e.target.value)}
               placeholder="List the must-see spots or attractions"
               className="min-h-[80px] text-xs text-gray-500 font-Lato"
               rows={3}
@@ -562,7 +566,7 @@ function ItineraryFormContent() {
             </Label>
             <RadioGroup
               value={formData.pacePreference}
-              onValueChange={(value) => updateFormData("pacePreference", value)}
+              onValueChange={(value: string) => updateFormData("pacePreference", value)}
             >
               <div className="flex gap-4">
                 <div className="flex items-center space-x-2">
@@ -600,7 +604,7 @@ function ItineraryFormContent() {
             </Label>
             <RadioGroup
               value={formData.flightsRequired}
-              onValueChange={(value) => updateFormData("flightsRequired", value)}
+              onValueChange={(value: string) => updateFormData("flightsRequired", value)}
             >
               <div className="flex gap-4">
                 <div className="flex items-center space-x-2">
@@ -633,7 +637,7 @@ function ItineraryFormContent() {
             </Label>
             <RadioGroup
               value={formData.travelingWithPets}
-              onValueChange={(value) => updateFormData("travelingWithPets", value)}
+              onValueChange={(value: string) => updateFormData("travelingWithPets", value)}
             >
               <div className="flex gap-4">
                 <div className="flex items-center space-x-2">
@@ -907,7 +911,9 @@ function ItineraryFormContent() {
                       <Input
                         type="text"
                         value={formData.pickupLocation}
-                        onChange={(e) => updateFormData("pickupLocation", e.target.value)}
+                        onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                          updateFormData("pickupLocation", e.target.value)
+                        }
                         className="h-12"
                         placeholder="Enter pickup location"
                       />
@@ -917,7 +923,9 @@ function ItineraryFormContent() {
                       <Input
                         type="text"
                         value={formData.dropLocation}
-                        onChange={(e) => updateFormData("dropLocation", e.target.value)}
+                        onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                          updateFormData("dropLocation", e.target.value)
+                        }
                         className="h-12"
                         placeholder="Enter drop location"
                       />
@@ -931,7 +939,10 @@ function ItineraryFormContent() {
                     <Label className="text-sm font-medium text-black font-bold mb-2 block text-lg font-semibold font-poppins">
                       Currency
                     </Label>
-                    <Select value={formData.currency} onValueChange={(value) => updateFormData("currency", value)}>
+                    <Select
+                      value={formData.currency}
+                      onValueChange={(value: string) => updateFormData("currency", value)}
+                    >
                       <SelectTrigger className="h-12">
                         <SelectValue />
                       </SelectTrigger>
@@ -950,7 +961,7 @@ function ItineraryFormContent() {
                     <div className="px-2">
                       <Slider
                         defaultValue={[formData.budget]}
-                        onValueChange={(value) => updateFormData("budget", value[0])}
+                        onValueChange={(value: number[]) => updateFormData("budget", value[0])}
                         max={50000}
                         min={100}
                         step={100}
@@ -1124,7 +1135,9 @@ function ItineraryFormContent() {
                         className="text-xs"
                         rows={2}
                         value={formData.additionalRequests}
-                        onChange={(e) => updateFormData("additionalRequests", e.target.value)}
+                        onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) =>
+                          updateFormData("additionalRequests", e.target.value)
+                        }
                       />
                     </div>
                   </div>
@@ -1161,7 +1174,9 @@ function ItineraryFormContent() {
                   </Label>
                   <Textarea
                     value={formData.moreDetails}
-                    onChange={(e) => updateFormData("moreDetails", e.target.value)}
+                    onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) =>
+                      updateFormData("moreDetails", e.target.value)
+                    }
                     className="min-h-[100px] text-xs text-gray-500 font-Lato"
                     rows={5}
                   />

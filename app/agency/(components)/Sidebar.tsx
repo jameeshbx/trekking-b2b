@@ -46,30 +46,30 @@ const Sidebar = ({ expanded }: SidebarProps) => {
   const menuItems: MenuItem[] = [
     {
       title: "Dashboard",
-      href: "/agency/dashboard", // Fixed the typo from "daboard"
+      href: "/agency/dashboard",
       icon: <Image src="/dash.svg" alt="Dashboard" width={20} height={20} className="min-w-[20px]" />,
     },
     {
-      title: "Enquiries", // Changed from "Login requests"
-      href: "/agency/dashboard/enquiry", // Changed from "/admin/login-requests"
+      title: "Enquiries",
+      href: "/agency/dashboard/enquiry",
       icon: <Image src="/login.svg" alt="Enquiries" width={20} height={20} className="min-w-[20px]" />,
     },
     {
-      title: "Flights", // Changed from "Subscription Details"
-      href: "/agency/dashboard/flights", // Changed from "/admin/advisors"
+      title: "Flights",
+      href: "/agency/dashboard/flights", // Changed to direct route
       icon: <Image src="/flight.png" alt="Flights" width={20} height={20} className="min-w-[20px]" />,
     },
     {
       title: "Accommodation",
-      href: "/agency/dashboard/accommodation",
+      href: "/agency/dashboard/accomadation", // Changed to direct route
       icon: <Image src="/sleep.png" alt="Accommodation" width={20} height={20} className="min-w-[20px]" />,
     },
     {
-      title: "Reports", // New dropdown item
+      title: "Reports",
       href: "/agency/dashboard/reports",
       icon: (
         <Image
-          src="/subscription.svg" // Using the manage icon for reports
+          src="/subscription.svg"
           alt="Reports"
           width={20}
           height={20}
@@ -218,7 +218,7 @@ const Sidebar = ({ expanded }: SidebarProps) => {
                     onMouseEnter={() => setHoveredItem(item.title)}
                     onMouseLeave={() => setHoveredItem(null)}
                     className={`flex items-center w-full ${isCollapsed ? "justify-center p-3" : "p-2 md:p-3"} rounded-lg transition-colors ${
-                      pathname.startsWith("/admin/reports")
+                      pathname.startsWith("/agency/dashboard/reports")
                         ? "bg-blue-100 text-blue-600"
                         : "text-gray-700 hover:bg-gray-100"
                     }`}

@@ -7,7 +7,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   try {
     const { id } = await params
 
-    const itinerary = await prisma.itinerary.findUnique({
+    const itinerary = await prisma.itineraries.findUnique({
       where: { id },
       include: {
         enquiry: true, // Include the related enquiry data
@@ -30,7 +30,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     const { id } = await params
     const data = await request.json()
 
-    const updatedItinerary = await prisma.itinerary.update({
+    const updatedItinerary = await prisma.itineraries.update({
       where: { id },
       data: {
         destinations: Array.isArray(data.destinations) ? data.destinations.join(", ") : data.destinations,
@@ -89,7 +89,7 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: "Itinerary ID is required" }, { status: 400 })
     }
 
-    await prisma.itinerary.delete({
+    await prisma.itineraries.delete({
       where: { id },
     })
 

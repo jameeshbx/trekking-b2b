@@ -4,6 +4,7 @@ import BreadcrumbDemo from "../breadcrumbs-tab/breadcrumbs-tab";
 import EnquiryStatusDemo from "../breadcrumbs-status.tsx/status";
 import PaymentOverviewForm from "./customer";
 
+
 export default function Enquiry() {
   return (
     <div className="w-full h-screen bg-gray-50 mx-auto">
@@ -17,7 +18,7 @@ export default function Enquiry() {
         <BreadcrumbDemo />
       </div>
       <div className="w-full">
-        <PaymentOverviewForm />
+        <PaymentOverviewForm paymentId={""} />
       </div>
     </div>
   );

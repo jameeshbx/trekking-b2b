@@ -554,13 +554,13 @@ const ShareCustomerDashboard = () => {
                     </td>
                   </tr>
                 ) : (
-                  sentItineraries.map((item, ) => (
+                  sentItineraries.map((item) => (
                     <tr key={item.id} className="border-b hover:bg-gray-50">
                       <td className="p-4 text-sm text-gray-600">{item.date}</td>
                       <td className="p-4 text-sm text-gray-900">{item.customerName}</td>
                       <td className="p-4 text-sm text-gray-600">{item.email}</td>
                       <td className="p-4 text-sm text-gray-600">{item.whatsappNumber}</td>
-                      <td className="p-4 text-sm text-gray-600 max-w-xs truncate" title={item.notes}>
+                      <td className="p-4 text-sm text-gray-600 max-w-xs truncate" title={item.notes || undefined}>
                         {item.notes || "No notes"}
                       </td>
                     
