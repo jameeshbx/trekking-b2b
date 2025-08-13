@@ -1,7 +1,6 @@
 "use client"
 import Link from "next/link"
 import type React from "react"
-
 import { usePathname } from "next/navigation"
 import { useState, useEffect } from "react"
 import Image from "next/image"

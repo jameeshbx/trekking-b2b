@@ -15,8 +15,8 @@ const signupSchema = z.object({
   email: z.string().email("Invalid email address"),
   password: z.string().min(6, "Password must be at least 6 characters"),
   companyName: z.string().min(2, "Company name must be at least 2 characters"),
-  userType: z.enum(userTypes, {
-    required_error: "Please select a user type",
+  userType: z.enum(userTypes).refine((val) => val !== undefined, {
+    message: "Please select a user type",
   }),
 })
 
@@ -77,15 +77,15 @@ export default function SignupForm() {
         router.push("/login")
 
 
-    } catch (error) {
-      if (error instanceof z.ZodError) {
-        toast.error(error.errors[0].message)
-      } else if (error instanceof Error) {
-        toast.error(error.message)
-      } else {
-        toast.error("Something went wrong")
-      }
-    } finally {
+      } catch (error) {
+        if (error instanceof z.ZodError) {
+          toast.error(error.issues[0].message)
+        } else if (error instanceof Error) {
+          toast.error(error.message)
+        } else {
+          toast.error("Something went wrong")
+        }
+      } finally {
       setIsLoading(false)
     }
   }

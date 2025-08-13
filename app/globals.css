@@ -38,7 +38,7 @@
   --greyish:#6B7280;
   --light-orange:#EFB41D;
   --pink:#FF9D7E;
-
+  
   
   
   --greenlight:#12AA5B;
@@ -67,6 +67,7 @@
 }
 
 .dark {
+  --custom-lightgreen: #ddf0e6; 
   --custom-green: #183F30; 
   --custom-light: #E8F6ED;
   --custom-lightwhite: #F2F2F2;

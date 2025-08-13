@@ -1,6 +1,6 @@
 generator client {
   provider = "prisma-client-js"
-}
+} 
 
 
 datasource db {
@@ -26,6 +26,7 @@ model File {
   userProfileImage User? @relation("UserProfileImage")
   paymentMethodQRCode        PaymentMethod? @relation("PaymentMethodQRCode")
 
+  adminProfile   Admin?    @relation("AdminProfile")
   @@map("file")
 }
 
@@ -208,6 +209,7 @@ model DMCForm {
   @@index([status])
 }
 
+
 model Manager {
   id        String   @id @default(uuid())
   name      String
@@ -224,6 +226,7 @@ model Manager {
   // Comments on this manager
   comments  Comment[] @relation("ManagerComments")
 }
+
 
 model UserForm {
   id             String     @id @default(uuid())
@@ -364,7 +367,7 @@ model Itinerary {
   pdfUrl                 String?  // Added missing field
   itineraryType          String?  // Added missing field
   activeStatus           Boolean  @default(true) // Added missing field
-accommodation Json @default("[]")  // Default empty array
+  accommodation Json @default("[]")  // Default empty array
   dailyItinerary Json @default("[]")
 
   
@@ -487,6 +490,37 @@ model SharedDMCItem {
   @@index([dmcId])
   @@map("shared_dmc_items")
 }
+
+
+model Admin {
+  id         String      @id @default(uuid())
+  name       String
+  phone      String
+  email      String      @unique
+  username   String      @unique
+  password   String
+  status     AdminStatus @default(INACTIVE)
+  profileId  String?     @unique
+  profile    File?       @relation("AdminProfile", fields: [profileId], references: [id])
+  userId     String      @unique
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime    @updatedAt
+
+
+  @@index([email])
+  @@index([status])
+  @@map("admins") // Explicit table name
+}
+
+
+enum AdminStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+}
+
+
+
 
 // Add these enums
 enum SharedDMCStatus {
