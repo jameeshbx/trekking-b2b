@@ -26,6 +26,7 @@
 }
 
 :root {
+  
   --dark-green: oklch(0.25 0.2 150); /* Dark green (#183F30) */
   --light-green: #5BC17F;
   --greenlight:#12AA5B;
@@ -34,6 +35,7 @@
   --orange-red: #F97549;
   --deep-red: #D82108;
   --light-blue: #6BCDEE;
+  --dark-blue: #102A43;
   --dark-pink:#FD007F;
   --greyish:#6B7280;
   --light-orange:#EFB41D;
@@ -67,7 +69,7 @@
 }
 
 .dark {
-  --custom-lightgreen: #ddf0e6; 
+  
   --custom-green: #183F30; 
   --custom-light: #E8F6ED;
   --custom-lightwhite: #F2F2F2;
@@ -77,6 +79,7 @@
   --greenook:#026451;
   --dark-green: oklch(0.25 0.2 150);
   --primary: var(--dark-green);
+  --dark-blue: #102A43;
   --primary-foreground: oklch(0.205 0 0);
   --destructive: var(--dark-green);
   --destructive-foreground: oklch(0.637 0.237 25.331);
@@ -87,6 +90,7 @@
 }
 
 @theme inline {
+  
   --color-pink: var(--pink);
   --color-light-orange: var(--light-orange);
   --color-greenook: var(--greenook);
@@ -113,6 +117,7 @@
   --color-orange-red: var(--orange-red);
   --color-deep-red: var(--deep-red);
   --color-light-blue: var(--light-blue);
+  --color-dark-blue: var(--dark-blue);
   --color-dark-pink: var(--dark-pink);
   --color-primary-foreground: var(--primary-foreground);
   --color-destructive: var(--destructive);
@@ -128,7 +133,7 @@
 
   body {
     /* @apply bg-background text-foreground; */
-    font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+    font-family: "Poppins", sans-serif;
   }
 
 
@@ -167,7 +172,7 @@
 
 }
 .font-Helvetica{
-  font-family: 'Roboto',Arial, Helvetica, sans-serif;
+  font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
 }
 .font-Beiruti {
   font-family: "Beiruti", serif; /* Added Beiruti */
@@ -176,4 +181,23 @@
   font-family: "Lato", sans-serif;
 }
   
+}
+
+/* Scoped scrollbar styling for card content */
+.scrollbar-card {
+  /* Firefox */
+  scrollbar-width: thin;
+  scrollbar-color: #ECEDEE transparent;
+}
+/* WebKit (Chrome/Edge/Safari) */
+.scrollbar-card::-webkit-scrollbar {
+  width: 8px;   /* vertical */
+  height: 8px;  /* horizontal */
+}
+.scrollbar-card::-webkit-scrollbar-thumb {
+  background-color: #ECEDEE;
+  border-radius: 9999px;
+}
+.scrollbar-card::-webkit-scrollbar-track {
+  background: transparent;
 }

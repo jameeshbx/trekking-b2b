@@ -11,12 +11,14 @@ const config: Config = {
     extend: {
       colors: {
         primary: "#183F30",
+        
       },
     },
     fontFamily: {
       raleway: ['Raleway', 'sans-serif'],
       poppins: ['Poppins', 'sans-serif'],
       nunito: Nunito({ subsets: ["latin"] }).style.fontFamily,
+      source: ['"Source Sans Pro"', 'sans-serif'],
       sans: ['"Helvetica Neue"', 'Helvetica', 'Arial', 'sans-serif'],
     },
   },

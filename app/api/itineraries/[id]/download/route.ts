@@ -11,8 +11,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       return NextResponse.json({ error: "Itinerary ID is required" }, { status: 400 })
     }
 
-    // Fetch itinerary details
-    const itinerary = await prisma.itinerary.findUnique({
+    const itinerary = await prisma.itineraries.findUnique({
       where: { id: itineraryId },
       include: {
         enquiry: {
@@ -51,8 +50,6 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 
     // Check if PDF already exists
     if (itinerary.pdfUrl) {
-      // In a real implementation, you would fetch the PDF from storage
-      // For now, we'll generate a new one
       console.log("Existing PDF URL:", itinerary.pdfUrl)
     }
 
@@ -60,16 +57,11 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     const pdfContent = generateItineraryPDF(itinerary)
     console.log("Generated PDF content:", pdfContent.title)
 
-    // In a real implementation, you would:
-    // 1. Generate actual PDF using libraries like puppeteer, jsPDF, or PDFKit
-    // 2. Upload to cloud storage (AWS S3, Google Cloud Storage, etc.)
-    // 3. Update the itinerary record with the PDF URL
-
     // Mock PDF generation
     const mockPdfUrl = `/api/itineraries/${itineraryId}/pdf`
 
     // Update itinerary with PDF URL
-    await prisma.itinerary.update({
+    await prisma.itineraries.update({
       where: { id: itineraryId },
       data: {
         pdfUrl: mockPdfUrl,
@@ -82,7 +74,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       message: "PDF generated successfully",
       pdfUrl: mockPdfUrl,
       downloadUrl: `/api/itineraries/${itineraryId}/pdf`,
-      pdfContent: pdfContent, // Include the generated content in response
+      pdfContent: pdfContent,
     })
   } catch (error) {
     console.error("Error generating PDF:", error)
@@ -96,7 +88,6 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   }
 }
 
-// Mock PDF generation function
 function generateItineraryPDF(itinerary: {
   id: string
   destinations?: string | null
@@ -108,14 +99,14 @@ function generateItineraryPDF(itinerary: {
     name: string
     email: string
     phone: string
-    locations: string
-    tourType: string
-    estimatedDates: string
-    currency: string
-    budget: number
+    locations: string | null
+    tourType: string | null
+    estimatedDates: string | null
+    currency: string | null
+    budget: number | null
     numberOfTravellers?: string | null
     numberOfKids?: string | null
-    flightsRequired: string
+    flightsRequired: string | null
     pickupLocation?: string | null
     dropLocation?: string | null
     mustSeeSpots?: string | null
@@ -130,9 +121,6 @@ function generateItineraryPDF(itinerary: {
   accommodation: unknown
   dailyItinerary: unknown
 }) {
-  // This is a mock implementation
-  // In a real application, you would use a PDF generation library
-
   const customerName = itinerary.enquiry?.name || itinerary.customer?.name || "Customer"
   const destinations = itinerary.destinations || itinerary.enquiry?.locations || "Various destinations"
   const tourType = itinerary.enquiry?.tourType || "Custom tour"
@@ -150,7 +138,6 @@ function generateItineraryPDF(itinerary: {
     dailyItinerary: itinerary.dailyItinerary,
   })
 
-  // Return mock PDF content structure
   return {
     title: `Travel Itinerary - ${customerName}`,
     content: {
@@ -184,8 +171,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       return NextResponse.json({ error: "Itinerary ID is required" }, { status: 400 })
     }
 
-    // Fetch itinerary
-    const itinerary = await prisma.itinerary.findUnique({
+    const itinerary = await prisma.itineraries.findUnique({
       where: { id: itineraryId },
     })
 
@@ -206,8 +192,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     // Generate new PDF
     const mockPdfUrl = `/api/itineraries/${itineraryId}/pdf?v=${Date.now()}`
 
-    // Update itinerary with new PDF URL
-    await prisma.itinerary.update({
+    await prisma.itineraries.update({
       where: { id: itineraryId },
       data: {
         pdfUrl: mockPdfUrl,

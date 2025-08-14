@@ -10,7 +10,7 @@ export async function POST(request: NextRequest) {
     const { enquiryId,  } = body
 
     // Fetch enquiry data
-    const enquiry = await prisma.enquiry.findUnique({
+    const enquiry = await prisma.enquiries.findUnique({
       where: { id: enquiryId },
     })
 

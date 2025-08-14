@@ -46,7 +46,7 @@ const Sidebar = ({ expanded }: SidebarProps) => {
   const menuItems: MenuItem[] = [
     {
       title: "Dashboard",
-      href: "/admin/daboard",
+      href: "/admin/dashboard",
       icon: (
         <Image
           src="/dash.svg"

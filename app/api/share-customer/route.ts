@@ -16,7 +16,7 @@ export async function GET(request: NextRequest) {
 
     if (enquiryId) {
       // Fetch enquiry first to get customer info
-      const enquiry = await prisma.enquiry.findUnique({
+      const enquiry = await prisma.enquiries.findUnique({
         where: { id: enquiryId },
         select: {
           id: true,
@@ -61,7 +61,7 @@ export async function GET(request: NextRequest) {
       finalCustomerId = enquiry.id
     } else if (customerId) {
       // Original customer-based flow
-      const customer = await prisma.customer.findUnique({
+      const customer = await prisma.customers.findUnique({
         where: { id: customerId },
         select: {
           id: true,
@@ -94,7 +94,7 @@ export async function GET(request: NextRequest) {
       itineraryFilter = { customerId: customerId }
     }
 
-    const itineraries = await prisma.itinerary.findMany({
+    const itineraries = await prisma.itineraries.findMany({
       where: itineraryFilter,
       select: {
         id: true,
@@ -102,7 +102,6 @@ export async function GET(request: NextRequest) {
         updatedAt: true,
         pdfUrl: true,
         activeStatus: true,
-        itineraryType: true,
         status: true,
         destinations: true,
         startDate: true,
@@ -149,7 +148,7 @@ export async function GET(request: NextRequest) {
       feedbackFilter = { customerId: customerId }
     }
 
-    const feedbacks = await prisma.customerFeedback.findMany({
+    const feedbacks = await prisma.customer_feedbacks.findMany({
       where: feedbackFilter,
       select: {
         id: true,
@@ -194,7 +193,7 @@ export async function GET(request: NextRequest) {
       sentItineraryFilter = { customerId: customerId }
     }
 
-    const sentItineraries = await prisma.sentItinerary.findMany({
+    const sentItineraries = await prisma.sent_itineraries.findMany({
       where: sentItineraryFilter,
       select: {
         id: true,
@@ -262,7 +261,7 @@ export async function POST(request: NextRequest) {
     const finalCustomerId = customerId || enquiryId
 
     // Create new customer feedback
-    const feedback = await prisma.customerFeedback.create({
+    const feedback = await prisma.customer_feedbacks.create({
       data: {
         customerId: finalCustomerId,
         itineraryId: itineraryId || null,
@@ -276,13 +275,13 @@ export async function POST(request: NextRequest) {
     // Get customer name for response
     let customerName = "Unknown"
     if (enquiryId) {
-      const enquiry = await prisma.enquiry.findUnique({
+      const enquiry = await prisma.enquiries.findUnique({
         where: { id: enquiryId },
         select: { name: true },
       })
       customerName = enquiry?.name || "Unknown"
     } else if (customerId) {
-      const customer = await prisma.customer.findUnique({
+      const customer = await prisma.customers.findUnique({
         where: { id: customerId },
         select: { name: true },
       })
@@ -329,7 +328,7 @@ export async function PUT(request: NextRequest) {
     }
 
     // Update feedback
-    const updatedFeedback = await prisma.customerFeedback.update({
+    const updatedFeedback = await prisma.customer_feedbacks.update({
       where: { id: feedbackId },
       data: {
         ...(status && { status }),
@@ -378,7 +377,7 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: "Feedback ID is required" }, { status: 400 })
     }
 
-    await prisma.customerFeedback.delete({
+    await prisma.customer_feedbacks.delete({
       where: { id: feedbackId },
     })
 
