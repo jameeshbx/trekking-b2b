@@ -10,9 +10,7 @@ const signupSchema = z.object({
   email: z.string().email("Invalid email address"),
   password: z.string().min(6, "Password must be at least 6 characters"),
   companyName: z.string().min(2, "Company name must be at least 2 characters"),
-  userType: z.enum(["TEKKING_MYLES", "AGENCY", "DMC"], {
-    required_error: "Please select a user type",
-  }),
+  userType: z.enum(["TEKKING_MYLES", "AGENCY", "DMC"] as const),
 });
 
 export async function POST(req: Request) {
@@ -59,7 +57,7 @@ export async function POST(req: Request) {
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(
-        { message: error.errors[0].message },
+        { message: error.issues[0].message },
         { status: 400 }
       );
     }

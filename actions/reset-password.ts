@@ -20,13 +20,9 @@ export async function resetPassword(token: string, newPassword: string) {
     console.log("Resetting password with token:", token)
 
     // Validate password with Zod
-    try {
-      passwordSchema.parse(newPassword)
-    } catch (error) {
-      if (error instanceof z.ZodError) {
-        return { success: false, error: error.errors[0].message }
-      }
-      return { success: false, error: "Invalid password format" }
+    const validationResult = passwordSchema.safeParse(newPassword)
+    if (!validationResult.success) {
+      return { success: false, error: validationResult.error.issues[0]?.message || "Invalid password format" }
     }
 
     // Find the password reset record

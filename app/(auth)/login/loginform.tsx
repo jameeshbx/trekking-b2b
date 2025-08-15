@@ -6,14 +6,13 @@ import { Eye, X, ArrowLeft } from "lucide-react"
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { signIn } from "next-auth/react"
-import { useRouter, useSearchParams } from "next/navigation"
+import { useRouter } from "next/navigation" 
 import { z } from "zod"
 import { toast } from "sonner"
 
 const loginSchema = z.object({
   email: z.string().email("Invalid email address"),
   password: z.string().min(6, "Password must be at least 6 characters"),
-  
 })
 
 export default function LoginForm() {
@@ -21,7 +20,6 @@ export default function LoginForm() {
   const [showPassword, setShowPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const router = useRouter()
-  const searchParams = useSearchParams()
 
   useEffect(() => {
     const checkIfMobile = () => {
@@ -58,12 +56,32 @@ export default function LoginForm() {
         return
       }
 
-      const callbackUrl = searchParams.get("callbackUrl")
-      router.push(callbackUrl || "/admin/dashboard/profile")
+      // Fetch user data to determine type
+      const userResponse = await fetch('/api/auth/user')
+      if (!userResponse.ok) throw new Error('Failed to fetch user data')
+      
+      const userData = await userResponse.json()
+
+      // Redirect based on user type
+      let redirectPath = '/profile'
+      switch(userData.userType) {
+        case 'TEKKING_MYLES':
+          redirectPath = '/admin/dashboard/profile'
+          break
+        case 'AGENCY':
+          redirectPath = '/agency/dashboard/profile'
+          break
+        case 'DMC':
+          redirectPath = '/dmc/dashboard/profile'
+          break
+      }
+
+      router.push(redirectPath)
       router.refresh()
+
     } catch (error) {
       if (error instanceof z.ZodError) {
-        toast.error(error.errors[0].message)
+        toast.error(error.issues[0].message) // Fixed: Changed from errors to issues
       } else {
         toast.error("Something went wrong")
       }
@@ -74,7 +92,6 @@ export default function LoginForm() {
 
   return (
     <div className="relative w-full overflow-hidden py-6 px-4 sm:px-6 lg:px-8 bg-custom-green z-[10]">
-
       <div className="absoloute inset-0 -z-[10] ">
         <Image
           src="/login/Group 1171275929.svg"
@@ -84,7 +101,6 @@ export default function LoginForm() {
           priority
         />
       </div>
-
 
       {!isMobile && (
         <Link
@@ -98,7 +114,7 @@ export default function LoginForm() {
       {isMobile && (
         <Link
           href="/"
-          className="absolute top-5 right-5 bg-custom-green rounded-full p-2 border-2 border-white z-50 cursor-pointer hover:bg-custom-green  transition-colors"
+          className="absolute top-5 right-5 bg-custom-green rounded-full p-2 border-2 border-white z-50 cursor-pointer hover:bg-custom-green transition-colors"
         >
           <X className="h-5 w-5 text-white" />
         </Link>
@@ -106,11 +122,8 @@ export default function LoginForm() {
 
       <div className="relative z-10 flex items-center justify-center min-h-screen p-4 py-8 ">
         {!isMobile ? (
-
           <div className="mx-auto flex w-full max-w-5xl flex-col overflow-hidden rounded-lg shadow-lg md:flex-row">
-
             <div className="relative w-full bg-greenook p-8 md:p-10 md:w-1/2">
-
               <div className="absolute -left-8 -bottom-6 z-0">
                 <Image
                   src="/login/Group 1171275832.svg"
@@ -128,14 +141,9 @@ export default function LoginForm() {
                   height={100}
                   className="opacity-80"
                 />
-
               </div>
 
-
-              <div className="absolute inset-0 "></div>
-
               <div className="relative z-10">
-
                 <div className="flex items-center justify-center md:justify-start">
                   <Image
                     src="/elneera-white.png"
@@ -146,8 +154,7 @@ export default function LoginForm() {
                   />
                 </div>
 
-
-                <h1 className="mt-8 md:mt-12 lg-mt-[-30] text-3xl font-nunito md:text-4xl  font-semibold text-white text-center md:text-left">
+                <h1 className="mt-8 md:mt-12 lg-mt-[-30] text-3xl font-nunito md:text-4xl font-semibold text-white text-center md:text-left">
                   Start your remarkable journey with us!
                 </h1>
 
@@ -157,18 +164,13 @@ export default function LoginForm() {
               </div>
             </div>
 
-
             <div className="relative w-full bg-white p-6 md:p-8 lg:p-12 md:w-1/2 z-30">
               <div className="mx-auto max-w-md">
                 <h2 className="mb-6 md:mb-8 md:text-lg lg:text-4xl font-nunito font-bold text-gray-900 text-center">
                   Welcome Back <span className="inline-block">👋</span>
                 </h2>
 
-
-
-
                 <form onSubmit={handleSubmit} className="space-y-5 md:space-y-6">
-
                   <div className="space-y-2">
                     <label htmlFor="email" className="block text-sm font-semibold text-gray-700">
                       Email*
@@ -182,7 +184,6 @@ export default function LoginForm() {
                       className="w-full rounded-md border border-gray-300 px-4 py-3 text-gray-900 focus:border-emerald-600 focus:outline-none focus:ring-1 focus:ring-emerald-600"
                     />
                   </div>
-
 
                   <div className="space-y-2">
                     <label htmlFor="password" className="block text-sm font-semibold text-gray-700">
@@ -208,7 +209,6 @@ export default function LoginForm() {
                     </div>
                   </div>
 
-
                   <div className="flex flex-col space-y-3 sm:flex-row sm:space-y-0 sm:items-center sm:justify-between">
                     <div className="flex items-center">
                       <input
@@ -229,7 +229,6 @@ export default function LoginForm() {
                     </Link>
                   </div>
 
-
                   <div className="flex items-start">
                     <input
                       id="marketing-opt-out"
@@ -243,7 +242,6 @@ export default function LoginForm() {
                     </label>
                   </div>
 
-
                   <button
                     type="submit"
                     disabled={isLoading}
@@ -251,7 +249,6 @@ export default function LoginForm() {
                   >
                     {isLoading ? "Signing in..." : "Login"}
                   </button>
-
 
                   <div className="text-center text-sm text-gray-700">
                     Dont have an account?
@@ -266,9 +263,8 @@ export default function LoginForm() {
         ) : (
           // Mobile layout
           <div className="w-full max-w-md">
-
             {/* Green header section */}
-            <div className="bg-greenook  p-6 rounded-t-lg relative overflow-hidden z-20">
+            <div className="bg-greenook p-6 rounded-t-lg relative overflow-hidden z-20">
               <div className="relative z-30">
                 {/* Logo Image */}
                 <div className="flex justify-center mb-4">
@@ -282,7 +278,7 @@ export default function LoginForm() {
                   />
                 </div>
 
-                <h1 className="text-xl font-semibold text-white text-center font-nunito ">Start your remarkable journey with us!</h1>
+                <h1 className="text-xl font-semibold text-white text-center font-nunito">Start your remarkable journey with us!</h1>
 
                 <p className="mt-2 text-sm text-white/90 text-center font-normal font-poppins">Seamless Access to Your Travel Business Hub</p>
               </div>
@@ -295,9 +291,8 @@ export default function LoginForm() {
               </h2>
 
               <form onSubmit={handleSubmit} className="space-y-4">
-                {/* Username Field */}
                 <div>
-                  <label htmlFor="email-mobile" className="block text-sm  text-gray-700 mb-1 font-semibold">
+                  <label htmlFor="email-mobile" className="block text-sm text-gray-700 mb-1 font-semibold">
                     Email*
                   </label>
                   <input
@@ -310,7 +305,6 @@ export default function LoginForm() {
                   />
                 </div>
 
-                {/* Password Field */}
                 <div>
                   <label htmlFor="password-mobile" className="block text-sm text-gray-700 mb-1 font-semibold">
                     Password*
@@ -335,7 +329,6 @@ export default function LoginForm() {
                   </div>
                 </div>
 
-                {/* Remember Me & Forgot Password */}
                 <div className="flex items-center justify-between">
                   <div className="flex items-center">
                     <input
@@ -356,7 +349,6 @@ export default function LoginForm() {
                   </Link>
                 </div>
 
-                {/* Marketing Opt-Out */}
                 <div className="flex items-start">
                   <input
                     id="marketing-opt-out-mobile"
@@ -370,7 +362,6 @@ export default function LoginForm() {
                   </label>
                 </div>
 
-                {/* Submit Button */}
                 <Button
                   type="submit"
                   className="w-full rounded-full bg-greenook px-4 py-2 font-medium text-white hover:bg-greenook focus:outline-none focus:ring-2 focus:ring-emerald-600 focus:ring-offset-2 transition-colors"
@@ -378,7 +369,6 @@ export default function LoginForm() {
                   Login
                 </Button>
 
-                {/* Signup Link */}
                 <div className="text-center text-sm text-gray-700 mt-4">
                   Dont have an account?
                   <Link

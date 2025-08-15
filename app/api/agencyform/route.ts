@@ -43,13 +43,8 @@ export async function POST(req: Request) {
 
     // Validate the form data
     try {
-      // First, get the inner schema if agencyFormSchemaBase is an effect
-      const baseSchema = agencyFormSchemaBase instanceof z.ZodEffects 
-        ? agencyFormSchemaBase.innerType() 
-        : agencyFormSchemaBase;
-      
-      // Now we can safely use omit
-      const validationSchema = baseSchema.omit({ 
+      // Since agencyFormSchemaBase is already a ZodObject with refine, we can use omit directly
+      const validationSchema = agencyFormSchemaBase.omit({ 
         logo: true, 
         businessLicense: true 
       });
@@ -68,7 +63,7 @@ export async function POST(req: Request) {
       });
 
       // Create agency record in database
-      const agency = await prisma.agencyForm.create({
+       const agency = await prisma.agencyForm.create({
         data: {
           name: validatedData.name,
           contactPerson: validatedData.contactPerson,
@@ -98,8 +93,9 @@ export async function POST(req: Request) {
     } catch (validationError) {
       console.error("Validation error:", validationError);
       if (validationError instanceof z.ZodError) {
+        // In newer versions of Zod, use issues instead of errors
         return NextResponse.json(
-          { error: validationError.errors[0].message },
+          { error: validationError.issues[0].message },
           { status: 400 }
         );
       }
