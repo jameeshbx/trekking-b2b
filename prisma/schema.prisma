@@ -1,6 +1,6 @@
 generator client {
   provider = "prisma-client-js"
-}
+} 
 
 datasource db {
   provider     = "postgresql"
@@ -54,6 +54,7 @@ model User {
   @@index([email])
   @@index([role])
 }
+
 
 model Agency {
   id            String         @id @default(uuid())
@@ -204,6 +205,7 @@ model DMCForm {
   @@index([status])
 }
 
+
 model Manager {
   id        String   @id @default(uuid())
   name      String
@@ -220,6 +222,7 @@ model Manager {
   // Comments on this manager
   comments  Comment[] @relation("ManagerComments")
 }
+
 
 model UserForm {
   id             String     @id @default(uuid())
@@ -249,13 +252,6 @@ model PaymentMethod {
   name        String?
   identifier  String? // Account number, UPI ID, etc.
 
-  // Bank-specific fields
-  bankName    String?
-  branchName  String?
-  ifscCode    String?
-  bankCountry String?
-  currency    String?
-
   // Card-specific fields
   cardHolder  String?
   expiryDate  String?
@@ -275,6 +271,9 @@ model PaymentMethod {
   isActive    Boolean   @default(true)
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
+
+  // NEW FIELD for storing multiple bank details as JSON
+  bank        Json?     // <-- This is all you need for banks
 
   @@index([dmcId])
   @@index([type])
@@ -390,7 +389,7 @@ model customers {
 
 model customer_feedbacks {
   id            String   @id @default(cuid())
-  customerId    String   @map("customer_id")
+  customerId    String   
   itineraryId   String?  @map("itinerary_id")
   type          String
   title         String
@@ -398,10 +397,10 @@ model customer_feedbacks {
   status        String   @default("pending")
   documentUrl   String?  @map("document_url")
   documentName  String?  @map("document_name")
-  createdAt     DateTime @default(now()) @map("created_at")
-  updatedAt     DateTime @updatedAt @map("updated_at")
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 
-  customer      customers    @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  customer      customers?   @relation(fields: [customerId], references: [id], onDelete: Cascade)
   itinerary     itineraries? @relation(fields: [itineraryId], references: [id], onDelete: SetNull)
 
   @@map("customer_feedbacks")
