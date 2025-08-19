@@ -8,7 +8,7 @@ import {
   Bell,
   ChevronDown,
 } from "lucide-react"
-
+import Image from "next/image"
 
 const Dashboard = () => {
   return (
@@ -66,11 +66,11 @@ const Dashboard = () => {
 
                   {/* Card 1: Kaptai Serenity Escape */}
                   <div className="relative h-[340px] rounded-2xl overflow-hidden shadow-lg">
-                    <img src="/card1.png" alt="Kaptai Serenity Escape" className="absolute inset-0 w-full h-full object-cover" />
+                    <Image src="/card1.png" alt="Kaptai Serenity Escape" className="absolute inset-0 w-full h-full object-cover" />
 
                     {/* save icon */}
                     <div className="absolute top-4 right-4 z-10 p-2 rounded-md bg-[#29A376]">
-                      <img src="/save icon.png" alt="Save" className="w-3 h-3" />
+                      <Image src="/save icon.png" alt="Save" className="w-3 h-3" />
                     </div>
 
                     {/* title + subtitle (left/middle) */}
@@ -84,50 +84,50 @@ const Dashboard = () => {
                       {/* left pill (green) */}
                       <div className="flex items-center bg-white/80 backdrop-blur-md rounded-full px-3 py-1.5 shadow-md">
                         <div className="w-7 h-7 rounded-md bg-emerald-600/15 flex items-center justify-center">
-                          <img src="/tick.svg" alt="Included" className="w-4 h-4" />
+                          <Image src="/tick.svg" alt="Included" className="w-4 h-4" />
                         </div>
                         <span className="h-5 w-px bg-emerald-600/50 mx-1.5"></span>
                         <div className="w-7 h-7 rounded-md bg-emerald-600/10 flex items-center justify-center">
-                          <img src="/snack.svg" alt="Dining" className="w-4 h-4" />
+                          <Image src="/snack.svg" alt="Dining" className="w-4 h-4" />
                         </div>
                         <span className="h-5 w-px bg-emerald-600/50 mx-1.5"></span>
                         <div className="w-7 h-7 rounded-md bg-emerald-600/10 flex items-center justify-center">
-                          <img src="/train.svg" alt="Transport" className="w-4 h-4" />
+                          <Image src="/train.svg" alt="Transport" className="w-4 h-4" />
                         </div>
                         <span className="h-5 w-px bg-emerald-600/50 mx-1.5"></span>
                         <div className="w-7 h-7 rounded-md bg-emerald-600/10 flex items-center justify-center">
-                          <img src="/swimming.svg" alt="Activities" className="w-4 h-4" />
+                          <Image src="/swimming.svg" alt="Activities" className="w-4 h-4" />
                         </div>
                         <span className="h-5 w-px bg-emerald-600/50 mx-1.5"></span>
                         <div className="w-7 h-7 rounded-md bg-emerald-600/10 flex items-center justify-center">
-                          <img src="/camera.svg" alt="Photography" className="w-4 h-4" />
+                          <Image src="/camera.svg" alt="Photography" className="w-4 h-4" />
                         </div>
                         <span className="h-5 w-px bg-emerald-600/50 mx-1.5"></span>
                         <div className="w-7 h-7 rounded-md bg-emerald-600/10 flex items-center justify-center">
-                          <img src="/bed.svg" alt="Stay" className="w-4 h-4" />
+                          <Image src="/bed.svg" alt="Stay" className="w-4 h-4" />
                         </div>
                       </div>
 
                       {/* right pill (grey) */}
                       <div className="flex items-center bg-white/75 backdrop-blur-md rounded-full px-3 py-1.5 shadow-md">
                         <div className="w-7 h-7 rounded-md bg-gray-600/10 flex items-center justify-center">
-                          <img src="/cross-.svg" alt="Not included" className="w-4 h-4" />
+                          <Image src="/cross-.svg" alt="Not included" className="w-4 h-4" />
                         </div>
                         <span className="h-5 w-px bg-gray-500/50 mx-1.5"></span>
                         <div className="w-7 h-7 rounded-md bg-gray-600/10 flex items-center justify-center">
-                          <img src="/dinner.svg" alt="Food" className="w-4 h-4" />
+                          <Image src="/dinner.svg" alt="Food" className="w-4 h-4" />
                         </div>
                         <span className="h-5 w-px bg-gray-500/50 mx-1.5"></span>
                         <div className="w-7 h-7 rounded-md bg-gray-600/10 flex items-center justify-center">
-                          <img src="/bike.svg" alt="Cycling" className="w-4 h-4" />
+                          <Image src="/bike.svg" alt="Cycling" className="w-4 h-4" />
                         </div>
                         <span className="h-5 w-px bg-gray-500/50 mx-1.5"></span>
                         <div className="w-7 h-7 rounded-md bg-gray-600/10 flex items-center justify-center">
-                          <img src="/glass.svg" alt="Drinks" className="w-4 h-4" />
+                          <Image src="/glass.svg" alt="Drinks" className="w-4 h-4" />
                         </div>
                         <span className="h-5 w-px bg-gray-500/50 mx-1.5"></span>
                         <div className="w-7 h-7 rounded-md bg-gray-600/10 flex items-center justify-center">
-                          <img src="/pets.svg" alt="Pets" className="w-4 h-4" />
+                          <Image src="/pets.svg" alt="Pets" className="w-4 h-4" />
                         </div>
                       </div>
                     </div>
@@ -136,11 +136,11 @@ const Dashboard = () => {
                     <div className="absolute inset-x-0 bottom-0 h-1/3 bg-gradient-to-t from-black/70 to-transparent"></div>
                     <div className="absolute bottom-4 left-6 right-6 z-10 flex items-center justify-between">
                       <div className="flex items-center text-white text-sm">
-                        <img src="/calendar-icon.png" alt="Calendar" className="w-4 h-4 mr-2" />
+                        <Image src="/calendar-icon.png" alt="Calendar" className="w-4 h-4 mr-2" />
                         23, Mar - 31, Mar (9D)
                       </div>
                       <div className="flex items-center text-white text-lg font-bold">
-                        <img src="/price-icon.png" alt="Price" className="w-4 h-4 mr-2" />
+                        <Image src="/price-icon.png" alt="Price" className="w-4 h-4 mr-2" />
                         ₹51,120
                       </div>
                     </div>
@@ -149,7 +149,7 @@ const Dashboard = () => {
 
                   {/* Card 2: Bali Tropical Escape */}
                   <div className="relative h-72 w-70 rounded-lg overflow-hidden shadow-lg">
-                    <img
+                    <Image
                       src="/card2.png"
                       alt="Bali Tropical Escape"
                       className="w-full h-full object-cover"
@@ -157,7 +157,7 @@ const Dashboard = () => {
 
                     {/* Save Icon (Bookmark) - Top Right */}
                     <div className="absolute top-4 right-4 p-2 rounded-sm bg-[#29A376]">
-                      <img
+                      <Image
                         src="/save icon.png"
                         alt="Save"
                         className="w-3 h-3"
@@ -175,50 +175,50 @@ const Dashboard = () => {
                         {/* Left pill (green icons) */}
                         <div className="flex items-center bg-white/75 backdrop-blur-sm rounded-full px-3 py-1.5 shadow-md">
                           <div className="w-7 h-7 rounded-md bg-emerald-600/15 flex items-center justify-center">
-                            <img src="/check.png" alt="Included" className="w-4 h-4" />
+                            <Image src="/check.png" alt="Included" className="w-4 h-4" />
                           </div>
                           <span className="h-5 w-px bg-emerald-600/50 mx-1.5"></span>
                           <div className="w-7 h-7 rounded-md bg-emerald-600/10 flex items-center justify-center">
-                            <img src="/food.png" alt="Dining" className="w-4 h-4" />
+                            <Image src="/food.png" alt="Dining" className="w-4 h-4" />
                           </div>
                           <span className="h-5 w-px bg-emerald-600/50 mx-1.5"></span>
                           <div className="w-7 h-7 rounded-md bg-emerald-600/10 flex items-center justify-center">
-                            <img src="/travel.png" alt="Transport" className="w-4 h-4" />
+                            <Image src="/travel.png" alt="Transport" className="w-4 h-4" />
                           </div>
                           <span className="h-5 w-px bg-emerald-600/50 mx-1.5"></span>
                           <div className="w-7 h-7 rounded-md bg-emerald-600/10 flex items-center justify-center">
-                            <img src="/swimming.png" alt="Activities" className="w-4 h-4" />
+                            <Image src="/swimming.png" alt="Activities" className="w-4 h-4" />
                           </div>
                           <span className="h-5 w-px bg-emerald-600/50 mx-1.5"></span>
                           <div className="w-7 h-7 rounded-md bg-emerald-600/10 flex items-center justify-center">
-                            <img src="/camera.png" alt="Photography" className="w-4 h-4" />
+                            <Image src="/camera.png" alt="Photography" className="w-4 h-4" />
                           </div>
                           <span className="h-5 w-px bg-emerald-600/50 mx-1.5"></span>
                           <div className="w-7 h-7 rounded-md bg-emerald-600/10 flex items-center justify-center">
-                            <img src="/person.png" alt="Stay" className="w-4 h-4" />
+                            <Image src="/person.png" alt="Stay" className="w-4 h-4" />
                           </div>
                         </div>
 
                         {/* Right pill (grey icons) */}
                         <div className="flex items-center bg-white/70 backdrop-blur-sm rounded-full px-1 py-1.5 shadow-md">
                           <div className="w2 h-2 rounded-md bg-gray-600/10 flex items-center justify-center">
-                            <img src="/cross-icon.png" alt="Not included" className="w-4 h-4" />
+                            <Image src="/cross-icon.png" alt="Not included" className="w-4 h-4" />
                           </div>
                           <span className="h-5 w-px bg-gray-500/50 mx-1.5"></span>
                           <div className="w-7 h-7 rounded-md bg-gray-600/10 flex items-center justify-center">
-                            <img src="/utensils-icon.png" alt="Food" className="w-4 h-4" />
+                            <Image src="/utensils-icon.png" alt="Food" className="w-4 h-4" />
                           </div>
                           <span className="h-5 w-px bg-gray-500/50 mx-1.5"></span>
                           <div className="w-7 h-7 rounded-md bg-gray-600/10 flex items-center justify-center">
-                            <img src="/bicycle-icon.png" alt="Cycling" className="w-4 h-4" />
+                            <Image src="/bicycle-icon.png" alt="Cycling" className="w-4 h-4" />
                           </div>
                           <span className="h-5 w-px bg-gray-500/50 mx-1.5"></span>
                           <div className="w-7 h-7 rounded-md bg-gray-600/10 flex items-center justify-center">
-                            <img src="/wine-icon.png" alt="Drinks" className="w-4 h-4" />
+                            <Image src="/wine-icon.png" alt="Drinks" className="w-4 h-4" />
                           </div>
                           <span className="h-5 w-px bg-gray-500/50 mx-1.5"></span>
                           <div className="w-7 h-7 rounded-md bg-gray-600/10 flex items-center justify-center">
-                            <img src="/paw-icon.png" alt="Pets" className="w-4 h-4" />
+                            <Image src="/paw-icon.png" alt="Pets" className="w-4 h-4" />
                           </div>
                         </div>
                       </div>
@@ -228,11 +228,11 @@ const Dashboard = () => {
                     <div className="absolute bottom-4 left-4 right-4">
                       <div className="flex justify-between items-center">
                         <div className="flex items-center text-white text-sm">
-                          <img src="/calendar-icon.png" alt="Calendar" className="w-4 h-4 mr-2" />
+                          <Image src="/calendar-icon.png" alt="Calendar" className="w-4 h-4 mr-2" />
                           23, Mar - 31, Mar (9D)
                         </div>
                         <div className="flex items-center text-white text-lg font-bold">
-                          <img src="/price-icon.png" alt="Price" className="w-4 h-4 mr-2" />
+                          <Image src="/price-icon.png" alt="Price" className="w-4 h-4 mr-2" />
                           ₹51,120
                         </div>
                       </div>
@@ -242,7 +242,7 @@ const Dashboard = () => {
                   {/* Card 3: Switzerland Alpine Adventure */}
 
                   <div className="relative h-72 w-70 rounded-lg overflow-hidden shadow-lg">
-                    <img
+                    <Image
                       src="/card3.png"
                       alt="Switzerland Alpine Adventure"
                       className="w-full h-full object-cover"
@@ -250,7 +250,7 @@ const Dashboard = () => {
 
                     {/* Save Icon (Bookmark) - Top Right */}
                     <div className="absolute top-4 right-4 p-2 rounded-sm bg-[#29A376]">
-                      <img
+                      <Image
                         src="/save icon.png"
                         alt="Save"
                         className="w-3 h-3"
@@ -265,41 +265,41 @@ const Dashboard = () => {
                       {/* Feature Icons Row 1 - Left Bar (Green Background) */}
                       <div className="flex gap-2 mb-2">
                         <div className="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center">
-                          <img src="/tick-icon.png" alt="Included" className="w-4 h-4" />
+                          <Image src="/tick-icon.png" alt="Included" className="w-4 h-4" />
                         </div>
                         <div className="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center">
-                          <img src="/bed-icon.png" alt="Accommodation" className="w-4 h-4" />
+                          <Image src="/bed-icon.png" alt="Accommodation" className="w-4 h-4" />
                         </div>
                         <div className="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center">
-                          <img src="/bus-icon.png" alt="Transport" className="w-4 h-4" />
+                          <Image src="/bus-icon.png" alt="Transport" className="w-4 h-4" />
                         </div>
                         <div className="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center">
-                          <img src="/waves-icon.png" alt="Water Activities" className="w-4 h-4" />
+                          <Image src="/waves-icon.png" alt="Water Activities" className="w-4 h-4" />
                         </div>
                         <div className="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center">
-                          <img src="/camera-icon.png" alt="Photography" className="w-4 h-4" />
+                          <Image src="/camera-icon.png" alt="Photography" className="w-4 h-4" />
                         </div>
                         <div className="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center">
-                          <img src="/bed-icon2.png" alt="Sleep" className="w-4 h-4" />
+                          <Image src="/bed-icon2.png" alt="Sleep" className="w-4 h-4" />
                         </div>
                       </div>
 
                       {/* Feature Icons Row 2 - Right Bar (Grey Background) */}
                       <div className="flex gap-2">
                         <div className="w-8 h-8 bg-gray-500 rounded-full flex items-center justify-center">
-                          <img src="/cross-icon.png" alt="Not Included" className="w-4 h-4" />
+                          <Image src="/cross-icon.png" alt="Not Included" className="w-4 h-4" />
                         </div>
                         <div className="w-8 h-8 bg-gray-500 rounded-full flex items-center justify-center">
-                          <img src="/food-icon.png" alt="Food" className="w-4 h-4" />
+                          <Image src="/food-icon.png" alt="Food" className="w-4 h-4" />
                         </div>
                         <div className="w-8 h-8 bg-gray-500 rounded-full flex items-center justify-center">
-                          <img src="/bicycle-icon.png" alt="Cycling" className="w-4 h-4" />
+                          <Image src="/bicycle-icon.png" alt="Cycling" className="w-4 h-4" />
                         </div>
                         <div className="w-8 h-8 bg-gray-500 rounded-full flex items-center justify-center">
-                          <img src="/wine-icon.png" alt="Drinks" className="w-4 h-4" />
+                          <Image src="/wine-icon.png" alt="Drinks" className="w-4 h-4" />
                         </div>
                         <div className="w-8 h-8 bg-gray-500 rounded-full flex items-center justify-center">
-                          <img src="/paw-icon.png" alt="Pets" className="w-4 h-4" />
+                          <Image src="/paw-icon.png" alt="Pets" className="w-4 h-4" />
                         </div>
                       </div>
                     </div>
@@ -308,11 +308,11 @@ const Dashboard = () => {
                     <div className="absolute bottom-4 left-4 right-4">
                       <div className="flex justify-between items-center">
                         <div className="flex items-center text-white text-sm">
-                          <img src="/calendar-icon.png" alt="Calendar" className="w-4 h-4 mr-2" />
+                          <Image src="/calendar-icon.png" alt="Calendar" className="w-4 h-4 mr-2" />
                           23, Mar - 31, Mar (9D)
                         </div>
                         <div className="flex items-center text-white text-lg font-bold">
-                          <img src="/price-icon.png" alt="Price" className="w-4 h-4 mr-2" />
+                          <Image src="/price-icon.png" alt="Price" className="w-4 h-4 mr-2" />
                           ₹51,120
                         </div>
                       </div>

@@ -24,7 +24,7 @@ const adminSchema = z.object({
     .trim()
     .regex(/^[A-Za-z0-9._-]{3,}$/, "Username must be at least 3 characters (letters, numbers, ., _, -)"),
   password: z.string()
-    .regex(/^(?=.*[A-Za-z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}$/, "Password must be 8+ chars with letters, digits, and a special character"),
+    .regex(/^(?=.[A-Za-z])(?=.\d)(?=.*[^A-Za-z0-9]).{8,}$/, "Password must be 8+ chars with letters, digits, and a special character"),
 });
 
 // GET endpoint to list admins
