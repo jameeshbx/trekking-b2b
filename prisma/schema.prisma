@@ -1,6 +1,6 @@
 generator client {
   provider = "prisma-client-js"
-} 
+}
 
 datasource db {
   provider     = "postgresql"
@@ -51,8 +51,10 @@ model User {
 
   @@index([email])
   @@index([role])
+  @@index([agencyId])
+  @@index([dmcId])
+  @@index([profileImgId])
 }
-
 
 model Agency {
   id            String         @id @default(uuid())
@@ -123,6 +125,10 @@ model Subscription {
   plan         Plan        @relation(fields: [planId], references: [id], onDelete: Cascade)
 
   @@unique([agencyId, featureId])
+  @@index([agencyId])
+  @@index([planId])
+  @@index([featureId])
+  @@index([agencyFormId])
 }
 
 model AgencyForm {
@@ -159,6 +165,8 @@ model AgencyForm {
 
   @@index([name])
   @@index([email])
+  @@index([logoId])
+  @@index([businessLicenseId])
 }
 
 model DMCForm {
@@ -200,8 +208,8 @@ model DMCForm {
   @@index([createdBy])
   @@index([agencyId])
   @@index([status])
+  @@index([registrationCertificateId])
 }
-
 
 model Manager {
   id        String    @id @default(uuid())
@@ -216,8 +224,9 @@ model Manager {
   updatedAt DateTime  @default(now()) @updatedAt
   profile   File?     @relation("ManagerProfile", fields: [profileId], references: [id])
   comments  Comment[] @relation("ManagerComments")
-}
 
+  @@index([profileId])
+}
 
 model UserForm {
   id             String     @id @default(uuid())
@@ -234,6 +243,7 @@ model UserForm {
   createdBy      String
   profileImage   File?      @relation("UserProfileImage", fields: [profileImageId], references: [id])
 
+  @@index([profileImageId])
   @@map("user_form")
 }
 
@@ -259,45 +269,46 @@ model PaymentMethod {
   updatedAt   DateTime          @updatedAt
   dmc         DMCForm?          @relation(fields: [dmcId], references: [id])
   qrCode      File?             @relation("PaymentMethodQRCode", fields: [qrCodeId], references: [id], onDelete: Cascade)
-  bankData Json?
-  
+  bankData    Json?
+
   @@index([dmcId])
   @@index([type])
+  @@index([qrCodeId])
 }
 
 model enquiries {
-  id                  String    @id @default(uuid())
-  name                String
-  phone               String
-  email               String
-  locations           String?
-  tourType            String?
-  estimatedDates      String?
-  currency            String?
-  budget              Int?
-  notes               String?
-  assignedStaff       String?
-  pointOfContact      String?
-  pickupLocation      String?
-  dropLocation        String?
-  numberOfTravellers  String?
-  numberOfKids        String?
-  travelingWithPets   String?
-  flightsRequired     String?   @default("no")
-  leadSource          String?   @default("Direct")
-  tags                String?   @default("sightseeing")
-  mustSeeSpots        String?
-  pacePreference      String?   @default("relaxed")
-  status              String    @default("enquiry")
-  enquiryDate         String    @default("now()") 
-  createdAt           DateTime  @default(now())
-  updatedAt           DateTime  @updatedAt
+  id                 String   @id @default(uuid())
+  name               String
+  phone              String
+  email              String
+  locations          String?
+  tourType           String?
+  estimatedDates     String?
+  currency           String?
+  budget             Int?
+  notes              String?
+  assignedStaff      String?
+  pointOfContact     String?
+  pickupLocation     String?
+  dropLocation       String?
+  numberOfTravellers String?
+  numberOfKids       String?
+  travelingWithPets  String?
+  flightsRequired    String?  @default("no")
+  leadSource         String?  @default("Direct")
+  tags               String?  @default("sightseeing")
+  mustSeeSpots       String?
+  pacePreference     String?  @default("relaxed")
+  status             String   @default("enquiry")
+  enquiryDate        String   @default("now()")
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
 
-  customerId          String?
-  customer            customers? @relation(fields: [customerId], references: [id])
+  customerId String?
+  customer   customers? @relation(fields: [customerId], references: [id])
 
-  itineraries         itineraries[]
-  sharedCustomerPdfs  SharedCustomerPdf[] // Added relation
+  itineraries        itineraries[]
+  sharedCustomerPdfs SharedCustomerPdf[] // Added relation
 
   @@index([status])
   @@index([enquiryDate])
@@ -306,17 +317,17 @@ model enquiries {
 }
 
 model itineraries {
-  id                   String   @id @default(uuid())
-  enquiryId            String
-  location             String?
-  numberOfDays         String?
-  travelStyle          String?
-  budgetEstimation     Json?
-  accommodation        Json?
-  dailyItinerary       Json?
-  enquiryDetails       Json?
-  activeStatus         Boolean?  @default(true) 
-  pdfUrl               String?  @map("pdf_url")
+  id               String   @id @default(uuid())
+  enquiryId        String
+  location         String?
+  numberOfDays     String?
+  travelStyle      String?
+  budgetEstimation Json?
+  accommodation    Json?
+  dailyItinerary   Json?
+  enquiryDetails   Json?
+  activeStatus     Boolean? @default(true)
+  pdfUrl           String?  @map("pdf_url")
 
   destinations         String?
   startDate            String?
@@ -341,24 +352,24 @@ model itineraries {
   moreDetails          String?
   mustSeeSpots         String?
   pacePreference       String?
-  status               String   @default("draft")
-  
+  status               String  @default("draft")
+
   // Cancellation Policy Fields - These should be added to your database
-  cancellationPolicyType      CancellationPolicyType? @default(DEFAULT)
-  customCancellationDeadline  Int?                    // Days before travel
-  customCancellationTerms     String?                 // Custom terms text
-  agencyCancellationPolicyId  String?                 // Reference to agency policy
-  
-  createdAt            DateTime @default(now())
-  updatedAt            DateTime @updatedAt
+  cancellationPolicyType     CancellationPolicyType? @default(DEFAULT)
+  customCancellationDeadline Int? // Days before travel
+  customCancellationTerms    String? // Custom terms text
+  agencyCancellationPolicyId String? // Reference to agency policy
 
-  customerId           String?
-  customer             customers? @relation(fields: [customerId], references: [id])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  enquiry              enquiries @relation(fields: [enquiryId], references: [id])
-  feedbacks            customer_feedbacks[]
-  sentItineraries      sent_itineraries[]
-  
+  customerId String?
+  customer   customers? @relation(fields: [customerId], references: [id])
+
+  enquiry         enquiries            @relation(fields: [enquiryId], references: [id])
+  feedbacks       customer_feedbacks[]
+  sentItineraries sent_itineraries[]
+
   agencyCancellationPolicy AgencyCancellationPolicy? @relation(fields: [agencyCancellationPolicyId], references: [id])
   sharedCustomerPdfs       SharedCustomerPdf[]
 
@@ -370,46 +381,46 @@ model itineraries {
 }
 
 model AgencyCancellationPolicy {
-  id           String   @id @default(uuid())
-  name         String
-  deadlineHours Int     // Hours before travel start
-  terms        String   // Policy terms text
-  isActive     Boolean  @default(true)
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  id            String   @id @default(uuid())
+  name          String
+  deadlineHours Int // Hours before travel start
+  terms         String // Policy terms text
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 
   // Relations
-  itineraries  itineraries[]
+  itineraries itineraries[]
 }
 
 model SharedCustomerPdf {
-  id              String   @id @default(uuid())
-  itineraryId     String
-  customerId      String
-  enquiryId       String?
-  pdfUrl          String   // URL to the generated PDF
-  pdfFileName     String   // Original filename
-  customerName    String
-  customerEmail   String
-  customerPhone   String?
+  id               String          @id @default(uuid())
+  itineraryId      String
+  customerId       String
+  enquiryId        String?
+  pdfUrl           String // URL to the generated PDF
+  pdfFileName      String // Original filename
+  customerName     String
+  customerEmail    String
+  customerPhone    String?
   customerWhatsapp String?
-  emailSent       Boolean  @default(false)
-  emailSentAt     DateTime?
-  whatsappSent    Boolean  @default(false)
-  whatsappSentAt  DateTime?
-  downloadCount   Int      @default(0)
-  lastDownloadAt  DateTime?
-  status          SharedPdfStatus @default(GENERATED)
-  notes           String?
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-  createdBy       String
+  emailSent        Boolean         @default(false)
+  emailSentAt      DateTime?
+  whatsappSent     Boolean         @default(false)
+  whatsappSentAt   DateTime?
+  downloadCount    Int             @default(0)
+  lastDownloadAt   DateTime?
+  status           SharedPdfStatus @default(GENERATED)
+  notes            String?
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+  createdBy        String
 
   // Relations
-  itinerary       itineraries @relation(fields: [itineraryId], references: [id], onDelete: Cascade)
-  customer        customers   @relation(fields: [customerId], references: [id])
-  enquiry         enquiries?  @relation(fields: [enquiryId], references: [id])
-  emailLogs       EmailLog[]
+  itineraries itineraries @relation(fields: [itineraryId], references: [id], onDelete: Cascade)
+  customer    customers   @relation(fields: [customerId], references: [id])
+  enquiry     enquiries?  @relation(fields: [enquiryId], references: [id])
+  emailLogs   EmailLog[]
 
   @@index([itineraryId])
   @@index([customerId])
@@ -420,24 +431,24 @@ model SharedCustomerPdf {
 }
 
 model EmailLog {
-  id                  String   @id @default(uuid())
+  id                  String      @id @default(uuid())
   sharedCustomerPdfId String
   recipientEmail      String
   recipientName       String?
   subject             String
-  emailType           EmailType @default(ITINERARY_SHARE)
+  emailType           EmailType   @default(ITINERARY_SHARE)
   status              EmailStatus @default(PENDING)
   sentAt              DateTime?
   deliveredAt         DateTime?
   openedAt            DateTime?
   errorMessage        String?
-  retryCount          Int      @default(0)
-  maxRetries          Int      @default(3)
-  createdAt           DateTime @default(now())
-  updatedAt           DateTime @updatedAt
+  retryCount          Int         @default(0)
+  maxRetries          Int         @default(3)
+  createdAt           DateTime    @default(now())
+  updatedAt           DateTime    @updatedAt
 
   // Relations
-  sharedCustomerPdf   SharedCustomerPdf @relation(fields: [sharedCustomerPdfId], references: [id], onDelete: Cascade)
+  sharedCustomerPdf SharedCustomerPdf @relation(fields: [sharedCustomerPdfId], references: [id], onDelete: Cascade)
 
   @@index([sharedCustomerPdfId])
   @@index([recipientEmail])
@@ -455,29 +466,31 @@ model customers {
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 
-  enquiries           enquiries[]
-  itineraries         itineraries[]
-  feedbacks           customer_feedbacks[]
-  sentItineraries     sent_itineraries[]
-  sharedCustomerPdfs  SharedCustomerPdf[] // Added relation
+  enquiries          enquiries[]
+  itineraries        itineraries[]
+  feedbacks          customer_feedbacks[]
+  sentItineraries    sent_itineraries[]
+  sharedCustomerPdfs SharedCustomerPdf[] // Added relation
 }
 
 model customer_feedbacks {
-  id            String   @id @default(cuid())
-  customerId    String   
-  itineraryId   String?  @map("itinerary_id")
-  type          String
-  title         String
-  description   String?
-  status        String   @default("pending")
-  documentUrl   String?  @map("document_url")
-  documentName  String?  @map("document_name")
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  id           String   @id @default(cuid())
+  customerId   String
+  itineraryId  String?  @map("itinerary_id")
+  type         String
+  title        String
+  description  String?
+  status       String   @default("pending")
+  documentUrl  String?  @map("document_url")
+  documentName String?  @map("document_name")
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 
-  customer      customers?   @relation(fields: [customerId], references: [id], onDelete: Cascade)
-  itinerary     itineraries? @relation(fields: [itineraryId], references: [id], onDelete: SetNull)
+  customer  customers?   @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  itinerary itineraries? @relation(fields: [itineraryId], references: [id], onDelete: SetNull)
 
+  @@index([customerId])
+  @@index([itineraryId])
   @@map("customer_feedbacks")
 }
 
@@ -499,6 +512,9 @@ model sent_itineraries {
   whatsappSent   Boolean      @default(false)
   customer       customers    @relation(fields: [customerId], references: [id])
   itinerary      itineraries? @relation(fields: [itineraryId], references: [id])
+
+  @@index([customerId])
+  @@index([itineraryId])
 }
 
 model FlightEnquiry {
@@ -570,6 +586,8 @@ model Comment {
   manager   Manager  @relation("ManagerComments", fields: [managerId], references: [id], onDelete: Cascade)
   author    User     @relation("CommentAuthor", fields: [authorId], references: [id], onDelete: Cascade)
 
+  @@index([managerId])
+  @@index([authorId])
   @@map("comments")
 }
 
@@ -747,6 +765,7 @@ enum TravelTag {
   FULL_PACKAGE
   SIGHTSEEING
 }
+
 enum CancellationPolicyType {
   DEFAULT
   CUSTOM
