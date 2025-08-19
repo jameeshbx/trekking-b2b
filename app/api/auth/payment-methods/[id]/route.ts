@@ -60,11 +60,13 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
           ...updateData,
           name: body.accountHolderName,
           identifier: body.accountNumber,
-          bankName: body.bankName,
-          branchName: body.branchName,
-          ifscCode: body.ifscCode,
-          bankCountry: body.bankCountry,
-          currency: body.currency,
+          bank: {
+            bankName: body.bankName,
+            branchName: body.branchName,
+            ifscCode: body.ifscCode,
+            bankCountry: body.bankCountry,
+            currency: body.currency,
+          },
           notes: body.notes,
         }
         break
