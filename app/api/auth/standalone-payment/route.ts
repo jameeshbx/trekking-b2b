@@ -4,15 +4,15 @@ import { PrismaClient, PaymentMethodType } from "@prisma/client"
 const prisma = new PrismaClient()
 
 type BankAccount = {
-  accountHolderName: string
-  bankName: string
-  branchName: string
-  accountNumber: string
-  ifscCode: string
-  bankCountry: string
-  currency: string
-  notes?: string
-}
+  accountHolderName: string;
+  bankName: string;
+  branchName: string;
+  accountNumber: string;
+  ifscCode: string;
+  bankCountry: string;
+  currency: string;
+  notes?: string;
+};
 
 const fileToDataUrl = async (file: File): Promise<string> => {
   const buf = Buffer.from(await file.arrayBuffer())
@@ -38,6 +38,7 @@ export async function POST(request: NextRequest) {
       upiProvider = String(body.upiProvider || "")
       upiId = String(body.upiId || "")
       paymentLink = String(body.paymentLink || "")
+      // QR upload not supported in JSON
     } else {
       const formData = await request.formData()
       dmcId = String(formData.get("dmcId") || "").trim()
@@ -57,100 +58,87 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "dmcId is required" }, { status: 400 })
     }
 
-    // Handle BANK_ACCOUNT payment method
+    // Save all banks as a single JSON array in the 'bank' field
     if (banks && banks.length > 0) {
-      const bankData = banks[0] // Using first bank account
+      // Upsert (update if exists, else create) BANK_ACCOUNT PaymentMethod for this dmcId
       const existing = await prisma.paymentMethod.findFirst({
         where: { dmcId, type: PaymentMethodType.BANK_ACCOUNT }
       })
-
-      const bankUpdateData = {
-        type: PaymentMethodType.BANK_ACCOUNT,
-        name: bankData.accountHolderName,
-        identifier: bankData.accountNumber, // Using identifier field for account number
-        bankName: bankData.bankName,
-        branchName: bankData.branchName,
-        ifscCode: bankData.ifscCode,
-        bankCountry: bankData.bankCountry,
-        currency: bankData.currency,
-        notes: bankData.notes,
-        isActive: true
-      }
-
       if (existing) {
         await prisma.paymentMethod.update({
           where: { id: existing.id },
-          data: bankUpdateData
+          data: { bank: banks }
         })
       } else {
         await prisma.paymentMethod.create({
           data: {
+            type: PaymentMethodType.BANK_ACCOUNT,
             dmcId,
-            ...bankUpdateData
+            bank: banks
           }
         })
       }
     }
 
-    // Handle UPI payment method
+    // UPI
     if (upiId) {
       const existing = await prisma.paymentMethod.findFirst({
         where: { dmcId, type: PaymentMethodType.UPI }
       })
-
-      const upiUpdateData = {
-        type: PaymentMethodType.UPI,
-        name: upiProvider || "UPI",
-        identifier: upiId,
-        upiProvider: upiProvider || null,
-        isActive: true
-      }
-
       if (existing) {
         await prisma.paymentMethod.update({
           where: { id: existing.id },
-          data: upiUpdateData
+          data: {
+            name: upiProvider || "UPI",
+            identifier: upiId,
+            upiProvider: upiProvider || null,
+            isActive: true
+          }
         })
       } else {
         await prisma.paymentMethod.create({
           data: {
+            type: PaymentMethodType.UPI,
             dmcId,
-            ...upiUpdateData
+            name: upiProvider || "UPI",
+            identifier: upiId,
+            upiProvider: upiProvider || null,
+            isActive: true
           }
         })
       }
     }
 
-    // Handle PAYMENT_GATEWAY payment method
+    // Payment Gateway
     if (paymentLink) {
       const existing = await prisma.paymentMethod.findFirst({
         where: { dmcId, type: PaymentMethodType.PAYMENT_GATEWAY }
       })
-
-      const gatewayUpdateData = {
-        type: PaymentMethodType.PAYMENT_GATEWAY,
-        name: "Payment Gateway",
-        identifier: paymentLink,
-        paymentLink: paymentLink,
-        isActive: true
-      }
-
       if (existing) {
         await prisma.paymentMethod.update({
           where: { id: existing.id },
-          data: gatewayUpdateData
+          data: {
+            name: "Payment Gateway",
+            paymentLink,
+            identifier: paymentLink,
+            isActive: true
+          }
         })
       } else {
         await prisma.paymentMethod.create({
           data: {
+            type: PaymentMethodType.PAYMENT_GATEWAY,
             dmcId,
-            ...gatewayUpdateData
+            name: "Payment Gateway",
+            paymentLink,
+            identifier: paymentLink,
+            isActive: true
           }
         })
       }
     }
 
-    // Handle QR_CODE payment method
+    // QR Code
     if (qrFile) {
       const dataUrl = await fileToDataUrl(qrFile)
       const fileRow = await prisma.file.create({
@@ -161,29 +149,28 @@ export async function POST(request: NextRequest) {
           type: qrFile.type || "application/octet-stream",
         },
       })
-
       const existing = await prisma.paymentMethod.findFirst({
         where: { dmcId, type: PaymentMethodType.QR_CODE }
       })
-
-      const qrUpdateData = {
-        type: PaymentMethodType.QR_CODE,
-        name: "QR Code",
-        identifier: fileRow.id,
-        qrCodeId: fileRow.id,
-        isActive: true
-      }
-
       if (existing) {
         await prisma.paymentMethod.update({
           where: { id: existing.id },
-          data: qrUpdateData
+          data: {
+            name: "QR Code",
+            qrCodeId: fileRow.id,
+            identifier: fileRow.id,
+            isActive: true
+          }
         })
       } else {
         await prisma.paymentMethod.create({
           data: {
+            type: PaymentMethodType.QR_CODE,
             dmcId,
-            ...qrUpdateData
+            name: "QR Code",
+            qrCodeId: fileRow.id,
+            identifier: fileRow.id,
+            isActive: true
           }
         })
       }
@@ -212,10 +199,10 @@ export async function GET(request: NextRequest) {
 
     const methods = dmcId
       ? await prisma.paymentMethod.findMany({
-          where: { dmcId },
-          include: { qrCode: true },
-          orderBy: { createdAt: "desc" },
-        })
+        where: { dmcId },
+        include: { qrCode: true },
+        orderBy: { createdAt: "desc" },
+      })
       : []
 
     return NextResponse.json({ success: true, data: { methods } })

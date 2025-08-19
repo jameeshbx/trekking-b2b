@@ -239,28 +239,34 @@ model UserForm {
 
 model PaymentMethod {
   id          String            @id @default(uuid())
-  dmcId       String?
-  type        PaymentMethodType
-  name        String?
-  identifier  String?
-  bankName    String?
-  branchName  String?
-  ifscCode    String?
-  bankCountry String?
-  currency    String?
-  cardHolder  String?
-  expiryDate  String?
-  upiProvider String?
-  qrCodeId    String?           @unique
-  paymentLink String?
-  notes       String?
-  isActive    Boolean           @default(true)
-  createdAt   DateTime          @default(now())
-  updatedAt   DateTime          @updatedAt
+  dmcId       String?           // Made optional
   dmc         DMCForm?          @relation(fields: [dmcId], references: [id])
-  qrCode      File?             @relation("PaymentMethodQRCode", fields: [qrCodeId], references: [id], onDelete: Cascade)
-  bankData Json?
-  
+  type        PaymentMethodType
+
+  // Common fields
+  name        String?
+  identifier  String? // Account number, UPI ID, etc.
+ 
+
+    // UPI-specific fields
+  upiProvider String?
+
+  // QR Code
+  qrCodeId    String?   @unique
+  qrCode      File?     @relation("PaymentMethodQRCode", fields: [qrCodeId], references: [id], onDelete: Cascade)
+
+  // Payment Gateway
+  paymentLink String?
+
+  // Metadata
+  notes       String?
+  isActive    Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  // NEW FIELD for storing multiple bank details as JSON
+  bank        Json?     // <-- This is all you need for banks
+
   @@index([dmcId])
   @@index([type])
 }
