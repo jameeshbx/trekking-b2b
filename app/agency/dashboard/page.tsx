@@ -1,525 +1,731 @@
-import React from 'react';
-import { ChevronDown, MoreHorizontal, Eye } from 'lucide-react';
+import React from "react"
+import {
+  CheckCircle,
+  Loader,
+  XCircle,
+  Network,
+  Search,
+  Bell,
+  ChevronDown,
+} from "lucide-react"
+import Image from "next/image"
 
 const Dashboard = () => {
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
-      <div className="max-w-7xl mx-auto space-y-6">
-        
-        {/* Header Section with Signature Escapes */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-semibold text-gray-900">Signature Escapes</h1>
-            <div className="flex items-center gap-2 mt-2">
-              <button className="flex items-center gap-1 px-3 py-1 bg-white border border-gray-200 rounded-md text-sm">
-                Filter by destinations <ChevronDown className="w-4 h-4" />
-              </button>
-            </div>
+    <div className="h-screen bg-gray-100 overflow-hidden">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between p-4 sm:p-6 border-b border-gray-200 gap-4 bg-white">
+        <div className="flex items-center gap-4">
+          <div className="text-xs sm:text-sm text-gray-600">
+            <span>Pages</span> <span className="text-gray-400">/</span>
+            <span className="text-green-800 font-semibold">Dashboard</span>
           </div>
-          <button className="text-blue-600 text-sm hover:underline">See more</button>
         </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          
-          {/* Left Column - Travel Cards and Revenue Chart */}
-          <div className="lg:col-span-2 space-y-6">
-            
-            {/* Travel Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              
-              {/* Kapuai Serenity Escape Card */}
-              <div className="relative bg-cover bg-center h-48 rounded-xl overflow-hidden group cursor-pointer" 
-                   style={{backgroundImage: "linear-gradient(rgba(0,0,0,0.3), rgba(0,0,0,0.5)), url('data:image/svg+xml,<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 300 200\"><rect fill=\"%23059669\" width=\"300\" height=\"200\"/><path fill=\"%23047857\" d=\"M0,100 Q75,50 150,100 T300,100 V200 H0 Z\"/><rect fill=\"%23ffffff\" x=\"120\" y=\"20\" width=\"4\" height=\"60\" opacity=\"0.7\"/><rect fill=\"%23ffffff\" x=\"140\" y=\"30\" width=\"3\" height=\"50\" opacity=\"0.5\"/></svg>')"}}>
-                <div className="absolute bottom-4 left-4 right-4">
-                  <h3 className="text-white font-semibold text-lg mb-1">Kapuai Serenity Escape</h3>
-                  <p className="text-white/80 text-sm mb-2">By Arctic Truth THC</p>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-1">
-                      <div className="flex">
-                        {[...Array(5)].map((_, i) => (
-                          <div key={i} className="w-2 h-2 bg-yellow-400 rounded-full mr-0.5"></div>
-                        ))}
-                      </div>
-                      <span className="text-white/80 text-xs ml-1">4.8</span>
-                    </div>
-                    <div className="text-right">
-                      <div className="text-white/80 text-xs">25 May - 31 May (6D)</div>
-                      <div className="text-white font-semibold">₹51,330</div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Bali Tropical Escape Card */}
-              <div className="relative bg-cover bg-center h-48 rounded-xl overflow-hidden group cursor-pointer"
-                   style={{backgroundImage: "linear-gradient(rgba(0,0,0,0.3), rgba(0,0,0,0.5)), url('data:image/svg+xml,<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 300 200\"><rect fill=\"%23312e81\" width=\"300\" height=\"200\"/><rect fill=\"%23fbbf24\" x=\"250\" y=\"30\" width=\"20\" height=\"20\" rx=\"10\"/><path fill=\"%231f2937\" d=\"M50,150 L80,120 L110,130 L140,110 L170,120 L200,100 L230,110 L260,90 L300,100 V200 H50 Z\"/><rect fill=\"%23374151\" x=\"120\" y=\"80\" width=\"60\" height=\"80\" rx=\"5\"/></svg>')"}}>
-                <div className="absolute bottom-4 left-4 right-4">
-                  <h3 className="text-white font-semibold text-lg mb-1">Bali Tropical Escape</h3>
-                  <p className="text-white/80 text-sm mb-2">By Island Vibes Travel</p>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-1">
-                      <div className="flex">
-                        {[...Array(4)].map((_, i) => (
-                          <div key={i} className="w-2 h-2 bg-yellow-400 rounded-full mr-0.5"></div>
-                        ))}
-                        <div className="w-2 h-2 bg-gray-300 rounded-full"></div>
-                      </div>
-                      <span className="text-white/80 text-xs ml-1">4.2</span>
-                    </div>
-                    <div className="text-right">
-                      <div className="text-white/80 text-xs">05 Oct - 15 Oct (10D)</div>
-                      <div className="text-white font-semibold">₹1,52,800</div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Switzerland Alpine Adventure Card */}
-              <div className="relative bg-cover bg-center h-48 rounded-xl overflow-hidden group cursor-pointer"
-                   style={{backgroundImage: "linear-gradient(rgba(0,0,0,0.3), rgba(0,0,0,0.5)), url('data:image/svg+xml,<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 300 200\"><rect fill=\"%2387ceeb\" width=\"300\" height=\"200\"/><path fill=\"%23ffffff\" d=\"M0,120 L60,80 L120,100 L180,60 L240,90 L300,70 V0 H0 Z\"/><path fill=\"%23d1d5db\" d=\"M0,120 L60,80 L120,100 L180,60 L240,90 L300,70 V120 L240,130 L180,110 L120,140 L60,120 L0,140 Z\"/></svg>')"}}>
-                <div className="absolute bottom-4 left-4 right-4">
-                  <h3 className="text-white font-semibold text-lg mb-1">Switzerland Alpine Adventure</h3>
-                  <p className="text-white/80 text-sm mb-2">By Ecoplina Holidays</p>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-1">
-                      <div className="flex">
-                        {[...Array(5)].map((_, i) => (
-                          <div key={i} className="w-2 h-2 bg-yellow-400 rounded-full mr-0.5"></div>
-                        ))}
-                      </div>
-                      <span className="text-white/80 text-xs ml-1">4.9</span>
-                    </div>
-                    <div className="text-right">
-                      <div className="text-white/80 text-xs">14 Nov - 22 Nov (8D)</div>
-                      <div className="text-white font-semibold">₹3,47,750</div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Pagination Dots */}
-            <div className="flex justify-center gap-2">
-              {[0, 1, 2, 3, 4, 5].map((_, index) => (
-                <div key={index} className={`w-2 h-2 rounded-full ${index === 0 ? 'bg-gray-800' : 'bg-gray-300'}`}></div>
-              ))}
-            </div>
-
-            {/* Revenue Chart */}
-            <div className="bg-white rounded-xl p-6">
-              <div className="flex items-center justify-between mb-6">
-                <h3 className="text-lg font-semibold text-gray-900">Total Revenue</h3>
-                <button className="p-2 hover:bg-gray-100 rounded-lg">
-                  <MoreHorizontal className="w-5 h-5 text-gray-400" />
-                </button>
-              </div>
-              <div className="mb-4">
-                <div className="text-3xl font-bold text-gray-900">$190,090.36</div>
-              </div>
-              
-              {/* Legend */}
-              <div className="flex gap-6 mb-6">
-                <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 bg-teal-400 rounded-full"></div>
-                  <span className="text-sm text-gray-600">Revenue</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 bg-green-400 rounded-full"></div>
-                  <span className="text-sm text-gray-600">Expenses</span>
-                </div>
-              </div>
-
-              {/* Chart Area */}
-              <div className="relative h-64">
-                <svg viewBox="0 0 500 200" className="w-full h-full">
-                  {/* Grid lines */}
-                  {[0, 1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
-                    <line key={i} x1="0" y1={i * 25} x2="500" y2={i * 25} stroke="#f3f4f6" strokeWidth="1"/>
-                  ))}
-                  {[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((i) => (
-                    <line key={i} x1={i * 40} y1="0" x2={i * 40} y2="200" stroke="#f3f4f6" strokeWidth="1"/>
-                  ))}
-                  
-                  {/* Revenue Area (Teal) */}
-                  <path
-                    d="M0,180 L40,170 L80,165 L120,150 L160,140 L200,130 L240,120 L280,100 L320,90 L360,80 L400,70 L440,60 L480,50 L500,45 L500,200 L0,200 Z"
-                    fill="#14b8a6"
-                    opacity="0.6"
-                  />
-                  
-                  {/* Expenses Area (Green) */}
-                  <path
-                    d="M0,190 L40,185 L80,180 L120,175 L160,170 L200,165 L240,160 L280,155 L320,150 L360,145 L400,140 L440,135 L480,130 L500,125 L500,200 L0,200 Z"
-                    fill="#10b981"
-                    opacity="0.6"
-                  />
-                  
-                  {/* Revenue Line */}
-                  <path
-                    d="M0,180 L40,170 L80,165 L120,150 L160,140 L200,130 L240,120 L280,100 L320,90 L360,80 L400,70 L440,60 L480,50 L500,45"
-                    stroke="#14b8a6"
-                    strokeWidth="2"
-                    fill="none"
-                  />
-                  
-                  {/* Expenses Line */}
-                  <path
-                    d="M0,190 L40,185 L80,180 L120,175 L160,170 L200,165 L240,160 L280,155 L320,150 L360,145 L400,140 L440,135 L480,130 L500,125"
-                    stroke="#10b981"
-                    strokeWidth="2"
-                    fill="none"
-                  />
-                </svg>
-                
-                {/* Y-axis labels */}
-                <div className="absolute left-0 top-0 h-full flex flex-col justify-between text-xs text-gray-500 -ml-8">
-                  <span>12k</span>
-                  <span>10k</span>
-                  <span>8k</span>
-                  <span>6k</span>
-                  <span>4k</span>
-                  <span>2k</span>
-                  <span>0</span>
-                </div>
-                
-                {/* X-axis labels */}
-                <div className="absolute bottom-0 left-0 w-full flex justify-between text-xs text-gray-500 -mb-6">
-                  <span>Jan</span>
-                  <span>Feb</span>
-                  <span>Mar</span>
-                  <span>Apr</span>
-                  <span>May</span>
-                  <span>Jun</span>
-                  <span>Jul</span>
-                  <span>Aug</span>
-                  <span>Sep</span>
-                  <span>Oct</span>
-                  <span>Nov</span>
-                  <span>Dec</span>
-                </div>
-              </div>
-            </div>
+        <div className="flex items-center gap-4">
+          <div className="relative flex-1 sm:flex-initial">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+            <input
+              type="text"
+              placeholder="Type here..."
+              className="pl-10 pr-4 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-green-700 focus:border-transparent w-full sm:w-auto"
+            />
           </div>
+          <Bell className="w-5 h-5 text-gray-600" />
+        </div>
+      </div>
 
-          {/* Right Column - Stats and Booking Status */}
-          <div className="space-y-6 ">
-            
-            {/* Stats Cards */}
-            <div className="space-y-4 ">
-              
-              {/* Total Itineraries */}
-              <div className=" rounded-xl p-4 bg-gray-200">
-                <div className="flex items-center justify-between">
-                  <div className=''>
-                    <p className="text-sm text-gray-600 mb-1 ">Total itineraries</p>
-                    <p className="text-2xl font-bold text-gray-900">547</p>
-                  </div>
-                  <div className="text-right">
-                    <span className="inline-block px-2 py-1 bg-gray-100 text-gray-600 rounded-full text-xs">+1.3%</span>
+      <div className="h-[calc(100vh-73px)] bg-gray-100 px-4 py-4 overflow-y-auto overflow-x-hidden">
+        {/* Container with max width to prevent horizontal scrolling */}
+        <div className="max-w-[calc(100vw-32px)] mx-auto">
+          {/* First Row */}
+          <div className="flex flex-col lg:flex-row gap-4 mb-4">
+            {/* Left Section - Signature Escapes */}
+            <div className="flex-1">
+              <div className="bg-white rounded-lg shadow-sm p-6">
+                {/* Header */}
+                <div className="mb-6">
+                  <h2 className="text-xl font-bold text-gray-900 mb-4">Signature Escapes</h2>
+
+                  <div className="flex justify-between items-center">
+                    <div className="relative">
+                      <select className="appearance-none bg-white border-2 border-blue-500 rounded-lg px-4 py-2 pr-8 text-sm font-medium text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <option>Filter by destination</option>
+                      </select>
+                      <ChevronDown className="absolute right-2 top-1/2 transform -translate-y-1/2 w-4 h-4 text-blue-500" />
+                    </div>
+
+                    <button className="bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-medium px-4 py-2 rounded-full transition-colors duration-200">
+                      See more
+                    </button>
                   </div>
                 </div>
+
+
+                {/* Travel Cards */}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-6">
+
+                  {/* Card 1: Kaptai Serenity Escape */}
+                  <div className="relative h-[340px] rounded-2xl overflow-hidden shadow-lg">
+                    <Image src="/card1.png" alt="Kaptai Serenity Escape" className="absolute inset-0 w-full h-full object-cover" />
+
+                    {/* save icon */}
+                    <div className="absolute top-4 right-4 z-10 p-2 rounded-md bg-[#29A376]">
+                      <Image src="/save icon.png" alt="Save" className="w-3 h-3" />
+                    </div>
+
+                    {/* title + subtitle (left/middle) */}
+                    <div className="absolute left-6 top-[46%] -translate-y-1/2 z-10">
+                      <h3 className="text-white text-2xl font-semibold mb-1">Kaptai Serenity Escape</h3>
+                      <p className="text-white text-base/6 opacity-90">By Maple Trails DMC</p>
+                    </div>
+
+                    {/* features row (full width, left & right pills) */}
+                    <div className="absolute left-6 right-6 top-[62%] z-10 flex items-center justify-between">
+                      {/* left pill (green) */}
+                      <div className="flex items-center bg-white/80 backdrop-blur-md rounded-full px-3 py-1.5 shadow-md">
+                        <div className="w-7 h-7 rounded-md bg-emerald-600/15 flex items-center justify-center">
+                          <Image src="/tick.svg" alt="Included" className="w-4 h-4" />
+                        </div>
+                        <span className="h-5 w-px bg-emerald-600/50 mx-1.5"></span>
+                        <div className="w-7 h-7 rounded-md bg-emerald-600/10 flex items-center justify-center">
+                          <Image src="/snack.svg" alt="Dining" className="w-4 h-4" />
+                        </div>
+                        <span className="h-5 w-px bg-emerald-600/50 mx-1.5"></span>
+                        <div className="w-7 h-7 rounded-md bg-emerald-600/10 flex items-center justify-center">
+                          <Image src="/train.svg" alt="Transport" className="w-4 h-4" />
+                        </div>
+                        <span className="h-5 w-px bg-emerald-600/50 mx-1.5"></span>
+                        <div className="w-7 h-7 rounded-md bg-emerald-600/10 flex items-center justify-center">
+                          <Image src="/swimming.svg" alt="Activities" className="w-4 h-4" />
+                        </div>
+                        <span className="h-5 w-px bg-emerald-600/50 mx-1.5"></span>
+                        <div className="w-7 h-7 rounded-md bg-emerald-600/10 flex items-center justify-center">
+                          <Image src="/camera.svg" alt="Photography" className="w-4 h-4" />
+                        </div>
+                        <span className="h-5 w-px bg-emerald-600/50 mx-1.5"></span>
+                        <div className="w-7 h-7 rounded-md bg-emerald-600/10 flex items-center justify-center">
+                          <Image src="/bed.svg" alt="Stay" className="w-4 h-4" />
+                        </div>
+                      </div>
+
+                      {/* right pill (grey) */}
+                      <div className="flex items-center bg-white/75 backdrop-blur-md rounded-full px-3 py-1.5 shadow-md">
+                        <div className="w-7 h-7 rounded-md bg-gray-600/10 flex items-center justify-center">
+                          <Image src="/cross-.svg" alt="Not included" className="w-4 h-4" />
+                        </div>
+                        <span className="h-5 w-px bg-gray-500/50 mx-1.5"></span>
+                        <div className="w-7 h-7 rounded-md bg-gray-600/10 flex items-center justify-center">
+                          <Image src="/dinner.svg" alt="Food" className="w-4 h-4" />
+                        </div>
+                        <span className="h-5 w-px bg-gray-500/50 mx-1.5"></span>
+                        <div className="w-7 h-7 rounded-md bg-gray-600/10 flex items-center justify-center">
+                          <Image src="/bike.svg" alt="Cycling" className="w-4 h-4" />
+                        </div>
+                        <span className="h-5 w-px bg-gray-500/50 mx-1.5"></span>
+                        <div className="w-7 h-7 rounded-md bg-gray-600/10 flex items-center justify-center">
+                          <Image src="/glass.svg" alt="Drinks" className="w-4 h-4" />
+                        </div>
+                        <span className="h-5 w-px bg-gray-500/50 mx-1.5"></span>
+                        <div className="w-7 h-7 rounded-md bg-gray-600/10 flex items-center justify-center">
+                          <Image src="/pets.svg" alt="Pets" className="w-4 h-4" />
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* bottom gradient + date/price */}
+                    <div className="absolute inset-x-0 bottom-0 h-1/3 bg-gradient-to-t from-black/70 to-transparent"></div>
+                    <div className="absolute bottom-4 left-6 right-6 z-10 flex items-center justify-between">
+                      <div className="flex items-center text-white text-sm">
+                        <Image src="/calendar-icon.png" alt="Calendar" className="w-4 h-4 mr-2" />
+                        23, Mar - 31, Mar (9D)
+                      </div>
+                      <div className="flex items-center text-white text-lg font-bold">
+                        <Image src="/price-icon.png" alt="Price" className="w-4 h-4 mr-2" />
+                        ₹51,120
+                      </div>
+                    </div>
+                  </div>
+
+
+                  {/* Card 2: Bali Tropical Escape */}
+                  <div className="relative h-72 w-70 rounded-lg overflow-hidden shadow-lg">
+                    <Image
+                      src="/card2.png"
+                      alt="Bali Tropical Escape"
+                      className="w-full h-full object-cover"
+                    />
+
+                    {/* Save Icon (Bookmark) - Top Right */}
+                    <div className="absolute top-4 right-4 p-2 rounded-sm bg-[#29A376]">
+                      <Image
+                        src="/save icon.png"
+                        alt="Save"
+                        className="w-3 h-3"
+                      />
+                    </div>
+
+
+                    {/* Content at Left Middle */}
+                    <div className="absolute left-2 top-1/2 transform -translate-y-1/2">
+                      <h3 className="text-white text-sm font-semibold mb-2">Kaptai Serenity Escape</h3>
+                      <p className="text-white text-sm opacity-80 mb-4">By Maple Trails DMC</p>
+
+                      {/* Feature pills (match screenshot) */}
+                      <div className="flex items-center gap-1">
+                        {/* Left pill (green icons) */}
+                        <div className="flex items-center bg-white/75 backdrop-blur-sm rounded-full px-3 py-1.5 shadow-md">
+                          <div className="w-7 h-7 rounded-md bg-emerald-600/15 flex items-center justify-center">
+                            <Image src="/check.png" alt="Included" className="w-4 h-4" />
+                          </div>
+                          <span className="h-5 w-px bg-emerald-600/50 mx-1.5"></span>
+                          <div className="w-7 h-7 rounded-md bg-emerald-600/10 flex items-center justify-center">
+                            <Image src="/food.png" alt="Dining" className="w-4 h-4" />
+                          </div>
+                          <span className="h-5 w-px bg-emerald-600/50 mx-1.5"></span>
+                          <div className="w-7 h-7 rounded-md bg-emerald-600/10 flex items-center justify-center">
+                            <Image src="/travel.png" alt="Transport" className="w-4 h-4" />
+                          </div>
+                          <span className="h-5 w-px bg-emerald-600/50 mx-1.5"></span>
+                          <div className="w-7 h-7 rounded-md bg-emerald-600/10 flex items-center justify-center">
+                            <Image src="/swimming.png" alt="Activities" className="w-4 h-4" />
+                          </div>
+                          <span className="h-5 w-px bg-emerald-600/50 mx-1.5"></span>
+                          <div className="w-7 h-7 rounded-md bg-emerald-600/10 flex items-center justify-center">
+                            <Image src="/camera.png" alt="Photography" className="w-4 h-4" />
+                          </div>
+                          <span className="h-5 w-px bg-emerald-600/50 mx-1.5"></span>
+                          <div className="w-7 h-7 rounded-md bg-emerald-600/10 flex items-center justify-center">
+                            <Image src="/person.png" alt="Stay" className="w-4 h-4" />
+                          </div>
+                        </div>
+
+                        {/* Right pill (grey icons) */}
+                        <div className="flex items-center bg-white/70 backdrop-blur-sm rounded-full px-1 py-1.5 shadow-md">
+                          <div className="w2 h-2 rounded-md bg-gray-600/10 flex items-center justify-center">
+                            <Image src="/cross-icon.png" alt="Not included" className="w-4 h-4" />
+                          </div>
+                          <span className="h-5 w-px bg-gray-500/50 mx-1.5"></span>
+                          <div className="w-7 h-7 rounded-md bg-gray-600/10 flex items-center justify-center">
+                            <Image src="/utensils-icon.png" alt="Food" className="w-4 h-4" />
+                          </div>
+                          <span className="h-5 w-px bg-gray-500/50 mx-1.5"></span>
+                          <div className="w-7 h-7 rounded-md bg-gray-600/10 flex items-center justify-center">
+                            <Image src="/bicycle-icon.png" alt="Cycling" className="w-4 h-4" />
+                          </div>
+                          <span className="h-5 w-px bg-gray-500/50 mx-1.5"></span>
+                          <div className="w-7 h-7 rounded-md bg-gray-600/10 flex items-center justify-center">
+                            <Image src="/wine-icon.png" alt="Drinks" className="w-4 h-4" />
+                          </div>
+                          <span className="h-5 w-px bg-gray-500/50 mx-1.5"></span>
+                          <div className="w-7 h-7 rounded-md bg-gray-600/10 flex items-center justify-center">
+                            <Image src="/paw-icon.png" alt="Pets" className="w-4 h-4" />
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Bottom Content - Dates and Price */}
+                    <div className="absolute bottom-4 left-4 right-4">
+                      <div className="flex justify-between items-center">
+                        <div className="flex items-center text-white text-sm">
+                          <Image src="/calendar-icon.png" alt="Calendar" className="w-4 h-4 mr-2" />
+                          23, Mar - 31, Mar (9D)
+                        </div>
+                        <div className="flex items-center text-white text-lg font-bold">
+                          <Image src="/price-icon.png" alt="Price" className="w-4 h-4 mr-2" />
+                          ₹51,120
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Card 3: Switzerland Alpine Adventure */}
+
+                  <div className="relative h-72 w-70 rounded-lg overflow-hidden shadow-lg">
+                    <Image
+                      src="/card3.png"
+                      alt="Switzerland Alpine Adventure"
+                      className="w-full h-full object-cover"
+                    />
+
+                    {/* Save Icon (Bookmark) - Top Right */}
+                    <div className="absolute top-4 right-4 p-2 rounded-sm bg-[#29A376]">
+                      <Image
+                        src="/save icon.png"
+                        alt="Save"
+                        className="w-3 h-3"
+                      />
+                    </div>
+
+                    {/* Content at Left Middle */}
+                    <div className="absolute left-4 top-1/2 transform -translate-y-1/2">
+                      <h3 className="text-white text-lg font-semibold mb-1">Kaptai Serenity Escape</h3>
+                      <p className="text-white text-sm opacity-90 mb-4">By Maple Trails DMC</p>
+
+                      {/* Feature Icons Row 1 - Left Bar (Green Background) */}
+                      <div className="flex gap-2 mb-2">
+                        <div className="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center">
+                          <Image src="/tick-icon.png" alt="Included" className="w-4 h-4" />
+                        </div>
+                        <div className="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center">
+                          <Image src="/bed-icon.png" alt="Accommodation" className="w-4 h-4" />
+                        </div>
+                        <div className="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center">
+                          <Image src="/bus-icon.png" alt="Transport" className="w-4 h-4" />
+                        </div>
+                        <div className="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center">
+                          <Image src="/waves-icon.png" alt="Water Activities" className="w-4 h-4" />
+                        </div>
+                        <div className="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center">
+                          <Image src="/camera-icon.png" alt="Photography" className="w-4 h-4" />
+                        </div>
+                        <div className="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center">
+                          <Image src="/bed-icon2.png" alt="Sleep" className="w-4 h-4" />
+                        </div>
+                      </div>
+
+                      {/* Feature Icons Row 2 - Right Bar (Grey Background) */}
+                      <div className="flex gap-2">
+                        <div className="w-8 h-8 bg-gray-500 rounded-full flex items-center justify-center">
+                          <Image src="/cross-icon.png" alt="Not Included" className="w-4 h-4" />
+                        </div>
+                        <div className="w-8 h-8 bg-gray-500 rounded-full flex items-center justify-center">
+                          <Image src="/food-icon.png" alt="Food" className="w-4 h-4" />
+                        </div>
+                        <div className="w-8 h-8 bg-gray-500 rounded-full flex items-center justify-center">
+                          <Image src="/bicycle-icon.png" alt="Cycling" className="w-4 h-4" />
+                        </div>
+                        <div className="w-8 h-8 bg-gray-500 rounded-full flex items-center justify-center">
+                          <Image src="/wine-icon.png" alt="Drinks" className="w-4 h-4" />
+                        </div>
+                        <div className="w-8 h-8 bg-gray-500 rounded-full flex items-center justify-center">
+                          <Image src="/paw-icon.png" alt="Pets" className="w-4 h-4" />
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Bottom Content - Dates and Price */}
+                    <div className="absolute bottom-4 left-4 right-4">
+                      <div className="flex justify-between items-center">
+                        <div className="flex items-center text-white text-sm">
+                          <Image src="/calendar-icon.png" alt="Calendar" className="w-4 h-4 mr-2" />
+                          23, Mar - 31, Mar (9D)
+                        </div>
+                        <div className="flex items-center text-white text-lg font-bold">
+                          <Image src="/price-icon.png" alt="Price" className="w-4 h-4 mr-2" />
+                          ₹51,120
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                </div>
+
               </div>
-              
-              {/* Total Leads */}
-              <div className="bg-gray-200 rounded-xl p-4">
-                <div className="flex items-center justify-between">
+
+              {/* Pagination Dots */}
+              <div className="flex justify-center gap-2">
+                <div className="w-2 h-2 bg-gray-400 rounded-full"></div>
+                <div className="w-2 h-2 bg-gray-400 rounded-full"></div>
+                <div className="w-2 h-2 bg-gray-400 rounded-full"></div>
+              </div>
+            </div>
+
+
+
+            {/* Right Section - Dashboard Metrics */}
+            <div className="w-full lg:w-[300px] space-y-4">
+              {/* Total Itineraries Card */}
+              <div className="bg-green-50 border border-green-100 rounded-lg p-4">
+                <div className="flex justify-between items-start mb-2">
+                  <div>
+                    <p className="text-sm text-gray-600 mb-1">Total Itineraries</p>
+                    <p className="text-xl font-bold text-gray-900">247</p>
+                  </div>
+                  <button className="bg-gray-700 text-white text-xs px-3 py-1 rounded-lg hover:bg-gray-800">View</button>
+                </div>
+                <p className="text-green-600 text-sm">+0.5%</p>
+              </div>
+
+              {/* Total Leads Card */}
+              <div className="bg-green-50 border border-green-100 rounded-lg p-4">
+                <div className="flex justify-between items-start mb-2">
                   <div>
                     <p className="text-sm text-gray-600 mb-1">Total leads</p>
-                    <p className="text-2xl font-bold text-gray-900">47</p>
+                    <p className="text-xl font-bold text-gray-900">47</p>
                   </div>
-                  <div className="text-right">
-                    <span className="inline-block px-2 py-1 bg-gray-100 text-gray-600 rounded-full text-xs">+4.5%</span>
-                  </div>
+                  <button className="bg-gray-700 text-white text-xs px-3 py-1 rounded-lg hover:bg-gray-800">View</button>
                 </div>
+                <p className="text-green-600 text-sm">+0.5%</p>
               </div>
-              
+
               {/* Generate Itineraries Button */}
-              <div className="bg-gradient-to-r from-[#00F5A0] to-[#00D9F5] rounded-xl p-0 text-center grid grid-cols-1 md:grid-cols-1 lg:grid-cols-3 mr-[246px]">
-  <div className="text-white mb-0">
-    <svg className="w-8 h-8 mx-auto mb-2" fill="currentColor" viewBox="0 0 20 20">
-      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v2H7a1 1 0 100 2h2v2a1 1 0 102 0v-2h2a1 1 0 100-2h-2V7z" clipRule="evenodd" />
-    </svg>
-  </div>
-  <h3 className="text-white font-semibold mb-1">Generate Itineraries</h3>
+              <div className="bg-gradient-to-b from-cyan-400 to-green-500 text-white rounded-lg p-4 cursor-pointer hover:from-cyan-500 hover:to-green-600 transition-all">
+                <div className="flex flex-col items-center gap-3">
+                  <Network className="w-8 h-8" />
+                  <span className="text-sm font-semibold text-center leading-tight">Generate<br />Itineraries</span>
+                </div>
+              </div>
 
-{/* Bookings Summary */}
-            <div className="bg-white rounded-xl p-4">
-              <h3 className="font-semibold text-gray-900 mb-4">Bookings</h3>
-              <div className="space-y-3">
-                <div className="flex items-center gap-3">
-                  <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                  <span className="text-sm text-gray-600">Complete</span>
-                  <span className="ml-auto text-sm font-semibold">12</span>
-                </div>
-                <div className="flex items-center gap-3">
-                  <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                  <span className="text-sm text-gray-600">In progress</span>
-                  <span className="ml-auto text-sm font-semibold">5</span>
-                </div>
-                <div className="flex items-center gap-3">
-                  <div className="w-2 h-2 bg-red-500 rounded-full"></div>
-                  <span className="text-sm text-gray-600">Cancelled</span>
-                  <span className="ml-auto text-sm font-semibold">2</span>
+              {/* Bookings Section */}
+              <div className="bg-white rounded-lg shadow-sm p-4">
+                <h3 className="text-sm font-semibold text-gray-900 mb-3">Bookings</h3>
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <CheckCircle className="w-4 h-4 text-green-600" />
+                      <span className="text-sm text-gray-700">Complete</span>
+                    </div>
+                    <span className="text-sm font-semibold text-gray-900">12</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Loader className="w-4 h-4 text-blue-600" />
+                      <span className="text-sm text-gray-700">In progress</span>
+                    </div>
+                    <span className="text-sm font-semibold text-gray-900">5</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <XCircle className="w-4 h-4 text-red-600" />
+                      <span className="text-sm text-gray-700">Cancelled</span>
+                    </div>
+                    <span className="text-sm font-semibold text-gray-900">2</span>
+                  </div>
                 </div>
               </div>
             </div>
-            </div>
-</div>
-            {/* Booking Status Overview */}
-            <div className="bg-gray-800 rounded-xl p-6">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-white font-semibold">Booking Status Overview</h3>
-                <button className="p-1 hover:bg-gray-700 rounded">
-                  <Eye className="w-4 h-4 text-gray-400" />
-                </button>
-              </div>
-              <p className="text-gray-400 text-sm mb-6">Pie chart representing the booking status distribution</p>
-              
-              {/* Donut Chart */}
-              <div className="relative w-40 h-40 mx-auto mb-6">
-                <svg className="w-40 h-40 transform -rotate-90" viewBox="0 0 160 160">
-                  <circle cx="80" cy="80" r="70" stroke="#374151" strokeWidth="20" fill="none" />
-                  <circle cx="80" cy="80" r="70" stroke="#fbbf24" strokeWidth="20" fill="none"
-                          strokeDasharray="200 440" strokeDashoffset="0" />
-                  <circle cx="80" cy="80" r="70" stroke="#f97316" strokeWidth="20" fill="none"
-                          strokeDasharray="150 440" strokeDashoffset="-200" />
-                  <circle cx="80" cy="80" r="70" stroke="#10b981" strokeWidth="20" fill="none"
-                          strokeDasharray="90 440" strokeDashoffset="-350" />
-                </svg>
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <div className="text-center">
-                    <div className="text-2xl font-bold text-white">75%</div>
-                    <div className="text-xs text-gray-400">Booked</div>
+          </div>
+
+          {/* Second Row */}
+          <div className="flex flex-col lg:flex-row gap-4 mb-4">
+            {/* Total Revenue Chart */}
+            <div className="flex-1 bg-white rounded-lg shadow-sm p-4">
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-sm font-semibold text-gray-900">Total Revenue</h3>
+                <div className="flex items-center gap-4">
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 bg-green-400 rounded"></div>
+                    <span className="text-xs text-gray-600">Revenue</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 bg-blue-400 rounded"></div>
+                    <span className="text-xs text-gray-600">Expenses</span>
                   </div>
                 </div>
               </div>
 
-              {/* Legend */}
-              <div className="space-y-2 mb-6">
-                <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 bg-yellow-400 rounded-full"></div>
-                  <span className="text-gray-300 text-sm">Confirmed</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 bg-orange-500 rounded-full"></div>
-                  <span className="text-gray-300 text-sm">Pending</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-                  <span className="text-gray-300 text-sm">Canceled</span>
-                </div>
-              </div>
+              <div className="text-xl font-bold text-gray-900 mb-3">$190,090.36</div>
 
-              {/* Status Tags */}
-              <div className="grid grid-cols-2 gap-2">
-                <span className="inline-block px-3 py-1 bg-green-600 text-white rounded-full text-xs text-center">COMPLETED</span>
-                <span className="inline-block px-3 py-1 bg-yellow-600 text-white rounded-full text-xs text-center">PROGRESS</span>
-                <span className="inline-block px-3 py-1 bg-gray-600 text-white rounded-full text-xs text-center">CANCELLED</span>
-                <span className="inline-block px-3 py-1 bg-blue-600 text-white rounded-full text-xs text-center">PROSPECTS</span>
+              <div className="mb-3">
+                <h4 className="text-xs font-semibold text-gray-900 mb-2">Income & Expenses</h4>
+                <div className="grid grid-cols-12 gap-1 text-[10px] text-gray-500 mb-1">
+                  {['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'].map(month => (
+                    <span key={month} className="text-center">{month}</span>
+                  ))}
+                </div>
+
+                {/* Chart Container */}
+                <div className="h-[120px] bg-gray-50 rounded border border-gray-200 relative overflow-hidden">
+                  {/* Chart Background Grid */}
+                  <div className="absolute inset-0 flex flex-col">
+                    {[0, 1, 2, 3, 4].map((line) => (
+                      <div key={line} className="flex-1 border-b border-gray-200 last:border-b-0"></div>
+                    ))}
+                  </div>
+
+                  {/* Chart Data Visualization */}
+                  <svg className="absolute inset-0 w-full h-full" viewBox="0 0 300 120">
+                    {/* Revenue Area (Green) */}
+                    <path
+                      d="M 0 100 L 25 90 L 50 85 L 75 80 L 100 70 L 125 60 L 150 50 L 175 45 L 200 40 L 225 35 L 250 30 L 275 25 L 300 20 L 300 120 L 0 120 Z"
+                      fill="rgba(34, 197, 94, 0.3)"
+                      stroke="rgb(34, 197, 94)"
+                      strokeWidth="2"
+                    />
+                    {/* Expenses Area (Blue) */}
+                    <path
+                      d="M 0 110 L 25 105 L 50 100 L 75 95 L 100 85 L 125 80 L 150 75 L 175 70 L 200 65 L 225 60 L 250 55 L 275 50 L 300 45 L 300 120 L 0 120 Z"
+                      fill="rgba(59, 130, 246, 0.3)"
+                      stroke="rgb(59, 130, 246)"
+                      strokeWidth="2"
+                    />
+                  </svg>
+                </div>
+
+                <div className="text-[10px] text-gray-500 mt-1 text-right">Time</div>
               </div>
             </div>
 
-            
+            {/* Booking Status Pie Chart */}
+            <div className="w-full lg:w-[280px] bg-white rounded-lg shadow-sm p-4">
+              <h3 className="text-sm font-semibold text-gray-900 mb-4">Booking Status Overview</h3>
+              <p className="text-xs text-gray-600 mb-4">Pie chart representing the booking status distribution</p>
+
+              <div className="flex items-center justify-center mb-4">
+                <div className="relative w-32 h-32">
+                  <svg className="w-32 h-32 transform -rotate-90" viewBox="0 0 100 100">
+                    {/* Background circle */}
+                    <circle
+                      cx="50"
+                      cy="50"
+                      r="40"
+                      fill="none"
+                      stroke="#f3f4f6"
+                      strokeWidth="20"
+                    />
+                    {/* Completed (Green) - 63% */}
+                    <circle
+                      cx="50"
+                      cy="50"
+                      r="40"
+                      fill="none"
+                      stroke="#10b981"
+                      strokeWidth="20"
+                      strokeDasharray="157 251"
+                      strokeDashoffset="0"
+                    />
+                    {/* In Progress (Blue) - 26% */}
+                    <circle
+                      cx="50"
+                      cy="50"
+                      r="40"
+                      fill="none"
+                      stroke="#3b82f6"
+                      strokeWidth="20"
+                      strokeDasharray="65 251"
+                      strokeDashoffset="-157"
+                    />
+                    {/* Cancelled (Red) - 11% */}
+                    <circle
+                      cx="50"
+                      cy="50"
+                      r="40"
+                      fill="none"
+                      stroke="#ef4444"
+                      strokeWidth="20"
+                      strokeDasharray="28 251"
+                      strokeDashoffset="-222"
+                    />
+                  </svg>
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <div className="text-center">
+                      <div className="text-sm font-bold text-gray-900">Bookings</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 rounded-full bg-green-500"></div>
+                    <span className="text-xs text-gray-600">Completed</span>
+                  </div>
+                  <span className="text-xs font-medium text-gray-900">APR12598</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 rounded-full bg-blue-500"></div>
+                    <span className="text-xs text-gray-600">In Progress</span>
+                  </div>
+                  <span className="text-xs font-medium text-gray-900">APR12399</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 rounded-full bg-red-500"></div>
+                    <span className="text-xs text-gray-600">Cancelled</span>
+                  </div>
+                  <span className="text-xs font-medium text-gray-900">APR12344</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 rounded-full bg-orange-500"></div>
+                    <span className="text-xs text-gray-600">Pending</span>
+                  </div>
+                  <span className="text-xs font-medium text-gray-900">APR12344</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Recent Bookings Table */}
+          <div className="mt-4">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-lg font-semibold text-gray-900">Recent Bookings</h2>
+              <button className="text-blue-600 text-sm font-medium hover:underline">See more</button>
+            </div>
+
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[1200px] border border-gray-200 rounded-lg overflow-hidden bg-white">
+                <thead className="bg-gray-50">
+                  <tr className="h-[50px]">
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b border-gray-200">BOOKING ID</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b border-gray-200">ENQUIRY ID</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b border-gray-200">POC</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b border-gray-200">TOUR TYPE</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b border-gray-200">LOCATION</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b border-gray-200">DEPARTURE DATE</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b border-gray-200">PAX</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b border-gray-200">AMOUNT</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b border-gray-200">PAYMENT STATUS</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b border-gray-200">REVENUE GENERATED</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b border-gray-200">AMOUNT DUE</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b border-gray-200">BOOKING STATUS</th>
+                  </tr>
+                </thead>
+
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {/* Row 1 */}
+                  <tr className="h-[62px] hover:bg-gray-50">
+                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">B001</td>
+                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">E0012</td>
+                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">John Smith</td>
+                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">Family</td>
+                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">Paris, Rome</td>
+                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">15-04-2025</td>
+                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">4</td>
+                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">$5000</td>
+                    <td className="px-4 py-3 whitespace-nowrap">
+                      <span className="px-2 py-1 text-xs font-medium bg-green-100 text-green-800 rounded-full">PMD</span>
+                    </td>
+                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">$1000</td>
+                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">$0</td>
+                    <td className="px-4 py-3 whitespace-nowrap">
+                      <div className="flex items-center">
+                        <span className="w-2 h-2 rounded-full bg-green-500 mr-2"></span>
+                        <span className="text-sm text-green-600">Confirmed</span>
+                      </div>
+                    </td>
+                  </tr>
+
+                  {/* Row 2 */}
+                  <tr className="h-[62px] hover:bg-gray-50">
+                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">B002</td>
+                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">E0011</td>
+                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">Emily Johnson</td>
+                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">Solo</td>
+                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">Tokyo</td>
+                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">11-04-2025</td>
+                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">1</td>
+                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">$5000</td>
+                    <td className="px-4 py-3 whitespace-nowrap">
+                      <span className="px-2 py-1 text-xs font-medium bg-orange-100 text-orange-800 rounded-full">UNIVAD</span>
+                    </td>
+                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">$300</td>
+                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">$1800</td>
+                    <td className="px-4 py-3 whitespace-nowrap">
+                      <div className="flex items-center">
+                        <span className="w-2 h-2 rounded-full bg-yellow-500 mr-2"></span>
+                        <span className="text-sm text-yellow-600">Pending</span>
+                      </div>
+                    </td>
+                  </tr>
+
+                  {/* Row 3 */}
+                  <tr className="h-[62px] hover:bg-gray-50">
+                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">B003</td>
+                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">E0010</td>
+                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">Rahul Verma</td>
+                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">Partner</td>
+                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">Bali</td>
+                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">03-05-2025</td>
+                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">2</td>
+                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">$5000</td>
+                    <td className="px-4 py-3 whitespace-nowrap">
+                      <span className="px-2 py-1 text-xs font-medium bg-red-100 text-red-800 rounded-full">REFUNDED</span>
+                    </td>
+                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">$0</td>
+                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">$0</td>
+                    <td className="px-4 py-3 whitespace-nowrap">
+                      <div className="flex items-center">
+                        <span className="w-2 h-2 rounded-full bg-red-500 mr-2"></span>
+                        <span className="text-sm text-red-600">Cancelled</span>
+                      </div>
+                    </td>
+                  </tr>
+
+                  {/* Row 4 */}
+                  <tr className="h-[62px] hover:bg-gray-50">
+                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">B004</td>
+                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">E0012</td>
+                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">John Smith</td>
+                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">Family</td>
+                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">Paris, Rome</td>
+                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">15-04-2025</td>
+                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">4</td>
+                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">$5000</td>
+                    <td className="px-4 py-3 whitespace-nowrap">
+                      <span className="px-2 py-1 text-xs font-medium bg-green-100 text-green-800 rounded-full">PMD</span>
+                    </td>
+                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">$1000</td>
+                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">$0</td>
+                    <td className="px-4 py-3 whitespace-nowrap">
+                      <div className="flex items-center">
+                        <span className="w-2 h-2 rounded-full bg-green-500 mr-2"></span>
+                        <span className="text-sm text-green-600">Confirmed</span>
+                      </div>
+                    </td>
+                  </tr>
+
+                  {/* Row 5 */}
+                  <tr className="h-[62px] hover:bg-gray-50">
+                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">B005</td>
+                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">E0011</td>
+                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">Emily Johnson</td>
+                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">Solo</td>
+                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">Tokyo</td>
+                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">11-04-2025</td>
+                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">1</td>
+                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">$5000</td>
+                    <td className="px-4 py-3 whitespace-nowrap">
+                      <span className="px-2 py-1 text-xs font-medium bg-orange-100 text-orange-800 rounded-full">UNPAID</span>
+                    </td>
+                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">$300</td>
+                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">$1800</td>
+                    <td className="px-4 py-3 whitespace-nowrap">
+                      <div className="flex items-center">
+                        <span className="w-2 h-2 rounded-full bg-yellow-500 mr-2"></span>
+                        <span className="text-sm text-yellow-600">Pending</span>
+                      </div>
+                    </td>
+                  </tr>
+
+                  {/* Row 6 */}
+                  <tr className="h-[62px] hover:bg-gray-50">
+                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">B006</td>
+                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">E0010</td>
+                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">Rahul Verma</td>
+                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">Partner</td>
+                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">Bali</td>
+                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">03-05-2025</td>
+                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">2</td>
+                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">$5000</td>
+                    <td className="px-4 py-3 whitespace-nowrap">
+                      <span className="px-2 py-1 text-xs font-medium bg-yellow-100 text-yellow-800 rounded-full">PARTIAL</span>
+                    </td>
+                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">$0</td>
+                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">$0</td>
+                    <td className="px-4 py-3 whitespace-nowrap">
+                      <div className="flex items-center">
+                        <span className="w-2 h-2 rounded-full bg-red-500 mr-2"></span>
+                        <span className="text-sm text-red-600">Cancelled</span>
+                      </div>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          {/* Footer */}
+          <div className="text-[10px] text-gray-500 mt-3">
+            © 2025, Made by <span className="text-emerald-500">Trekking Miles</span>.
           </div>
         </div>
-
-        {/* Recent Bookings Table */}
-        <div className="bg-white rounded-xl p-6">
-          <div className="flex items-center justify-between mb-6">
-            <h3 className="text-lg font-semibold text-gray-900">Recent Bookings</h3>
-            <button className="text-blue-600 text-sm hover:underline">See more</button>
-          </div>
-          
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b border-gray-200">
-                  <th className="text-left py-3 px-4 text-sm font-medium text-gray-500 uppercase tracking-wider">BOOKING ID</th>
-                  <th className="text-left py-3 px-4 text-sm font-medium text-gray-500 uppercase tracking-wider">ENQUIRY ID</th>
-                  <th className="text-left py-3 px-4 text-sm font-medium text-gray-500 uppercase tracking-wider">POC</th>
-                  <th className="text-left py-3 px-4 text-sm font-medium text-gray-500 uppercase tracking-wider">TOUR TYPE</th>
-                  <th className="text-left py-3 px-4 text-sm font-medium text-gray-500 uppercase tracking-wider">LOCATION</th>
-                  <th className="text-left py-3 px-4 text-sm font-medium text-gray-500 uppercase tracking-wider">DEPARTURE DATE</th>
-                  <th className="text-left py-3 px-4 text-sm font-medium text-gray-500 uppercase tracking-wider">PAX</th>
-                  <th className="text-left py-3 px-4 text-sm font-medium text-gray-500 uppercase tracking-wider">AMOUNT</th>
-                  <th className="text-left py-3 px-4 text-sm font-medium text-gray-500 uppercase tracking-wider">PAYMENT STATUS</th>
-                  <th className="text-left py-3 px-4 text-sm font-medium text-gray-500 uppercase tracking-wider">REVENUE GENERATED</th>
-                  <th className="text-left py-3 px-4 text-sm font-medium text-gray-500 uppercase tracking-wider">AMOUNT DUE</th>
-                  <th className="text-left py-3 px-4 text-sm font-medium text-gray-500 uppercase tracking-wider">BOOKING STATUS</th>
-                  <th className="text-left py-3 px-4 text-sm font-medium text-gray-500 uppercase tracking-wider"></th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-200">
-                <tr className="hover:bg-gray-50">
-                  <td className="py-3 px-4 text-sm text-gray-900">BH01</td>
-                  <td className="py-3 px-4 text-sm text-gray-900">EH012</td>
-                  <td className="py-3 px-4 text-sm text-gray-900">John Smith</td>
-                  <td className="py-3 px-4 text-sm text-gray-900">Family</td>
-                  <td className="py-3 px-4 text-sm text-gray-900">Paris, Rome</td>
-                  <td className="py-3 px-4 text-sm text-gray-900">12-09-2025</td>
-                  <td className="py-3 px-4 text-sm text-gray-900">4</td>
-                  <td className="py-3 px-4 text-sm text-gray-900">$5000</td>
-                  <td className="py-3 px-4">
-                    <span className="inline-block px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs">PAID</span>
-                  </td>
-                  <td className="py-3 px-4 text-sm text-gray-900">$1000</td>
-                  <td className="py-3 px-4 text-sm text-gray-900">$0</td>
-                  <td className="py-3 px-4">
-                    <div className="flex items-center gap-2">
-                      <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                      <span className="text-sm text-gray-900">Confirmed</span>
-                    </div>
-                  </td>
-                  <td className="py-3 px-4">
-                    <button className="p-1 hover:bg-gray-100 rounded">
-                      <MoreHorizontal className="w-4 h-4 text-gray-400" />
-                    </button>
-                  </td>
-                </tr>
-                
-                <tr className="hover:bg-gray-50">
-                  <td className="py-3 px-4 text-sm text-gray-900">BH02</td>
-                  <td className="py-3 px-4 text-sm text-gray-900">EH011</td>
-                  <td className="py-3 px-4 text-sm text-gray-900">Emily Johnson</td>
-                  <td className="py-3 px-4 text-sm text-gray-900">Solo</td>
-                  <td className="py-3 px-4 text-sm text-gray-900">Tokyo</td>
-                  <td className="py-3 px-4 text-sm text-gray-900">11-04-2025</td>
-                  <td className="py-3 px-4 text-sm text-gray-900">1</td>
-                  <td className="py-3 px-4 text-sm text-gray-900">$4000</td>
-                  <td className="py-3 px-4">
-                    <span className="inline-block px-2 py-1 bg-orange-100 text-orange-800 rounded-full text-xs">UNPAID</span>
-                  </td>
-                  <td className="py-3 px-4 text-sm text-gray-900">$400</td>
-                  <td className="py-3 px-4 text-sm text-gray-900">$1800</td>
-                  <td className="py-3 px-4">
-                    <div className="flex items-center gap-2">
-                      <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
-                      <span className="text-sm text-gray-900">Pending</span>
-                    </div>
-                  </td>
-                  <td className="py-3 px-4">
-                    <button className="p-1 hover:bg-gray-100 rounded">
-                      <MoreHorizontal className="w-4 h-4 text-gray-400" />
-                    </button>
-                  </td>
-                </tr>
-                
-                <tr className="hover:bg-gray-50">
-                  <td className="py-3 px-4 text-sm text-gray-900">BH03</td>
-                  <td className="py-3 px-4 text-sm text-gray-900">EH010</td>
-                  <td className="py-3 px-4 text-sm text-gray-900">Rahul Verma</td>
-                  <td className="py-3 px-4 text-sm text-gray-900">Partner</td>
-                  <td className="py-3 px-4 text-sm text-gray-900">Bali</td>
-                  <td className="py-3 px-4 text-sm text-gray-900">03-06-2025</td>
-                  <td className="py-3 px-4 text-sm text-gray-900">2</td>
-                  <td className="py-3 px-4 text-sm text-gray-900">$3000</td>
-                  <td className="py-3 px-4">
-                    <span className="inline-block px-2 py-1 bg-red-100 text-red-800 rounded-full text-xs">REFUNDED</span>
-                  </td>
-                  <td className="py-3 px-4 text-sm text-gray-900">$0</td>
-                  <td className="py-3 px-4 text-sm text-gray-900">$0</td>
-                  <td className="py-3 px-4">
-                    <div className="flex items-center gap-2">
-                      <div className="w-2 h-2 bg-red-500 rounded-full"></div>
-                      <span className="text-sm text-gray-900">Canceled</span>
-                    </div>
-                  </td>
-                  <td className="py-3 px-4">
-                    <button className="p-1 hover:bg-gray-100 rounded">
-                      <MoreHorizontal className="w-4 h-4 text-gray-400" />
-                    </button>
-                  </td>
-                </tr>
-                
-                <tr className="hover:bg-gray-50">
-                  <td className="py-3 px-4 text-sm text-gray-900">BH04</td>
-                  <td className="py-3 px-4 text-sm text-gray-900">EH012</td>
-                  <td className="py-3 px-4 text-sm text-gray-900">John Smith</td>
-                  <td className="py-3 px-4 text-sm text-gray-900">Family</td>
-                  <td className="py-3 px-4 text-sm text-gray-900">Paris, Rome</td>
-                  <td className="py-3 px-4 text-sm text-gray-900">15-04-2025</td>
-                  <td className="py-3 px-4 text-sm text-gray-900">4</td>
-                  <td className="py-3 px-4 text-sm text-gray-900">$5000</td>
-                  <td className="py-3 px-4">
-                    <span className="inline-block px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs">PAID</span>
-                  </td>
-                  <td className="py-3 px-4 text-sm text-gray-900">$1000</td>
-                  <td className="py-3 px-4 text-sm text-gray-900">$0</td>
-                  <td className="py-3 px-4">
-                    <div className="flex items-center gap-2">
-                      <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                      <span className="text-sm text-gray-900">Confirmed</span>
-                    </div>
-                  </td>
-                  <td className="py-3 px-4">
-                    <button className="p-1 hover:bg-gray-100 rounded">
-                      <MoreHorizontal className="w-4 h-4 text-gray-400" />
-                    </button>
-                  </td>
-                </tr>
-                
-                <tr className="hover:bg-gray-50">
-                  <td className="py-3 px-4 text-sm text-gray-900">BH12</td>
-                  <td className="py-3 px-4 text-sm text-gray-900">EH011</td>
-                  <td className="py-3 px-4 text-sm text-gray-900">Emily Johnson</td>
-                  <td className="py-3 px-4 text-sm text-gray-900">Solo</td>
-                  <td className="py-3 px-4 text-sm text-gray-900">Tokyo</td>
-                  <td className="py-3 px-4 text-sm text-gray-900">11-06-2025</td>
-                  <td className="py-3 px-4 text-sm text-gray-900">1</td>
-                  <td className="py-3 px-4 text-sm text-gray-900">$6000</td>
-                  <td className="py-3 px-4">
-                    <span className="inline-block px-2 py-1 bg-orange-100 text-orange-800 rounded-full text-xs">UNPAID</span>
-                  </td>
-                  <td className="py-3 px-4 text-sm text-gray-900">$300</td>
-                  <td className="py-3 px-4 text-sm text-gray-900">$1800</td>
-                  <td className="py-3 px-4">
-                    <div className="flex items-center gap-2">
-                      <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
-                      <span className="text-sm text-gray-900">Pending</span>
-                    </div>
-                  </td>
-                  <td className="py-3 px-4">
-                    <button className="p-1 hover:bg-gray-100 rounded">
-                      <MoreHorizontal className="w-4 h-4 text-gray-400" />
-                    </button>
-                  </td>
-                </tr>
-                
-                <tr className="hover:bg-gray-50">
-                  <td className="py-3 px-4 text-sm text-gray-900">BH13</td>
-                  <td className="py-3 px-4 text-sm text-gray-900">EH010</td>
-                  <td className="py-3 px-4 text-sm text-gray-900">Rahul Verma</td>
-                  <td className="py-3 px-4 text-sm text-gray-900">Partner</td>
-                  <td className="py-3 px-4 text-sm text-gray-900">Goa</td>
-                  <td className="py-3 px-4 text-sm text-gray-900">09-05-2025</td>
-                  <td className="py-3 px-4 text-sm text-gray-900">2</td>
-                  <td className="py-3 px-4 text-sm text-gray-900">$2000</td>
-                  <td className="py-3 px-4">
-                    <span className="inline-block px-2 py-1 bg-yellow-100 text-yellow-800 rounded-full text-xs">PARTIAL PAID</span>
-                  </td>
-                  <td className="py-3 px-4 text-sm text-gray-900">$0</td>
-                  <td className="py-3 px-4 text-sm text-gray-900">$0</td>
-                  <td className="py-3 px-4">
-                    <div className="flex items-center gap-2">
-                      <div className="w-2 h-2 bg-red-500 rounded-full"></div>
-                      <span className="text-sm text-gray-900">Canceled</span>
-                    </div>
-                  </td>
-                  <td className="py-3 px-4">
-                    <button className="p-1 hover:bg-gray-100 rounded">
-                      <MoreHorizontal className="w-4 h-4 text-gray-400" />
-                    </button>
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        
       </div>
     </div>
-  );
-};
+  )
+}
 
-export default Dashboard;
+export default Dashboard

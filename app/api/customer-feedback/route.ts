@@ -3,6 +3,21 @@ import { PrismaClient } from "@prisma/client"
 
 const prisma = new PrismaClient()
 
+type FeedbackRecord = {
+  id: string
+  customerId: string
+  itineraryId: string | null
+  type: string
+  title: string
+  description: string | null
+  createdAt: Date
+  updatedAt: Date
+  status: string
+  documentUrl: string | null
+  documentName: string | null
+}
+
+
 export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams
@@ -43,19 +58,20 @@ export async function GET(request: NextRequest) {
     })
 
     // Transform feedbacks to match frontend interface
-    const transformedFeedbacks = feedbacks.map((feedback) => ({
-      id: feedback.id,
-      customerId: feedback.customerId,
-      itineraryId: feedback.itineraryId,
-      type: feedback.type,
-      title: feedback.title,
-      description: feedback.description,
-      time: formatDateTime(feedback.createdAt),
-      status: feedback.status,
-      documentUrl: feedback.documentUrl,
-      documentName: feedback.documentName,
-      createdAt: feedback.createdAt.toISOString(),
-    }))
+   const transformedFeedbacks = feedbacks.map((feedback: FeedbackRecord) => ({
+  id: feedback.id,
+  customerId: feedback.customerId,
+  itineraryId: feedback.itineraryId,
+  type: feedback.type,
+  title: feedback.title,
+  description: feedback.description || "",
+  time: formatDateTime(feedback.createdAt),
+  status: feedback.status,
+  documentUrl: feedback.documentUrl,
+  documentName: feedback.documentName,
+  createdAt: feedback.createdAt.toISOString(),
+}))
+
 
     return NextResponse.json({
       success: true,

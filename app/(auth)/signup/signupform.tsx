@@ -15,8 +15,8 @@ const signupSchema = z.object({
   email: z.string().email("Invalid email address"),
   password: z.string().min(6, "Password must be at least 6 characters"),
   companyName: z.string().min(2, "Company name must be at least 2 characters"),
-  userType: z.enum(userTypes, {
-    required_error: "Please select a user type",
+  userType: z.enum(userTypes).refine((val) => val !== undefined, {
+    message: "Please select a user type",
   }),
 })
 
@@ -72,20 +72,25 @@ export default function SignupForm() {
       }
 
       toast.success("Account created successfully!")
-      router.push("/login")
-    } catch (error) {
-      if (error instanceof z.ZodError) {
-        toast.error(error.errors[0].message)
-      } else if (error instanceof Error) {
-        toast.error(error.message)
-      } else {
-        toast.error("Something went wrong")
-      }
-    } finally {
+      
+       // Redirect all users to login page after successful signup
+        router.push("/login")
+
+
+      } catch (error) {
+        if (error instanceof z.ZodError) {
+          toast.error(error.issues[0].message)
+        } else if (error instanceof Error) {
+          toast.error(error.message)
+        } else {
+          toast.error("Something went wrong")
+        }
+      } finally {
       setIsLoading(false)
     }
   }
 
+  
   return (
     <div className="relative w-full overflow-hidden py-6 px-4 sm:px-6 lg:px-8 bg-custom-green z-[10]">
       <div className="absolute inset-0 -z-[10]">
@@ -228,6 +233,7 @@ export default function SignupForm() {
                       ))}
                     </select>
                   </div>
+
 
                   <div className="space-y-2">
                     <label htmlFor="password" className="block text-sm font-semibold text-gray-700">

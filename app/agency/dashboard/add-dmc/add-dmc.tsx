@@ -71,7 +71,7 @@ export function DMCRegistrationForm() {
       return true
     } catch (error) {
       if (error instanceof z.ZodError) {
-        error.errors.forEach((err) => {
+        error.issues.forEach((err: z.ZodIssue) => {
           toast({
             title: "Validation Error",
             description: err.message,

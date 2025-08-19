@@ -1,6 +1,6 @@
 generator client {
   provider = "prisma-client-js"
-}
+} 
 
 datasource db {
   provider     = "postgresql"
@@ -54,6 +54,7 @@ model User {
   @@index([email])
   @@index([role])
 }
+
 
 model Agency {
   id            String         @id @default(uuid())
@@ -204,6 +205,7 @@ model DMCForm {
   @@index([status])
 }
 
+
 model Manager {
   id        String   @id @default(uuid())
   name      String
@@ -220,6 +222,7 @@ model Manager {
   // Comments on this manager
   comments  Comment[] @relation("ManagerComments")
 }
+
 
 model UserForm {
   id             String     @id @default(uuid())
