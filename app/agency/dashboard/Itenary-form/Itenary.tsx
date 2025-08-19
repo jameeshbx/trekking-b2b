@@ -17,7 +17,8 @@ import { cn } from "@/lib/utils"
 import { Input } from "@/components/ui/input"
 import { useRouter, useSearchParams } from "next/navigation"
 import { Suspense } from "react"
-import LoadingComponent from "@/app/agency/dashboard/Itenary-form/loading" // Create this component
+import LoadingComponent from "@/app/agency/dashboard/Itenary-form/loading"
+
 // Define types for the itinerary data (matching ItineraryView)
 interface Activity {
   time: string
@@ -39,6 +40,14 @@ interface Accommodation {
   rating: number
   nights: number
   image: string
+}
+
+interface AgencyCancellationPolicy {
+  id: string
+  policy_name: string
+  cancellation_deadline_days: number
+  cancellation_terms: string
+  refund_percentage?: number
 }
 
 interface TravelFormData {
@@ -67,6 +76,10 @@ interface TravelFormData {
   pacePreference: string
   dailyItinerary: DayItinerary[]
   accommodation: Accommodation[]
+  cancellationPolicyType: string
+  customCancellationDeadline: string
+  customCancellationTerms: string
+  agencyCancellationPolicyId: string
 }
 
 interface EnquiryData {
@@ -107,9 +120,7 @@ interface ItineraryData {
   }
   accommodation: Accommodation[]
   dailyItinerary: DayItinerary[]
-  enquiryDetails: {
-    description: string
-  }
+  enquiryDetails: string
   destinations: string
   startDate: string
   endDate: string
@@ -211,6 +222,7 @@ function ItineraryFormContent() {
   const [enquiryData, setEnquiryData] = useState<EnquiryData | null>(null)
   const [loading, setLoading] = useState(true)
   const [itineraryId, setItineraryId] = useState<string | null>(null)
+  const [, setAgencyCancellationPolicies] = useState<AgencyCancellationPolicy[]>([])
   const [formData, setFormData] = useState<TravelFormData>({
     destinations: [],
     startDate: "",
@@ -237,22 +249,34 @@ function ItineraryFormContent() {
     pacePreference: "relaxed",
     dailyItinerary: [],
     accommodation: [],
+    cancellationPolicyType: "DEFAULT",
+    customCancellationDeadline: "",
+    customCancellationTerms: "",
+    agencyCancellationPolicyId: "",
   })
   const [, setShowEnquiryForm] = useState(false)
   const [showDestinationDropdown, setShowDestinationDropdown] = useState(false)
   const [showHotelDropdown, setShowHotelDropdown] = useState(false)
   const [showCalendar, setShowCalendar] = useState({ start: false, end: false })
+  const [isGenerating, setIsGenerating] = useState(false)
   const router = useRouter()
   const searchParams = useSearchParams()
-
-  const updateItinerary = (newId: string) => {
-    setItineraryId(newId)
-  }
 
   useEffect(() => {
     const loadData = async () => {
       setLoading(true)
       try {
+        // Load agency cancellation policies
+        try {
+          const policiesResponse = await fetch("/api/agency-cancellation-policies")
+          if (policiesResponse.ok) {
+            const policies = await policiesResponse.json()
+            setAgencyCancellationPolicies(policies)
+          }
+        } catch (error) {
+          console.error("Error fetching cancellation policies:", error)
+        }
+
         // Use useSearchParams instead of window.location.search
         const enquiryIdParam = searchParams.get("enquiryId")
         const editMode = searchParams.get("edit") === "true"
@@ -279,6 +303,9 @@ function ItineraryFormContent() {
                 const itineraries = await itineraryResponse.json()
                 if (itineraries && itineraries.length > 0) {
                   existingItinerary = itineraries[0]
+                  if (existingItinerary) {
+                    setItineraryId(existingItinerary.id)
+                  }
                 }
               }
             } catch (error) {
@@ -345,6 +372,31 @@ function ItineraryFormContent() {
         const dailyItinerary = existingItinerary?.dailyItinerary || []
         const accommodation = existingItinerary?.accommodation || []
 
+        // Handle cancellation policy from existing itinerary's enquiryDetails
+        let cancellationPolicyType = "DEFAULT"
+        let customCancellationDeadline = ""
+        let customCancellationTerms = ""
+        let agencyCancellationPolicyId = ""
+
+        if (existingItinerary?.enquiryDetails) {
+          let enquiryDetails
+
+          if (typeof existingItinerary.enquiryDetails === "string") {
+            try {
+              enquiryDetails = JSON.parse(existingItinerary.enquiryDetails)
+            } catch {
+              enquiryDetails = {}
+            }
+          } else {
+            enquiryDetails = existingItinerary.enquiryDetails
+          }
+
+          cancellationPolicyType = enquiryDetails.cancellationPolicyType || "DEFAULT"
+          customCancellationDeadline = enquiryDetails.customCancellationDeadline || ""
+          customCancellationTerms = enquiryDetails.customCancellationTerms || ""
+          agencyCancellationPolicyId = enquiryDetails.agencyCancellationPolicyId || ""
+        }
+
         // Handle moreDetails text concatenation for sightseeing tags
         if (enquiry?.tags === "sightseeing") {
           if (enquiry.mustSeeSpots && !moreDetails.includes("Must-see spots:")) {
@@ -381,6 +433,10 @@ function ItineraryFormContent() {
           pacePreference,
           dailyItinerary,
           accommodation,
+          cancellationPolicyType,
+          customCancellationDeadline,
+          customCancellationTerms,
+          agencyCancellationPolicyId,
         }
 
         setFormData(baseFormData)
@@ -430,6 +486,8 @@ function ItineraryFormContent() {
       return
     }
 
+    setIsGenerating(true)
+
     try {
       const dataToSend = {
         ...formData,
@@ -443,7 +501,6 @@ function ItineraryFormContent() {
       }
 
       let response
-      let processedItinerary
 
       if (itineraryId) {
         console.log("Updating itinerary with ID:", itineraryId, "Data:", dataToSend)
@@ -454,7 +511,6 @@ function ItineraryFormContent() {
           },
           body: JSON.stringify({ id: itineraryId, ...dataToSend }),
         })
-        processedItinerary = await response.json()
       } else {
         console.log("Creating new itinerary with Data:", dataToSend)
         response = await fetch("/api/itineraries", {
@@ -464,13 +520,50 @@ function ItineraryFormContent() {
           },
           body: JSON.stringify(dataToSend),
         })
-        processedItinerary = await response.json()
       }
 
       if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.error || "Failed to process itinerary")
+        let errorMessage = "Failed to process itinerary"
+        try {
+          const errorData = await response.json()
+          errorMessage = errorData.error || errorMessage
+          console.error("API Error Details:", errorData)
+          if (errorData.details) {
+            errorMessage += `: ${errorData.details}`
+          }
+        } catch (jsonError) {
+          // If JSON parsing fails, use the status text
+          console.error("Failed to parse error response:", jsonError)
+          errorMessage = response.statusText || errorMessage
+        }
+        alert(`Error: ${errorMessage}`)
+        return
       }
+
+      const processedItinerary = await response.json()
+
+     /*  // Generate PDF after successfully creating/updating itinerary
+      try {
+        const pdfResponse = await fetch("/api/generate-pdf", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            enquiryId: enquiryData.id,
+            itineraryId: processedItinerary.id,
+          }),
+        })
+
+        if (pdfResponse.ok) {
+          const pdfResult = await pdfResponse.json()
+          console.log("PDF generated successfully:", pdfResult)
+        } else {
+          console.error("Failed to generate PDF")
+        }
+      } catch (pdfError) {
+        console.error("Error generating PDF:", pdfError)
+      } */
 
       console.log("Itinerary processed successfully. Redirecting...")
       alert("Itinerary processed successfully!")
@@ -478,6 +571,8 @@ function ItineraryFormContent() {
     } catch (error) {
       console.error("Error processing itinerary:", error)
       alert(`Failed to process itinerary: ${error instanceof Error ? error.message : String(error)}`)
+    } finally {
+      setIsGenerating(false)
     }
   }
 
@@ -669,6 +764,83 @@ function ItineraryFormContent() {
     return null
   }
 
+  const renderCancellationPolicy = () => {
+    return (
+      <div>
+        <Label className="text-sm font-medium text-black mb-3 block text-lg font-semibold font-poppins">
+          Cancellation Policy & Terms
+        </Label>
+        <div className="text-xs text-blue-600 mb-3">
+          ✓ Customers will see this in their itinerary and booking confirmation
+        </div>
+        <RadioGroup
+          value={formData.cancellationPolicyType}
+          onValueChange={(value: string) => updateFormData("cancellationPolicyType", value)}
+        >
+          <div className="space-y-3">
+            <div className="flex items-center space-x-2">
+              <RadioGroupItem
+                value="DEFAULT"
+                id="policy-default"
+                className="h-4 w-4 text-emerald-700 border-gray-300 focus:ring-emerald-700"
+              />
+              <Label htmlFor="policy-default" className="text-xs">
+                Use Default Agency Policy
+              </Label>
+            </div>
+            <div className="flex items-center space-x-2">
+              <RadioGroupItem
+                value="CUSTOM"
+                id="policy-custom"
+                className="h-4 w-4 text-emerald-700 border-gray-300 focus:ring-emerald-700"
+              />
+              <Label htmlFor="policy-custom" className="text-xs">
+                Custom Policy for This Trip
+              </Label>
+            </div>
+          </div>
+        </RadioGroup>
+
+        {/* Custom Policy Fields */}
+        {formData.cancellationPolicyType === "CUSTOM" && (
+          <div className="mt-4 p-4 bg-gray-50 rounded-md space-y-4">
+            <div>
+              <Label className="text-sm font-medium text-gray-700 mb-2 block">
+                Cancellation Deadline: <span className="text-xs text-gray-500">15 days before start date</span>
+              </Label>
+              <Input
+                type="text"
+                value={formData.customCancellationDeadline}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                  updateFormData("customCancellationDeadline", e.target.value)
+                }
+                placeholder="15 days before start date"
+                className="text-xs text-gray-500 font-Lato"
+              />
+            </div>
+            <div>
+              <Label className="text-sm font-medium text-gray-700 mb-2 block">
+                Charges: <span className="text-xs text-gray-500">50% after deadline, 100% for no-shows</span>
+              </Label>
+              <div className="text-xs text-gray-600 mb-2">
+                Additional Conditions: Weather disruptions subject to rescheduling
+              </div>
+              <Textarea
+                value={formData.customCancellationTerms}
+                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) =>
+                  updateFormData("customCancellationTerms", e.target.value)
+                }
+                placeholder="Cancellation Deadline: 15 days before start date&#10;Charges: 50% after deadline, 100% for no-shows&#10;Additional Conditions: Weather disruptions subject to rescheduling"
+                className="min-h-[100px] text-xs text-gray-500 font-Lato"
+                rows={4}
+              />
+            </div>
+          </div>
+        )}
+      </div>
+    )
+  }
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 p-6 font-poppins flex items-center justify-center">
@@ -856,7 +1028,6 @@ function ItineraryFormContent() {
                     ))}
                   </div>
                 </div>
-                <button onClick={() => updateItinerary("123")}>Set Itinerary</button>
 
                 {/* Traveler Counts */}
                 <div className="bg-gray-50 rounded-lg p-4">
@@ -1167,6 +1338,9 @@ function ItineraryFormContent() {
                   </div>
                 </div>
 
+                {/* Cancellation Policy */}
+                {renderCancellationPolicy()}
+
                 {/* More Details */}
                 <div>
                   <Label className="text-sm font-medium text-black mb-2 block text-lg font-semibold font-poppins">
@@ -1186,10 +1360,11 @@ function ItineraryFormContent() {
                 <div className="pt-2">
                   <Button
                     onClick={handleGenerateItinerary}
+                    disabled={isGenerating}
                     className="bg-green-700 hover:bg-green-800 text-white px-6 py-3 text-sm font-medium w-full font-poppins"
                     size="lg"
                   >
-                    Generate Itinerary
+                    {isGenerating ? "Generating..." : "Generate Itinerary"}
                   </Button>
                 </div>
               </div>
