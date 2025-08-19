@@ -23,6 +23,7 @@ import { Badge } from "@/components/ui/badge"
 import { toast } from "@/components/ui/use-toast"
 import { Toaster } from "@/components/ui/toaster"
 import { useDMCForm } from "@/context/dmc-form-context"
+import { StandaloneBankDetails } from "./standalone-bank-details"
 
 interface DMC {
   id: string
@@ -58,6 +59,8 @@ export function DMCTable() {
   })
 
   const { setFormData, setIsEditing, setEditingId } = useDMCForm()
+  const [showPaymentsModal, setShowPaymentsModal] = useState(false)
+  const [selectedDmcId, setSelectedDmcId] = useState<string | null>(null)
 
   // Fetch DMCs from API
   const fetchDMCs = async (
@@ -387,6 +390,7 @@ export function DMCTable() {
                 </TableHead>
                 <TableHead className="py-3 font-bold text-gray-500 hidden lg:table-cell">Join Source</TableHead>
                 <TableHead className="py-3 font-bold text-gray-500">Status</TableHead>
+                <TableHead className="py-3 font-bold text-gray-500">Payments</TableHead>
                 <TableHead className="w-12 py-3"></TableHead>
               </TableRow>
             </TableHeader>
@@ -432,6 +436,19 @@ export function DMCTable() {
                       </Badge>
                     </TableCell>
                     <TableCell className="py-3">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-8 px-2 text-xs bg-greenlight hover:bg-emerald-600 text-white border-0"
+                        onClick={() => {
+                          setSelectedDmcId(dmc.id)
+                          setShowPaymentsModal(true)
+                        }}
+                      >
+                        Add Bank Details
+                      </Button>
+                    </TableCell>
+                    <TableCell className="py-3">
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <Button variant="ghost" size="icon" className="h-8 w-8">
@@ -459,7 +476,7 @@ export function DMCTable() {
                 ))
               ) : (
                 <TableRow>
-                  <TableCell colSpan={10} className="text-center py-6 text-gray-500">
+                  <TableCell colSpan={11} className="text-center py-6 text-gray-500">
                     No DMCs found. Try adjusting your search criteria.
                   </TableCell>
                 </TableRow>
@@ -542,6 +559,17 @@ export function DMCTable() {
           </div>
         )}
       </div>
+
+      {showPaymentsModal && (
+        <StandaloneBankDetails
+          isOpen={showPaymentsModal}
+          onClose={() => {
+            setShowPaymentsModal(false)
+            setSelectedDmcId(null)
+          }}
+          dmcId={selectedDmcId}
+        />
+      )}
     </div>
   )
 }

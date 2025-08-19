@@ -41,6 +41,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { toast } from "@/components/ui/use-toast";
 import { Toaster } from "@/components/ui/toaster";
+import { StandaloneBankDetails } from "./standalone-bank-details"
 
 interface DMCData {
   id: string;
@@ -227,6 +228,9 @@ export function DMCTable({ refreshTrigger }: DMCTableProps) {
     }
   };
 
+  const [showPaymentsModal, setShowPaymentsModal] = useState(false)
+  const [selectedDmcId, setSelectedDmcId] = useState<string | null>(null)
+
   if (loading) {
     return (
       <div className="mt-12 space-y-4">
@@ -334,6 +338,7 @@ export function DMCTable({ refreshTrigger }: DMCTableProps) {
                 <TableHead className="py-3 font-bold text-gray-500">
                   Status
                 </TableHead>
+                <TableHead className="py-3 font-bold text-gray-500">Payments</TableHead>
                 <TableHead className="w-12 py-3"></TableHead>
               </TableRow>
             </TableHeader>
@@ -401,6 +406,19 @@ export function DMCTable({ refreshTrigger }: DMCTableProps) {
                       >
                         {dmc.status}
                       </Badge>
+                    </TableCell>
+                    <TableCell className="py-3">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-8 px-2 text-xs bg-greenlight hover:bg-emerald-600 text-white border-0"
+                        onClick={() => {
+                          setSelectedDmcId(dmc.id)
+                          setShowPaymentsModal(true)
+                        }}
+                      >
+                        Add Bank Details
+                      </Button>
                     </TableCell>
                     <TableCell className="py-3">
                       <DropdownMenu>
@@ -528,6 +546,16 @@ export function DMCTable({ refreshTrigger }: DMCTableProps) {
           </div>
         )}
       </div>
+      {showPaymentsModal && (
+        <StandaloneBankDetails
+          isOpen={showPaymentsModal}
+          onClose={() => {
+            setShowPaymentsModal(false)
+            setSelectedDmcId(null)
+          }}
+          dmcId={selectedDmcId}
+        />
+      )}
       <Toaster />
     </div>
   );

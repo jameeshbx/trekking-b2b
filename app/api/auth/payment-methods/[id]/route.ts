@@ -56,18 +56,18 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     // Handle different payment method types
     switch (type) {
       case "BANK_ACCOUNT":
-        updateData = {
-          ...updateData,
-          name: body.accountHolderName,
-          identifier: body.accountNumber,
-          bankName: body.bankName,
-          branchName: body.branchName,
-          ifscCode: body.ifscCode,
-          bankCountry: body.bankCountry,
-          currency: body.currency,
-          notes: body.notes,
-        }
-        break
+  updateData = {
+    ...updateData,
+    name: body.accountHolderName,
+    identifier: body.accountNumber,
+    bankName: body.bankName,        // Changed from nested bank.bankName
+    branchName: body.branchName,    // Changed from nested bank.branchName
+    ifscCode: body.ifscCode,        // Changed from nested bank.ifscCode
+    bankCountry: body.bankCountry,  // Changed from nested bank.bankCountry
+    currency: body.currency,        // Changed from nested bank.currency
+    notes: body.notes,
+  }
+  break
 
       case "CREDIT_CARD":
       case "DEBIT_CARD":

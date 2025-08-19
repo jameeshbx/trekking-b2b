@@ -13,7 +13,6 @@ import { Toaster } from "@/components/ui/toaster"
 import { countries, cities, destinations } from "@/data/add-dmc"
 import { z } from "zod"
 import { fetchDMCs } from "@/lib/api"
-import { StandaloneBankDetails } from "./standalone-bank-details"
 import { useDMCForm } from "@/context/dmc-form-context"
 
 // Validation schemas
@@ -45,7 +44,6 @@ const dmcSchema = z.object({
 export function DMCRegistrationForm() {
   const [uploadedFile, setUploadedFile] = useState<string | null>(null)
   const { formData, setFormData, isEditing, editingId, resetForm } = useDMCForm()
-  const [showStandaloneBankDetails, setShowStandaloneBankDetails] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -664,9 +662,6 @@ export function DMCRegistrationForm() {
           {isSubmitting ? (isEditing ? "Updating..." : "Submitting...") : isEditing ? "Update DMC" : "Submit"}
         </Button>
       </div>
-
-      {/* Bank Details Modal - Updated to use standalone APIs */}
-      <StandaloneBankDetails isOpen={showStandaloneBankDetails} onClose={() => setShowStandaloneBankDetails(false)} />
 
       <Toaster />
     </form>

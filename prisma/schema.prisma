@@ -9,22 +9,22 @@ datasource db {
 }
 
 model File {
-  id                         String      @id @default(uuid())
+  id                         String         @id @default(uuid())
   url                        String
   name                       String
   size                       Int
   type                       String
-  createdAt                  DateTime    @default(now())
-  updatedAt                  DateTime    @updatedAt
-  agencyLicense              AgencyForm? @relation("AgencyBusinessLicense")
-  agencyLogo                 AgencyForm? @relation("AgencyLogo")
-  dmcRegistrationCertificate DMCForm?    @relation("DMCRegistrationCertificate")
-  managerProfile             Manager?    @relation("ManagerProfile")
-  userProfile                UserForm?   @relation("UserProfileImage")
-  userProfileImage User? @relation("UserProfileImage")
+  createdAt                  DateTime       @default(now())
+  updatedAt                  DateTime       @updatedAt
+  agencyLicense              AgencyForm?    @relation("AgencyBusinessLicense")
+  agencyLogo                 AgencyForm?    @relation("AgencyLogo")
+  dmcRegistrationCertificate DMCForm?       @relation("DMCRegistrationCertificate")
+  managerProfile             Manager?       @relation("ManagerProfile")
+  userProfile                UserForm?      @relation("UserProfileImage")
+  userProfileImage           User?          @relation("UserProfileImage")
   paymentMethodQRCode        PaymentMethod? @relation("PaymentMethodQRCode")
+  adminProfile               Admin?         @relation("AdminProfile")
 
-  adminProfile   Admin?    @relation("AdminProfile")
   @@map("file")
 }
 
@@ -42,13 +42,11 @@ model User {
   isOnline       Boolean        @default(false)
   agencyId       String?
   dmcId          String?
+  profileImgId   String?        @unique
   passwordResets PasswordReset?
   agency         Agency?        @relation(fields: [agencyId], references: [id])
   dmc            DMC?           @relation(fields: [dmcId], references: [id])
-  profileImgId   String?        @unique
-  profileImage   File?  @relation("UserProfileImage", fields: [profileImgId], references: [id])
-
-  // Comments authored by this user
+  profileImage   File?          @relation("UserProfileImage", fields: [profileImgId], references: [id])
   comments       Comment[]      @relation("CommentAuthor")
 
   @@index([email])
@@ -164,23 +162,22 @@ model AgencyForm {
 }
 
 model DMCForm {
-  id                        String    @id @default(uuid())
-  agencyId                  String?
+  id                        String          @id @default(uuid())
   name                      String
-  config                    Json      @default("{}")
+  config                    Json            @default("{}")
   contactPerson             String?
   designation               String?
   phoneNumber               String?
-  phoneCountryCode          String?   @default("+91")
+  phoneCountryCode          String?         @default("+91")
   ownerName                 String?
   email                     String?
   ownerPhoneNumber          String?
-  ownerPhoneCode            String?   @default("+91")
+  ownerPhoneCode            String?         @default("+91")
   website                   String?
   primaryCountry            String?
   destinationsCovered       String?
   cities                    String?
-  gstRegistered             Boolean?  @default(true)
+  gstRegistered             Boolean?        @default(true)
   gstNumber                 String?
   yearOfRegistration        String?
   panNumber                 String?
@@ -188,14 +185,14 @@ model DMCForm {
   headquarters              String?
   country                   String?
   yearsOfExperience         String?
-  registrationCertificateId String?   @unique
+  registrationCertificateId String?         @unique
   createdBy                 String
-  createdAt                 DateTime  @default(now())
-  updatedAt                 DateTime  @updatedAt
-  status                    DMCStatus @default(ACTIVE)
-
+  createdAt                 DateTime        @default(now())
+  updatedAt                 DateTime        @updatedAt
+  status                    DMCStatus       @default(ACTIVE)
+  agencyId                  String?
   sharedItems               SharedDMCItem[] @relation("SharedDMCItems")
-  registrationCertificate   File?     @relation("DMCRegistrationCertificate", fields: [registrationCertificateId], references: [id])
+  registrationCertificate   File?           @relation("DMCRegistrationCertificate", fields: [registrationCertificateId], references: [id])
   paymentMethods            PaymentMethod[]
 
   @@index([name])
@@ -207,19 +204,17 @@ model DMCForm {
 
 
 model Manager {
-  id        String   @id @default(uuid())
+  id        String    @id @default(uuid())
   name      String
   phone     String
-  email     String   @unique
-  username  String   @unique
+  email     String    @unique
+  username  String    @unique
   password  String
-  status    String   @default("INACTIVE")
-  profileId String?  @unique
-  profile   File?    @relation("ManagerProfile", fields: [profileId], references: [id])
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt @default(now())
-
-  // Comments on this manager
+  profileId String?   @unique
+  createdAt DateTime  @default(now())
+  status    String    @default("INACTIVE")
+  updatedAt DateTime  @default(now()) @updatedAt
+  profile   File?     @relation("ManagerProfile", fields: [profileId], references: [id])
   comments  Comment[] @relation("ManagerComments")
 }
 
@@ -239,46 +234,33 @@ model UserForm {
   createdBy      String
   profileImage   File?      @relation("UserProfileImage", fields: [profileImageId], references: [id])
 
-  @@map("user_form") // Explicit table name mapping
+  @@map("user_form")
 }
 
 model PaymentMethod {
   id          String            @id @default(uuid())
-  dmcId       String?           // Made optional
-  dmc         DMCForm?          @relation(fields: [dmcId], references: [id])
+  dmcId       String?
   type        PaymentMethodType
-
-  // Common fields
   name        String?
-  identifier  String? // Account number, UPI ID, etc.
-
-  // Bank-specific fields
+  identifier  String?
   bankName    String?
   branchName  String?
   ifscCode    String?
   bankCountry String?
   currency    String?
-
-  // Card-specific fields
   cardHolder  String?
   expiryDate  String?
-
-  // UPI-specific fields
   upiProvider String?
-
-  // QR Code
-  qrCodeId    String?   @unique
-  qrCode      File?     @relation("PaymentMethodQRCode", fields: [qrCodeId], references: [id], onDelete: Cascade)
-
-  // Payment Gateway
+  qrCodeId    String?           @unique
   paymentLink String?
-
-  // Metadata
   notes       String?
-  isActive    Boolean   @default(true)
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-
+  isActive    Boolean           @default(true)
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+  dmc         DMCForm?          @relation(fields: [dmcId], references: [id])
+  qrCode      File?             @relation("PaymentMethodQRCode", fields: [qrCodeId], references: [id], onDelete: Cascade)
+  bankData Json?
+  
   @@index([dmcId])
   @@index([type])
 }
@@ -500,23 +482,22 @@ model customer_feedbacks {
 }
 
 model sent_itineraries {
-  id             String   @id @default(cuid())
-  customerId     String
-  itineraryId    String?
+  id             String       @id @default(cuid())
   customerName   String
   email          String
   whatsappNumber String?
   notes          String?
   documentUrl    String?
   documentName   String?
-  status         String   @default("sent")
-  emailSent      Boolean  @default(false)
-  whatsappSent   Boolean  @default(false)
-  sentDate       DateTime @default(now())
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
-
-  customer       customers  @relation(fields: [customerId], references: [id])
+  status         String       @default("sent")
+  sentDate       DateTime     @default(now())
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  customerId     String
+  itineraryId    String?
+  emailSent      Boolean      @default(false)
+  whatsappSent   Boolean      @default(false)
+  customer       customers    @relation(fields: [customerId], references: [id])
   itinerary      itineraries? @relation(fields: [itineraryId], references: [id])
 }
 
@@ -542,41 +523,41 @@ model FlightEnquiry {
   updatedAt             DateTime @updatedAt
   createdBy             String?
 
-  @@map("flight_enquiries")
   @@index([email])
   @@index([status])
   @@index([createdAt])
+  @@map("flight_enquiries")
 }
 
 model AccommodationEnquiry {
-  id                 String   @id @default(uuid())
-  name               String
-  phone              String
-  email              String
-  locations          String[] @default([])
-  startDate          String
-  endDate            String
-  adults             Int      @default(2)
-  children           Int      @default(0)
-  under5             Int      @default(0)
-  from6to12          Int      @default(0)
-  budget             Int      @default(500)
-  accommodationType  String[] @default([])
-  hotelPreference    String[] @default([])
-  assignedStaff      String?
-  pointOfContact     String?
-  notes              String?
-  leadSource         String   @default("Direct")
-  status             String   @default("enquiry")
-  enquiryDate    DateTime  @default(now())
-  createdAt          DateTime @default(now())
-  updatedAt          DateTime @updatedAt
-  createdBy          String?
+  id                String   @id @default(uuid())
+  name              String
+  phone             String
+  email             String
+  locations         String[] @default([])
+  startDate         String
+  endDate           String
+  adults            Int      @default(2)
+  children          Int      @default(0)
+  under5            Int      @default(0)
+  from6to12         Int      @default(0)
+  budget            Int      @default(500)
+  accommodationType String[] @default([])
+  hotelPreference   String[] @default([])
+  assignedStaff     String?
+  pointOfContact    String?
+  notes             String?
+  leadSource        String   @default("Direct")
+  status            String   @default("enquiry")
+  enquiryDate       DateTime @default(now())
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  createdBy         String?
 
-  @@map("accommodation_enquiries")
   @@index([email])
   @@index([status])
   @@index([createdAt])
+  @@map("accommodation_enquiries")
 }
 
 model Comment {
@@ -584,28 +565,23 @@ model Comment {
   content   String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-
-  // Relations
   managerId String
-  manager   Manager @relation("ManagerComments", fields: [managerId], references: [id], onDelete: Cascade)
-
   authorId  String
-  author    User    @relation("CommentAuthor", fields: [authorId], references: [id], onDelete: Cascade)
+  manager   Manager  @relation("ManagerComments", fields: [managerId], references: [id], onDelete: Cascade)
+  author    User     @relation("CommentAuthor", fields: [authorId], references: [id], onDelete: Cascade)
 
   @@map("comments")
 }
 
 model Staff {
-  id        String   @id @default(uuid())
-  name      String
-  email     String   @unique
-  phone     String?
-  role      String   @default("STAFF")
-  isActive  Boolean  @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  // Relations
+  id             String      @id @default(uuid())
+  name           String
+  email          String      @unique
+  phone          String?
+  role           String      @default("STAFF")
+  isActive       Boolean     @default(true)
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
   assignedShares SharedDMC[] @relation("AssignedStaff")
 
   @@map("staff")
@@ -620,9 +596,7 @@ model SharedDMC {
   assignedStaffId String?
   createdAt       DateTime        @default(now())
   updatedAt       DateTime        @updatedAt
-
-  // Relations
-  assignedStaff   Staff?         @relation("AssignedStaff", fields: [assignedStaffId], references: [id])
+  assignedStaff   Staff?          @relation("AssignedStaff", fields: [assignedStaffId], references: [id])
   selectedDMCs    SharedDMCItem[]
 
   @@index([assignedStaffId])
@@ -630,16 +604,14 @@ model SharedDMC {
 }
 
 model SharedDMCItem {
-  id           String        @id @default(uuid())
-  sharedDMCId  String
-  dmcId        String
-  status       DMCItemStatus @default(AWAITING_TRANSFER)
-  createdAt    DateTime      @default(now())
-  updatedAt    DateTime      @updatedAt
-
-  // Relations
-  sharedDMC    SharedDMC @relation(fields: [sharedDMCId], references: [id], onDelete: Cascade)
-  dmc          DMCForm   @relation("SharedDMCItems", fields: [dmcId], references: [id])
+  id          String        @id @default(uuid())
+  sharedDMCId String
+  dmcId       String
+  status      DMCItemStatus @default(AWAITING_TRANSFER)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  sharedDMC   SharedDMC     @relation(fields: [sharedDMCId], references: [id], onDelete: Cascade)
+  dmc         DMCForm       @relation("SharedDMCItems", fields: [dmcId], references: [id])
 
   @@unique([sharedDMCId, dmcId])
   @@index([sharedDMCId])
@@ -648,23 +620,22 @@ model SharedDMCItem {
 }
 
 model Admin {
-  id         String      @id @default(uuid())
-  name       String
-  phone      String
-  email      String      @unique
-  username   String      @unique
-  password   String
-  status     AdminStatus @default(INACTIVE)
-  profileId  String?     @unique
-  profile    File?       @relation("AdminProfile", fields: [profileId], references: [id])
-  userId     String      @unique
-  createdAt  DateTime    @default(now())
-  updatedAt  DateTime    @updatedAt
-
+  id        String      @id @default(uuid())
+  name      String
+  phone     String
+  email     String      @unique
+  username  String      @unique
+  password  String
+  status    AdminStatus @default(INACTIVE)
+  profileId String?     @unique
+  userId    String      @unique
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+  profile   File?       @relation("AdminProfile", fields: [profileId], references: [id])
 
   @@index([email])
   @@index([status])
-  @@map("admins") // Explicit table name
+  @@map("admins")
 }
 
 enum AdminStatus {
@@ -673,7 +644,6 @@ enum AdminStatus {
   SUSPENDED
 }
 
-// Add these enums
 enum SharedDMCStatus {
   PENDING
   SENT
@@ -760,6 +730,7 @@ enum UserStatus {
   ACTIVE
   INACTIVE
 }
+
 enum FlightRequirement {
   YES
   NO

@@ -34,23 +34,13 @@ interface PaymentReminder {
 
 // GET - Fetch customer payment data
 export async function GET(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  request: NextRequest
 ) {
   try {
-    // Await the params Promise
-    const { id } = await params;
-    
-    // In a real application, you would fetch from your database
-    // Example using Prisma, MongoDB, or your preferred ORM/database
-    
-    // const paymentData = await prisma.customerPayment.findUnique({
-    //   where: { id },
-    //   include: {
-    //     paymentHistory: true,
-    //     reminders: true,
-    //   }
-    // });
+    const id = request.nextUrl.searchParams.get('id') || '';
+    if (!id) {
+      return NextResponse.json({ error: 'id is required' }, { status: 400 });
+    }
 
     // Mock response for demonstration - replace with actual database query
     const paymentData: CustomerPaymentData = {
@@ -109,12 +99,14 @@ export async function GET(
 
 // PUT - Update customer payment data
 export async function PUT(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  request: NextRequest
 ) {
   try {
-    // Await the params Promise
-    const { id } = await params;
+    const id = request.nextUrl.searchParams.get('id') || '';
+    if (!id) {
+      return NextResponse.json({ error: 'id is required' }, { status: 400 });
+    }
+
     const updateData = await request.json();
 
     // Validate required fields
@@ -181,12 +173,6 @@ export async function PUT(
       id,
       updatedAt: new Date().toISOString()
     };
-
-    // Update in database
-    // const updated = await prisma.customerPayment.update({
-    //   where: { id },
-    //   data: updatedData
-    // });
 
     return NextResponse.json({
       success: true,
