@@ -1,12 +1,12 @@
 "use client"
-import { useState } from "react"
-import { X, QrCode, Smartphone, Globe, Plus } from "lucide-react"
+import { useEffect, useState } from "react"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { toast } from "@/components/ui/use-toast"
 import { Toaster } from "@/components/ui/toaster"
 import { Textarea } from "@/components/ui/textarea"
+import { QrCode } from "lucide-react"
 
 interface StandaloneBankDetailsProps {
   isOpen: boolean
@@ -20,11 +20,6 @@ const countries = [
   { name: "United Kingdom", code: "GB" },
   { name: "Canada", code: "CA" },
   { name: "Australia", code: "AU" },
-  { name: "Germany", code: "DE" },
-  { name: "France", code: "FR" },
-  { name: "Japan", code: "JP" },
-  { name: "China", code: "CN" },
-  { name: "Brazil", code: "BR" },
 ]
 
 type Bank = {
@@ -37,19 +32,6 @@ type Bank = {
   currency?: string
   notes?: string
 }
-
-type UpiPayload = {
-  type: "UPI";
-  upiProvider: string;
-  upiId: string;
-  dmcId?: string;
-};
-
-type GatewayPayload = {
-  type: "PAYMENT_GATEWAY";
-  paymentLink: string;
-  dmcId?: string;
-};
 
 export function StandaloneBankDetails({ isOpen, onClose, dmcId = null }: StandaloneBankDetailsProps) {
   const [banks, setBanks] = useState<Bank[]>([
@@ -68,122 +50,78 @@ export function StandaloneBankDetails({ isOpen, onClose, dmcId = null }: Standal
   const [upiId, setUpiId] = useState("")
   const [paymentLink, setPaymentLink] = useState("")
   const [qrFile, setQrFile] = useState<File | null>(null)
+  const [existingQrCodeUrl, setExistingQrCodeUrl] = useState<string | null>(null)
+  const [isUpdating, setIsUpdating] = useState(false)
   const [saving, setSaving] = useState(false)
+  const [loading, setLoading] = useState(false)
 
-  if (!isOpen) return null
+  useEffect(() => {
+    if (isOpen && dmcId) {
+      setLoading(true)
+      fetch(`/api/auth/standalone-payment?dmcId=${dmcId}`)
+        .then((res) => res.json())
+        .then((data) => {
+          if (data.success && data.data.methods) {
+            const bankDetails = data.data.methods.find((method: { type: string }) => method.type === "BANK_ACCOUNT")
+            const upiDetails = data.data.methods.find((method: { type: string }) => method.type === "UPI")
+            const gatewayDetails = data.data.methods.find((method: { type: string }) => method.type === "PAYMENT_GATEWAY")
+            const qrDetails = data.data.methods.find((method: { type: string; qrCode?: { url: string } }) => method.type === "QR_CODE")
 
-  const addBank = () => {
-    if (banks.length >= 3) return
-    setBanks((prev) => [
-      ...prev,
-      {
-        accountHolderName: "",
-        bankName: "",
-        branchName: "",
-        accountNumber: "",
-        ifscCode: "",
-        bankCountry: "India",
-        currency: "INR",
-        notes: "",
-      },
-    ])
-  }
+            if (bankDetails && bankDetails.bank && Array.isArray(bankDetails.bank) && bankDetails.bank.length > 0) {
+              setBanks(bankDetails.bank)
+              setIsUpdating(true)
+            } else {
+              // Reset to default empty bank if no existing data
+              setBanks([
+                {
+                  accountHolderName: "",
+                  bankName: "",
+                  branchName: "",
+                  accountNumber: "",
+                  ifscCode: "",
+                  bankCountry: "India",
+                  currency: "INR",
+                  notes: "",
+                },
+              ])
+            }
 
-  const updateBank = (idx: number, key: keyof Bank, value: string) => {
-    const next = [...banks]
-    next[idx][key] = value
-    setBanks(next)
-  }
+            if (upiDetails) {
+              setSelectedUpiProvider(upiDetails.upiProvider || "Google Pay UPI")
+              setUpiId(upiDetails.identifier || "")
+              setIsUpdating(true)
+            }
+            if (gatewayDetails) {
+              setPaymentLink(gatewayDetails.paymentLink || "")
+              setIsUpdating(true)
+            }
+            if (qrDetails && qrDetails.qrCode) {
+              setExistingQrCodeUrl(qrDetails.qrCode.url)
+              setIsUpdating(true)
+            }
 
-  const handleSave = async () => {
-    setSaving(true)
-    try {
-      // Prepare banks array (filter out empty)
-      const banksToSave = banks.filter(
-        (b) => b.accountHolderName.trim() || b.bankName.trim() || b.accountNumber.trim(),
-      )
-
-      // Only send if there are banks
-      if (banksToSave.length > 0) {
-        const payload = {
-          type: "BANK_ACCOUNT",
-          bank: banksToSave, // <-- send as array
-          dmcId,
-        }
-        const res = await fetch("/api/auth/standalone-payment", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
+            if (bankDetails || upiDetails || gatewayDetails || qrDetails) {
+              setIsUpdating(true)
+            }
+          } else {
+            // No existing payment methods, set to saving mode
+            setIsUpdating(false)
+          }
         })
-        const data = await res.json()
-        if (!res.ok) throw new Error(data.error || "Failed to save bank details")
-      }
-
-      // Save UPI if present
-      if (upiId.trim()) {
-        const upiPayload: UpiPayload = {
-          type: "UPI",
-          upiProvider: selectedUpiProvider,
-          upiId,
-          ...(dmcId ? { dmcId } : {}),
-        };
-
-        const res = await fetch("/api/auth/standalone-payment", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(upiPayload),
-        })
-        const data = await res.json()
-        if (!res.ok) {
-          throw new Error(data.error || "Failed to save UPI details")
-        }
-      }
-
-      // Save QR if present
-      if (qrFile) {
-        const formData = new FormData()
-        formData.append("qrCode", qrFile)
-        if (dmcId) formData.append("dmcId", dmcId)
-
-          const res = await fetch("/api/auth/standalone-payment/qr-upload", {
-            method: "POST",
-            body: formData,
+        .catch((error) => {
+          console.error("Error fetching payment methods:", error)
+          setIsUpdating(false)
+          toast({
+            title: "Error",
+            description: "Failed to load existing payment details",
+            variant: "destructive",
           })
-        const data = await res.json()
-        if (!res.ok) {
-          throw new Error(data.error || "Failed to save QR code")
-        }
-      }
-
-      // Save Payment Gateway link if present
-      if (paymentLink.trim()) {
-        const gatewayPayload: GatewayPayload = {
-          type: "PAYMENT_GATEWAY",
-          paymentLink,
-          ...(dmcId ? { dmcId } : {}),
-        };
-
-        const res = await fetch("/api/auth/standalone-payment", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(gatewayPayload),
         })
-        const data = await res.json()
-        if (!res.ok) {
-          throw new Error(data.error || "Failed to save payment gateway link")
-        }
-      }
-
-      toast({
-        title: "Success",
-        description: "Payment details saved successfully",
-      })
-
-      // reset
+        .finally(() => {
+          setLoading(false)
+        })
+    } else {
+      // Reset state when the form is closed or opened without a dmcId
       setBanks([
         {
           accountHolderName: "",
@@ -200,11 +138,58 @@ export function StandaloneBankDetails({ isOpen, onClose, dmcId = null }: Standal
       setUpiId("")
       setPaymentLink("")
       setQrFile(null)
+      setExistingQrCodeUrl(null)
+      setIsUpdating(false)
+      setLoading(false)
+    }
+  }, [isOpen, dmcId])
+
+  const updateBank = (idx: number, key: keyof Bank, value: string) => {
+    const next = [...banks]
+    next[idx][key] = value
+    setBanks(next)
+  }
+
+  const handleSaveOrUpdate = async () => {
+    if (!dmcId) {
+      toast({
+        title: "Error",
+        description: "DMC ID is required",
+        variant: "destructive",
+      })
+      return
+    }
+
+    setSaving(true)
+    try {
+      const banksToSave = banks.filter((b) => b.accountHolderName.trim() || b.bankName.trim() || b.accountNumber.trim())
+
+      const formData = new FormData()
+      formData.append("dmcId", dmcId)
+      formData.append("bank", JSON.stringify(banksToSave))
+      formData.append("upiProvider", selectedUpiProvider)
+      formData.append("upiId", upiId)
+      formData.append("paymentLink", paymentLink)
+      if (qrFile) formData.append("qrCode", qrFile)
+
+      const res = await fetch("/api/auth/standalone-payment", {
+        method: isUpdating ? "PUT" : "POST",
+        body: formData,
+      })
+
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || "Failed to save/update payment methods")
+
+      toast({
+        title: "Success",
+        description: isUpdating ? "Payment methods updated successfully" : "Payment methods saved successfully",
+      })
+
       onClose()
     } catch (error) {
       toast({
         title: "Error",
-        description: error instanceof Error ? error.message : "Failed to save payment details",
+        description: error instanceof Error ? error.message : "Failed to save/update payment methods",
         variant: "destructive",
       })
     } finally {
@@ -212,233 +197,227 @@ export function StandaloneBankDetails({ isOpen, onClose, dmcId = null }: Standal
     }
   }
 
+  if (!isOpen) return null
+
   return (
     <>
       <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 overflow-y-auto">
         <div className="bg-white rounded-lg w-full max-w-3xl max-h-[90vh] overflow-y-auto">
           <div className="flex items-center justify-between p-4 border-b">
-            <h3 className="text-lg font-medium">Payment details</h3>
-            <div className="flex items-center gap-2">
-              <Button variant="ghost" size="icon" onClick={onClose}>
-                <X className="h-5 w-5" />
-              </Button>
-            </div>
+            <h3 className="text-lg font-medium">Payment Methods</h3>
+            <Button variant="ghost" size="icon" onClick={onClose}>
+              ✕
+            </Button>
           </div>
 
-          <div className="p-4">
-            {/* Bank Details Section */}
-            <div className="mb-6">
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-2">
-                  <div className="bg-gray-100 p-2 rounded">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      <path d="M3 21H21" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                      <path d="M3 10H21" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                      <path d="M5 6L12 3L19 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                      <path d="M4 10V21" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                      <path d="M20 10V21" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                      <path d="M8 14V17" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                      <path d="M12 14V17" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                      <path d="M16 14V17" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                    </svg>
-                  </div>
-                  <span className="font-medium">Bank Details</span>
-                </div>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="h-8 rounded-full bg-greenlight text-white border-0 hover:bg-emerald-600 disabled:opacity-60"
-                  onClick={addBank}
-                  disabled={banks.length >= 3}
-                >
-                  <Plus className="h-4 w-4 mr-1" />
-                  Add more
-                </Button>
-              </div>
-
-              <div className="space-y-6">
-                {banks.map((b, idx) => (
-                  <div key={idx} className="grid grid-cols-1 md:grid-cols-2 gap-4 border rounded-md p-3">
-                    <div className="space-y-2">
-                      <label className="block text-sm font-medium text-gray-700">Account Holder Name</label>
-                      <Input
-                        className="w-full h-10"
-                        value={b.accountHolderName}
-                        onChange={(e) => updateBank(idx, "accountHolderName", e.target.value)}
-                      />
+          {loading ? (
+            <div className="p-8 text-center">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mx-auto"></div>
+              <p className="mt-2 text-gray-600">Loading payment details...</p>
+            </div>
+          ) : (
+            <div className="p-4">
+              {/* Bank Details Section */}
+              <div className="mb-4">
+                <h4 className="text-md font-semibold mb-2">Bank Details</h4>
+                {banks.map((bank, idx) => (
+                  <div key={idx} className="border p-4 rounded-lg mb-2">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700">Account Holder Name</label>
+                        <Input
+                          value={bank.accountHolderName}
+                          onChange={(e) => updateBank(idx, "accountHolderName", e.target.value)}
+                          placeholder="Enter account holder name"
+                          className="mt-1"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700">Bank Name</label>
+                        <Input
+                          value={bank.bankName}
+                          onChange={(e) => updateBank(idx, "bankName", e.target.value)}
+                          placeholder="Enter bank name"
+                          className="mt-1"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700">Branch Name</label>
+                        <Input
+                          value={bank.branchName}
+                          onChange={(e) => updateBank(idx, "branchName", e.target.value)}
+                          placeholder="Enter branch name"
+                          className="mt-1"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700">Account Number</label>
+                        <Input
+                          value={bank.accountNumber}
+                          onChange={(e) => updateBank(idx, "accountNumber", e.target.value)}
+                          placeholder="Enter account number"
+                          className="mt-1"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700">IFSC Code</label>
+                        <Input
+                          value={bank.ifscCode}
+                          onChange={(e) => updateBank(idx, "ifscCode", e.target.value)}
+                          placeholder="Enter IFSC code"
+                          className="mt-1"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700">Bank Country</label>
+                        <Select
+                          value={bank.bankCountry}
+                          onValueChange={(value) => updateBank(idx, "bankCountry", value)}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select country" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {countries.map((country) => (
+                              <SelectItem key={country.code} value={country.name}>
+                                {country.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700">Currency</label>
+                        <Input
+                          value={bank.currency}
+                          onChange={(e) => updateBank(idx, "currency", e.target.value)}
+                          placeholder="Enter currency"
+                          className="mt-1"
+                        />
+                      </div>
                     </div>
-                    <div className="space-y-2">
-                      <label className="block text-sm font-medium text-gray-700">Bank Name</label>
-                      <Input
-                        className="w-full h-10"
-                        value={b.bankName}
-                        onChange={(e) => updateBank(idx, "bankName", e.target.value)}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <label className="block text-sm font-medium text-gray-700">Branch Name / Location</label>
-                      <Input
-                        className="w-full h-10"
-                        value={b.branchName || ""}
-                        onChange={(e) => updateBank(idx, "branchName", e.target.value)}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <label className="block text-sm font-medium text-gray-700">Account Number</label>
-                      <Input
-                        className="w-full h-10"
-                        value={b.accountNumber}
-                        onChange={(e) => updateBank(idx, "accountNumber", e.target.value)}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <label className="block text-sm font-medium text-gray-700">IFSC / SWIFT Code</label>
-                      <Input
-                        className="w-full h-10"
-                        value={b.ifscCode || ""}
-                        onChange={(e) => updateBank(idx, "ifscCode", e.target.value)}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <label className="block text-sm font-medium text-gray-700">Bank Country</label>
-                      <Select
-                        value={b.bankCountry || "India"}
-                        onValueChange={(val) => updateBank(idx, "bankCountry", val)}
-                      >
-                        <SelectTrigger className="w-full h-10">
-                          <SelectValue placeholder="Select country" />
-                        </SelectTrigger>
-                        <SelectContent className="max-h-60 overflow-y-auto">
-                          {countries.map((country) => (
-                            <SelectItem key={country.code} value={country.name}>
-                              {country.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="space-y-2">
-                      <label className="block text-sm font-medium text-gray-700">Currency</label>
-                      <Select
-                        value={b.currency || "INR"}
-                        onValueChange={(val) => updateBank(idx, "currency", val)}
-                      >
-                        <SelectTrigger className="w-full h-10">
-                          <SelectValue placeholder="Select currency" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="USD">US Dollar</SelectItem>
-                          <SelectItem value="EUR">Euro</SelectItem>
-                          <SelectItem value="GBP">British Pound</SelectItem>
-                          <SelectItem value="INR">Indian Rupee</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="space-y-2 md:col-span-2">
-                      <label className="block text-sm font-medium text-gray-700">Enter any notes if required</label>
+                    <div className="mt-4">
+                      <label className="block text-sm font-medium text-gray-700">Notes</label>
                       <Textarea
-                        className="w-full min-h-[60px]"
-                        value={b.notes || ""}
+                        value={bank.notes}
                         onChange={(e) => updateBank(idx, "notes", e.target.value)}
+                        placeholder="Enter any additional notes"
+                        className="mt-1"
                       />
                     </div>
                   </div>
                 ))}
               </div>
-              <p className="text-xs text-gray-500 mt-2">You can add up to 3 bank accounts.</p>
-            </div>
 
-            {/* UPI Section */}
-            <div className="border rounded-md mb-4">
-              <div className="px-4 py-3 flex items-center gap-2">
-                <div className="bg-gray-100 p-2 rounded">
-                  <Smartphone className="h-5 w-5" />
-                </div>
-                <span className="font-medium">UPI</span>
-              </div>
-              <div className="px-4 pb-4 grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <label className="block text-sm font-medium text-gray-700">UPI Provider</label>
-                  <Select value={selectedUpiProvider} onValueChange={setSelectedUpiProvider}>
-                    <SelectTrigger className="w-full h-10">
-                      <SelectValue placeholder="Google Pay UPI" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Google Pay UPI">Google Pay UPI</SelectItem>
-                      <SelectItem value="PhonePe">PhonePe</SelectItem>
-                      <SelectItem value="Paytm">Paytm</SelectItem>
-                      <SelectItem value="BHIM UPI">BHIM UPI</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <label className="block text-sm font-medium text-gray-700">Enter UPI ID</label>
-                  <Input className="w-full h-10" value={upiId} onChange={(e) => setUpiId(e.target.value)} />
-                </div>
-              </div>
-            </div>
-
-            {/* QR Code Section */}
-            <div className="border rounded-md mb-4">
-              <div className="px-4 py-3 flex items-center gap-2">
-                <div className="bg-gray-100 p-2 rounded">
-                  <QrCode className="h-5 w-5" />
-                </div>
-                <span className="font-medium">QR Code</span>
-              </div>
-              <div className="px-4 pb-4">
-                <input
-                  id="standalone-qrCode"
-                  type="file"
-                  className="hidden"
-                  onChange={(e) => setQrFile(e.target.files?.[0] || null)}
-                />
-                <div className="flex items-center gap-2">
-                  <div className="border-2 border-dashed border-gray-300 rounded-md p-6 text-center flex-1">
-                    <p className="text-sm text-gray-500">{qrFile ? qrFile.name : "Upload QR Code"}</p>
+              {/* UPI Section */}
+              <div className="mb-4">
+                <h4 className="text-md font-semibold mb-2">UPI Details</h4>
+                <div className="border p-4 rounded-lg mb-2">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700">UPI Provider</label>
+                      <Select value={selectedUpiProvider} onValueChange={setSelectedUpiProvider}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select UPI provider" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="Google Pay UPI">Google Pay UPI</SelectItem>
+                          <SelectItem value="PhonePe UPI">PhonePe UPI</SelectItem>
+                          <SelectItem value="Paytm UPI">Paytm UPI</SelectItem>
+                          <SelectItem value="BHIM UPI">BHIM UPI</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700">UPI ID</label>
+                      <Input
+                        value={upiId}
+                        onChange={(e) => setUpiId(e.target.value)}
+                        placeholder="Enter UPI ID"
+                        className="mt-1"
+                      />
+                    </div>
                   </div>
-                  <Button
-                    variant="outline"
-                    className="h-10 bg-greenlight hover:bg-emerald-600 text-white border-0"
-                    onClick={() => document.getElementById("standalone-qrCode")?.click()}
-                    type="button"
-                  >
-                    Upload
-                  </Button>
                 </div>
               </div>
-            </div>
 
-            {/* Payment Gateway Section */}
-            <div className="border rounded-md">
-              <div className="px-4 py-3 flex items-center gap-2">
-                <div className="bg-gray-100 p-2 rounded">
-                  <Globe className="h-5 w-5" />
+              {/* QR Code Section */}
+              <div className="border rounded-md mb-4">
+                <div className="px-4 py-3 flex items-center gap-2">
+                  <div className="bg-gray-100 p-2 rounded">
+                    <QrCode className="h-5 w-5" />
+                  </div>
+                  <span className="font-medium">QR Code</span>
                 </div>
-                <span className="font-medium">Payment Gateway</span>
-              </div>
-              <div className="px-4 pb-4">
-                <div className="space-y-2">
-                  <label className="block text-sm font-medium text-gray-700">Paste the link</label>
-                  <Input
-                    className="w-full h-10"
-                    value={paymentLink}
-                    onChange={(e) => setPaymentLink(e.target.value)}
+                <div className="px-4 pb-4">
+                  <input
+                    id="standalone-qrCode"
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={(e) => setQrFile(e.target.files?.[0] || null)}
                   />
+                  <div className="flex items-center gap-2">
+                    <div className="border-2 border-dashed border-gray-300 rounded-md p-6 text-center flex-1">
+                      {qrFile ? (
+                        <div>
+                          <p className="text-sm text-green-600 font-medium">{qrFile.name}</p>
+                          <p className="text-xs text-gray-500">New file selected</p>
+                        </div>
+                      ) : existingQrCodeUrl ? (
+                        <div>
+                          <img
+                            src={existingQrCodeUrl || "/placeholder.svg"}
+                            alt="QR Code"
+                            className="w-32 h-32 mx-auto mb-2"
+                          />
+                          <p className="text-xs text-gray-500">Current QR Code</p>
+                        </div>
+                      ) : (
+                        <p className="text-sm text-gray-500">Upload QR Code</p>
+                      )}
+                    </div>
+                    <Button
+                      variant="outline"
+                      className="h-10 bg-green-500 hover:bg-green-600 text-white border-0"
+                      onClick={() => document.getElementById("standalone-qrCode")?.click()}
+                      type="button"
+                    >
+                      {existingQrCodeUrl ? "Change" : "Upload"}
+                    </Button>
+                  </div>
                 </div>
               </div>
-            </div>
 
-            <div className="flex justify-end mt-6">
-              <Button
-                className="bg-custom-green hover:bg-green-900 text-white"
-                onClick={handleSave}
-                disabled={saving}
-              >
-                {saving ? "Saving..." : "Save Details"}
-              </Button>
+              {/* Payment Gateway Section */}
+              <div className="mb-4">
+                <h4 className="text-md font-semibold mb-2">Payment Gateway</h4>
+                <div className="border p-4 rounded-lg mb-2">
+                  <div className="grid grid-cols-1 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700">Payment Link</label>
+                      <Input
+                        value={paymentLink}
+                        onChange={(e) => setPaymentLink(e.target.value)}
+                        placeholder="Enter payment gateway link"
+                        className="mt-1"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex justify-end mt-6 pt-4 border-t">
+                <Button
+                  className="bg-green-600 hover:bg-green-700 text-white px-6 py-2 font-medium"
+                  onClick={handleSaveOrUpdate}
+                  disabled={saving || loading}
+                >
+                  {saving ? "Saving..." : isUpdating ? "Update Details" : "Save Details"}
+                </Button>
+              </div>
             </div>
-          </div>
+          )}
         </div>
       </div>
       <Toaster />
