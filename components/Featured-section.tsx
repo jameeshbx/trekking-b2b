@@ -54,7 +54,7 @@ export default function FeaturesSection() {
               Our Value to You
             </h2>
             <p className="text-xl text-gray-600 font-Poppins max-w-3xl mx-auto">
-              Empowering Agencies with Seamless Travel Planning
+              Empowering Travel bussiness with streamlined tools
             </p>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 ">
@@ -75,7 +75,7 @@ export default function FeaturesSection() {
             Our Value to You
           </h2>
           <p className="text-xl text-gray-600 font-poppins max-w-3xl mx-auto">
-            Empowering Agencies with Seamless Travel Planning
+             Empowering Travel bussiness with streamlined tools
           </p>
         </div>
 

@@ -8,8 +8,38 @@ import { Button } from "@/components/ui/button"
 import { useSearchParams } from "next/navigation"
 import Image from "next/image"
 
+// Define types for the CSV itinerary data
+interface CsvActivity {
+  time: string
+  title: string
+  type: string
+  description: string
+  image?: string
+}
 
-// Define types for the itinerary data
+interface CsvDayItinerary {
+  day: number
+  date: string
+  title: string
+  activities: CsvActivity[]
+}
+
+interface CsvItineraryData {
+  quoteId: string
+  name: string
+  days: number
+  nights: number
+  startDate: string
+  costINR: number
+  costUSD: number
+  guests: number
+  adults: number
+  kids: number
+  dailyItinerary: CsvDayItinerary[]
+  locationMatched?: string
+}
+
+// Keep existing interfaces for database data
 interface Activity {
   time: string
   title: string
@@ -42,18 +72,16 @@ interface EnquiryDetails {
   description: string
 }
 
-// Updated ItineraryData interface to match backend structure
 interface ItineraryData {
   id: string
   enquiryId: string
-  location: string // This will be derived from enquiry.locations
-  numberOfDays: string // This will be derived from enquiry.estimatedDates
-  travelStyle: string // This will be derived from enquiry.tourType
+  location: string
+  numberOfDays: string
+  travelStyle: string
   budgetEstimation: BudgetEstimation
-  accommodation: Accommodation[] // Now directly from DB
-  dailyItinerary: DayItinerary[] // Now directly from DB
-  enquiryDetails: EnquiryDetails // This will be derived from enquiry.notes
-  // Fields directly from Itinerary model
+  accommodation: Accommodation[]
+  dailyItinerary: DayItinerary[]
+  enquiryDetails: EnquiryDetails
   destinations: string
   startDate: string
   endDate: string
@@ -94,7 +122,6 @@ interface ItineraryData {
     assignedStaff: string | null
     pointOfContact: string | null
     notes: string | null
-    // Add other enquiry fields if needed
   }
 }
 
@@ -102,20 +129,60 @@ const staffMembers = ["Kevin Blake", "Maria Rodriguez", "Priya Sharma", "Ahmed K
 
 function ItineraryViewContent() {
   const [itineraryData, setItineraryData] = useState<ItineraryData | null>(null)
+  const [csvItineraryData, setCsvItineraryData] = useState<CsvItineraryData | null>(null)
   const [loading, setLoading] = useState(true)
   const [expandedDays, setExpandedDays] = useState<Record<number, boolean>>({ 1: true })
   const [showReassignStaffDialog, setShowReassignStaffDialog] = useState(false)
   const [selectedStaff, setSelectedStaff] = useState<string>("")
+  const [useCSVData, setUseCSVData] = useState(false)
+  const [, setLocationBasedData] = useState<string>("")
   const searchParams = useSearchParams()
 
   useEffect(() => {
     const fetchItineraryData = async () => {
       setLoading(true)
       try {
-        // Use useSearchParams instead of window.location.search
         const enquiryId = searchParams.get("enquiryId")
         const itineraryId = searchParams.get("itineraryId")
 
+        let enquiryLocation = ""
+
+        // First, fetch enquiry data to get location information
+        if (enquiryId) {
+          try {
+            const enquiryResponse = await fetch(`/api/enquiries?id=${enquiryId}`)
+            if (enquiryResponse.ok) {
+              const enquiryData = await enquiryResponse.json()
+              if (enquiryData && enquiryData.locations) {
+                enquiryLocation = enquiryData.locations
+                setLocationBasedData(enquiryLocation)
+              }
+            }
+          } catch {
+            console.log("Could not fetch enquiry location data")
+          }
+
+          // Try to fetch CSV itinerary data based on enquiry location
+          try {
+            let csvApiUrl = `/api/itinerary-csv?enquiryId=${enquiryId}`
+            if (enquiryLocation) {
+              csvApiUrl += `&location=${encodeURIComponent(enquiryLocation)}`
+            }
+
+            const csvResponse = await fetch(csvApiUrl)
+            if (csvResponse.ok) {
+              const csvData = await csvResponse.json()
+              setCsvItineraryData(csvData)
+              setUseCSVData(true)
+              console.log(`Location-based itinerary loaded for: ${enquiryLocation} -> ${csvData.quoteId}`)
+            }
+          } catch {
+            console.log("CSV data not available, falling back to database data")
+            setUseCSVData(false)
+          }
+        }
+
+        // Then fetch database itinerary data as fallback
         let apiUrl = ""
         if (itineraryId) {
           apiUrl = `/api/itineraries?id=${itineraryId}`
@@ -138,7 +205,7 @@ function ItineraryViewContent() {
         if (fetchedItinerary) {
           const mappedData: ItineraryData = {
             ...fetchedItinerary,
-            location: fetchedItinerary.enquiry?.locations || "N/A",
+            location: fetchedItinerary.enquiry?.locations || enquiryLocation || "N/A",
             numberOfDays: fetchedItinerary.enquiry?.estimatedDates || "N/A",
             travelStyle: fetchedItinerary.enquiry?.tourType || "N/A",
             budgetEstimation: {
@@ -156,6 +223,20 @@ function ItineraryViewContent() {
 
           setItineraryData(mappedData)
           setSelectedStaff(fetchedItinerary.enquiry?.assignedStaff || "")
+
+          // If we don't have CSV data yet, try to get it based on the enquiry location
+          if (!csvItineraryData && mappedData.location && mappedData.location !== "N/A") {
+            try {
+              const csvResponse = await fetch(`/api/itinerary-csv?location=${encodeURIComponent(mappedData.location)}`)
+              if (csvResponse.ok) {
+                const csvData = await csvResponse.json()
+                setCsvItineraryData(csvData)
+                console.log(`Location-based CSV data loaded for: ${mappedData.location} -> ${csvData.quoteId}`)
+              }
+            } catch {
+              console.log("Could not load location-based CSV data")
+            }
+          }
         } else {
           setItineraryData(null)
         }
@@ -185,7 +266,6 @@ function ItineraryViewContent() {
       edit: "true",
     })
 
-    // Use window.location.href only on client side
     if (typeof window !== "undefined") {
       window.location.href = `/agency/dashboard/Itenary-form?${queryParams.toString()}`
     }
@@ -214,7 +294,6 @@ function ItineraryViewContent() {
       return
     }
 
-    // Pass customer phone
     const customerPhone = itineraryData?.enquiry?.phone || "N/A"
     const queryParams = new URLSearchParams({
       enquiryId: itineraryData?.enquiryId || "",
@@ -226,8 +305,30 @@ function ItineraryViewContent() {
     }
   }
 
-  const handleGenerateOtherPlan = () => {
-    alert("Generating alternative plan...")
+  const handleGenerateOtherPlan = async () => {
+    if (!itineraryData) return
+
+    try {
+      // Try to load a different template based on similar locations
+      //const currentLocationLower = itineraryData.location.toLowerCase()
+      const alternativeQuotes = ["KASH001", "KER001", "GOA001", "RAJ001", "EVER001", "THAI001"]
+      const currentQuoteId = csvItineraryData?.quoteId
+
+      // Filter out current quote and get alternatives
+      const alternatives = alternativeQuotes.filter((id) => id !== currentQuoteId)
+      const randomAlternative = alternatives[Math.floor(Math.random() * alternatives.length)]
+
+      const csvResponse = await fetch(`/api/itinerary-csv?quoteId=${randomAlternative}`)
+      if (csvResponse.ok) {
+        const csvData = await csvResponse.json()
+        setCsvItineraryData(csvData)
+        setUseCSVData(true)
+        alert(`Generated alternative plan: ${csvData.name}`)
+      }
+    } catch (error) {
+      console.error("Error generating alternative plan:", error)
+      alert("Failed to generate alternative plan")
+    }
   }
 
   const handleReassignStaff = async () => {
@@ -285,18 +386,74 @@ function ItineraryViewContent() {
     return icons[type] || "📍"
   }
 
+  const getLocationSpecificContent = (location: string) => {
+    const locationLower = location.toLowerCase()
+
+    if (locationLower.includes("kashmir") || locationLower.includes("srinagar")) {
+      return {
+        mapImage: "/kashmir-map.png",
+        bgImage: "/bg-pic.png",
+        locations: ["Srinagar", "Gulmarg", "Pahalgam"],
+        description:
+          "Experience the paradise on earth with breathtaking valleys, pristine lakes, and snow-capped mountains.",
+      }
+    } else if (
+      locationLower.includes("kerala") ||
+      locationLower.includes("kochi") ||
+      locationLower.includes("munnar")
+    ) {
+      return {
+        mapImage: "/kerala-map.png",
+        bgImage: "/kerala-bg.png",
+        locations: ["Kochi", "Munnar", "Alleppey"],
+        description:
+          "Discover God's Own Country with its enchanting backwaters, lush hills, and rich cultural heritage.",
+      }
+    } else if (locationLower.includes("goa")) {
+      return {
+        mapImage: "/goa-map.png",
+        bgImage: "/goa-bg.png",
+        locations: ["Panaji", "Calangute", "Anjuna"],
+        description:
+          "Enjoy the sun, sand, and surf in this tropical paradise with vibrant nightlife and Portuguese heritage.",
+      }
+    } else if (locationLower.includes("rajasthan") || locationLower.includes("jaipur")) {
+      return {
+        mapImage: "/rajasthan-map.png",
+        bgImage: "/rajasthan-bg.png",
+        locations: ["Jaipur", "Jodhpur", "Udaipur"],
+        description: "Explore the land of kings with magnificent palaces, colorful culture, and desert adventures.",
+      }
+    } else if (locationLower.includes("thailand") || locationLower.includes("bangkok")) {
+      return {
+        mapImage: "/thailand-map.png",
+        bgImage: "/thailand-bg.png",
+        locations: ["Bangkok", "Phuket", "Chiang Mai"],
+        description: "Experience exotic Thailand with its golden temples, pristine beaches, and delicious cuisine.",
+      }
+    }
+
+    // Default fallback
+    return {
+      mapImage: "/kashmir-map.png",
+      bgImage: "/bg-pic.png",
+      locations: ["Destination 1", "Destination 2", "Destination 3"],
+      description: "Discover amazing destinations with carefully curated experiences and unforgettable memories.",
+    }
+  }
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center h-screen w-full ">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading itinerary...</p>
+          <p className="text-gray-600">Loading location-based itinerary...</p>
         </div>
       </div>
     )
   }
 
-  if (!itineraryData) {
+  if (!itineraryData && !csvItineraryData) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
@@ -306,13 +463,33 @@ function ItineraryViewContent() {
     )
   }
 
+  // Use CSV data if available, otherwise fall back to database data
+  const displayData = useCSVData && csvItineraryData ? csvItineraryData : null
+  const fallbackData = itineraryData
+
+  // Get location-specific content
+  const currentLocation =
+    displayData?.locationMatched || fallbackData?.location || fallbackData?.enquiry?.locations || ""
+  const locationContent = getLocationSpecificContent(currentLocation)
   return (
     <div id="itineraries" className="flex flex-col min-h-screen bg-gray-100">
       {/* Header */}
       <div className="bg-white shadow-sm border-b">
         <div className="max-w-7xl mx-auto px-6 py-4">
           <div className="flex justify-between items-center">
-            <h1 className="text-2xl font-bold text-gray-900">Itinerary Details</h1>
+            <div className="flex items-center gap-4">
+              <h1 className="text-2xl font-bold text-gray-900">Itinerary Details</h1>
+              {displayData && (
+                <div className="flex items-center gap-2">
+                  <span className="bg-green-100 text-green-800 text-xs px-2 py-1 rounded-full">
+                    CSV Data: {displayData.name}
+                  </span>
+                  <button onClick={() => setUseCSVData(!useCSVData)} className="text-sm text-blue-600 hover:underline">
+                    {useCSVData ? "Switch to DB Data" : "Switch to CSV Data"}
+                  </button>
+                </div>
+              )}
+            </div>
             <div className="flex gap-3">
               <button
                 onClick={handleExportPDF}
@@ -329,7 +506,7 @@ function ItineraryViewContent() {
                 Edit plan
               </button>
               <button
-                onClick={() => setShowReassignStaffDialog(true)} // Open dialog
+                onClick={() => setShowReassignStaffDialog(true)}
                 className="px-4 py-2 border border-green-300 text-gray-600 rounded-lg hover:bg-gray-50"
               >
                 Reassign Staff
@@ -345,13 +522,13 @@ function ItineraryViewContent() {
           <div className="lg:col-span-1">
             <div className="bg-white shadow-lg rounded-lg relative overflow-hidden">
               <Image
-                src="/bg-pic.png" // Use the provided image URL
+                src={locationContent.bgImage || "/placeholder.svg"}
                 alt="Enquiry background"
                 width={600}
                 height={400}
                 className="absolute inset-0 w-full h-full object-cover"
               />
-              <div className="absolute inset-0 bg-black/30 backdrop-blur-sm"></div> {/* Blurred overlay */}
+              <div className="absolute inset-0 bg-black/30 backdrop-blur-sm"></div>
               <div className="p-6 relative z-10 pb-[327px]">
                 <div className="flex items-center mb-4">
                   <span className="bg-gray-600/50 text-white text-xs px-3 py-1 rounded-full flex items-center gap-2">
@@ -359,7 +536,9 @@ function ItineraryViewContent() {
                   </span>
                 </div>
                 <div className="mt-6">
-                  <p className="text-sm text-white leading-relaxed">{itineraryData.enquiryDetails.description}</p>
+                  <p className="text-sm text-white leading-relaxed">
+                    {fallbackData?.enquiryDetails.description || locationContent.description}
+                  </p>
                 </div>
               </div>
             </div>
@@ -370,26 +549,26 @@ function ItineraryViewContent() {
                 <h4 className="font-semibold mb-3 text-sm">Map</h4>
                 <div className="relative">
                   <Image
-                    src="/kashmir-map.png"
-                    alt="Kashmir Map"
+                    src={locationContent.mapImage || "/placeholder.svg"}
+                    alt={`${currentLocation} Map`}
                     width={400}
-                    height={384} // h-96 is 384px
+                    height={384}
                     className="w-full h-96 object-cover rounded-lg"
                   />
-                  {/* Map markers */}
-                  <div className="absolute top-8 left-16 w-3 h-3 bg-blue-600 rounded-full border-2 border-white shadow-lg"></div>
-                  <div className="absolute top-12 left-20 text-xs bg-white px-2 py-1 rounded shadow text-gray-800 font-medium">
-                    Srinagar
-                  </div>
-                  <div className="absolute bottom-16 left-12 w-3 h-3 bg-blue-600 rounded-full border-2 border-white shadow-lg"></div>
-                  <div className="absolute bottom-20 left-16 text-xs bg-white px-2 py-1 rounded shadow text-gray-800 font-medium">
-                    Pahalgam
-                  </div>
-                  <div className="absolute top-20 right-16 w-3 h-3 bg-blue-600 rounded-full border-2 border-white shadow-lg"></div>
-                  <div className="absolute top-24 right-20 text-xs bg-white px-2 py-1 rounded shadow text-gray-800 font-medium">
-                    Gulmarg
-                  </div>
-                  {/* Navigation controls */}
+                  {locationContent.locations.map((loc, index) => (
+                    <div
+                      key={index}
+                      className="absolute top-8 left-16 w-3 h-3 bg-blue-600 rounded-full border-2 border-white shadow-lg"
+                    ></div>
+                  ))}
+                  {locationContent.locations.map((loc, index) => (
+                    <div
+                      key={index}
+                      className="absolute top-12 left-20 text-xs bg-white px-2 py-1 rounded shadow text-gray-800 font-medium"
+                    >
+                      {loc}
+                    </div>
+                  ))}
                   <div className="absolute top-4 right-4 flex flex-col gap-1">
                     <button className="w-8 h-8 bg-white rounded shadow flex items-center justify-center hover:bg-gray-50">
                       <span className="text-lg font-bold text-gray-600">{"+"}</span>
@@ -412,7 +591,7 @@ function ItineraryViewContent() {
                 <div className="text-xs text-gray-500 uppercase mb-1">LOCATION</div>
                 <div className="flex items-center gap-2">
                   <MapPin className="h-4 w-4 text-gray-400" />
-                  <span className="font-medium">{itineraryData.location}</span>
+                  <span className="font-medium">{displayData?.name || fallbackData?.location || "N/A"}</span>
                 </div>
               </div>
 
@@ -421,16 +600,23 @@ function ItineraryViewContent() {
                 <div className="text-xs text-gray-500 uppercase mb-1">NUMBER OF DAY</div>
                 <div className="flex items-center gap-2">
                   <Calendar className="h-4 w-4 text-gray-400" />
-                  <span className="font-medium">{itineraryData.numberOfDays}</span>
+                  <span className="font-medium">
+                    {displayData?.days || fallbackData?.numberOfDays || "N/A"} Days / {displayData?.nights || "N/A"}{" "}
+                    Nights
+                  </span>
                 </div>
               </div>
 
               {/* Travel Style */}
               <div className="bg-white rounded-lg p-4 shadow">
-                <div className="text-xs text-gray-500 uppercase mb-1">TRAVEL STYLE</div>
+                <div className="text-xs text-gray-500 uppercase mb-1">GUESTS</div>
                 <div className="flex items-center gap-2">
                   <Users className="h-4 w-4 text-gray-400" />
-                  <span className="font-medium">{itineraryData.travelStyle}</span>
+                  <span className="font-medium">
+                    {displayData
+                      ? `${displayData.adults} Adults, ${displayData.kids} Kids`
+                      : fallbackData?.travelStyle || "N/A"}
+                  </span>
                 </div>
               </div>
             </div>
@@ -445,22 +631,20 @@ function ItineraryViewContent() {
                     <span className="text-gray-400">ℹ️</span>
                   </div>
                   <div className="flex items-baseline text-3xl font-bold text-violet-600 mb-2">
-                    <span>$</span>
-                    <span className="text-black ml-1">{itineraryData.budgetEstimation.amount.toLocaleString()}</span>
+                    <span>₹</span>
+                    <span className="text-black ml-1">
+                      {displayData?.costINR.toLocaleString() ||
+                        fallbackData?.budgetEstimation.amount.toLocaleString() ||
+                        "0"}
+                    </span>
                   </div>
                   <p className="text-sm text-gray-600 mb-4">
-                    Cost/Tourist: $ {itineraryData.budgetEstimation.costTourist}
+                    USD: $ {displayData?.costUSD || fallbackData?.budgetEstimation.amount || 0}
                   </p>
-                  <Select value={itineraryData.budgetEstimation.currency} onValueChange={() => {}}>
-                    <SelectTrigger className="w-full">
-                      <SelectValue placeholder="Select currency" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="USD">US Dollar</SelectItem>
-                      <SelectItem value="EUR">Euro</SelectItem>
-                      <SelectItem value="INR">Indian Rupee</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <p className="text-sm text-gray-600 mb-4">
+                    Cost/Tourist: $ {fallbackData?.budgetEstimation.costTourist || 32.3}
+                  </p>
+
                   {/* AI Assistant Section */}
                   <div className="mt-6 p-4 bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg">
                     <div className="flex items-center gap-2 mb-2">
@@ -469,7 +653,9 @@ function ItineraryViewContent() {
                       </div>
                       <span className="font-medium text-sm">AI Assistant</span>
                     </div>
-                    <p className="text-xs text-gray-600">Powered by intelligent budget estimation</p>
+                    <p className="text-xs text-gray-600">
+                      {displayData ? "Powered by CSV template data" : "Powered by intelligent budget estimation"}
+                    </p>
                   </div>
                 </div>
               </div>
@@ -482,31 +668,39 @@ function ItineraryViewContent() {
                     <span className="text-gray-400">ℹ️</span>
                   </div>
                   <div className="space-y-3">
-                    {itineraryData.accommodation.map((hotel, index) => (
-                      <div key={index} className="flex items-center gap-3">
-                        <Image
-                          src={hotel.image || "/placeholder.svg?height=60&width=80&query=hotel building"}
-                          alt={hotel.name}
-                          width={48}
-                          height={36}
-                          className="w-12 h-9 rounded object-cover"
-                        />
-                        <div className="flex-1">
-                          <p className="font-medium text-sm">{hotel.name}</p>
-                          <div className="flex items-center gap-1">
-                            {[...Array(hotel.rating)].map((_, i) => (
-                              <span key={i} className="text-yellow-400 text-xs">
-                                ⭐
-                              </span>
-                            ))}
-                            <span className="text-xs text-gray-500">{hotel.rating} star</span>
+                    {fallbackData?.accommodation && fallbackData.accommodation.length > 0 ? (
+                      fallbackData.accommodation.map((hotel, index) => (
+                        <div key={index} className="flex items-center gap-3">
+                          <Image
+                            src={hotel.image || "/placeholder.svg?height=60&width=80&query=hotel building"}
+                            alt={hotel.name}
+                            width={48}
+                            height={36}
+                            className="w-12 h-9 rounded object-cover"
+                          />
+                          <div className="flex-1">
+                            <p className="font-medium text-sm">{hotel.name}</p>
+                            <div className="flex items-center gap-1">
+                              {[...Array(hotel.rating)].map((_, i) => (
+                                <span key={i} className="text-yellow-400 text-xs">
+                                  ⭐
+                                </span>
+                              ))}
+                              <span className="text-xs text-gray-500">{hotel.rating} star</span>
+                            </div>
                           </div>
+                          <span className="text-sm font-medium">{hotel.nights} nights</span>
                         </div>
-                        <span className="text-sm font-medium">{hotel.nights} nights</span>
+                      ))
+                    ) : (
+                      <div className="text-center text-gray-500 py-4">
+                        <p className="text-sm">Accommodation details will be provided based on your preferences</p>
                       </div>
-                    ))}
+                    )}
                   </div>
-                  <button className="text-blue-600 text-sm mt-3 hover:underline">See all</button>
+                  {fallbackData?.accommodation && fallbackData.accommodation.length > 0 && (
+                    <button className="text-blue-600 text-sm mt-3 hover:underline">See all</button>
+                  )}
                 </div>
               </div>
             </div>
@@ -519,7 +713,7 @@ function ItineraryViewContent() {
                   <div className="flex gap-2">
                     <Button
                       onClick={handleGenerateOtherPlan}
-                      className="text-green-600 bg-white hover:bg-white  border-white  px-3 py-1 rounded text-sm flex items-center gap-1"
+                      className="text-green-600 bg-white hover:bg-white border-white px-3 py-1 rounded text-sm flex items-center gap-1"
                     >
                       <Image
                         src="/Magic.png"
@@ -540,8 +734,8 @@ function ItineraryViewContent() {
                   </div>
                 </div>
                 <div className="space-y-2">
-                  {itineraryData.dailyItinerary.map((day) => (
-                    <div key={day.day} className=" rounded-lg">
+                  {(displayData?.dailyItinerary || fallbackData?.dailyItinerary || []).map((day) => (
+                    <div key={day.day} className="rounded-lg">
                       <div
                         className="p-4 bg-gray-100 cursor-pointer flex justify-between items-center hover:bg-gray-200"
                         onClick={() => toggleDayExpansion(day.day)}
@@ -638,7 +832,7 @@ function ItineraryViewContent() {
 
 export default function ItineraryView() {
   return (
-     <Suspense
+    <Suspense
       fallback={
         <div className="min-h-screen bg-gray-50 flex items-center justify-center">
           <div className="text-center">

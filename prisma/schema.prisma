@@ -261,11 +261,12 @@ model PaymentMethod {
   updatedAt   DateTime  @updatedAt
 
   // NEW FIELD for storing multiple bank details as JSON
-  bank        Json?     // <-- This is all you need for banks
+  bank        Json?    
 
   @@index([dmcId])
   @@index([type])
 }
+
 
 model enquiries {
   id                 String              @id @default(uuid())

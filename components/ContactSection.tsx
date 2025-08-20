@@ -35,7 +35,7 @@ export default function ContactSection() {
             
             <div className="text-center">
               <h3 className="text-2xl font-bold text-[#1a4738] mb-3">Coming Soon!</h3>
-              <p className="text-gray-600 mb-6">This is our beta version. We&apos;re working hard to launch the full experience soon.</p>
+              <p className="text-gray-600 mb-6">Thank you for your interest! To learn more, please reach out to our Product Team at 9746904081.</p>
               
               <button 
                 onClick={closePopup}
