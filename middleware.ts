@@ -7,6 +7,7 @@ export const publicPaths = [
   "/forgot-password",
   "/reset-password",
   "/",
+  "/feedback",
 ];
 
 export default withAuth(

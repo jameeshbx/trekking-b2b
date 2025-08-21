@@ -4,7 +4,7 @@ import { FeatureCard } from "./FeatureCard"
 
 const features = [
   {
-    title: "Connect with partners, compare prices, and finalize deals.",
+    title: "Connect with dmcs and tour operators compare prices, and finalize deals.",
     imageSrc: "/background/feature1.png?height=400&width=600",
     containerClassName: "xl:col-span-8  mx-auto shadow-xl",
   },
@@ -40,7 +40,7 @@ const features = [
     containerClassName: "xl:col-span-4  mx-auto",
   },
   {
-    title: "Powered by AI",
+    title: "Connected Inbox",
     imageSrc: "/background/gradient.png?height=400&width=600",
     isGradient: true,
     containerClassName: "xl:col-span-5  mx-auto",

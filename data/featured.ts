@@ -2,7 +2,7 @@ export const featuresData = [
     {
       imagePath: "/img/Vector (1).svg",
       title: "AI Itinerary Builder",
-      description: "Create, edit & share travel plans in minutes.",
+      description: "Create, edit & share travel plans in seconds.",
     },
     {
       imagePath: "/img/Vector (2).svg",
@@ -16,18 +16,18 @@ export const featuresData = [
     },
     {
       imagePath: "/img/Group.svg",
-      title: "DMC & Supplier Collaboration",
-      description: "Connect with DMCs, compare prices & finalize deals.",
+      title: "DMC & Touroperator Collaboration",
+      description: "Search Connect and compare the best deals.",
     },
     {
       imagePath: "/img/Group (1).svg",
-      title: "Mobile-Friendly Access",
-      description: "Manage everything on the go with a simple interface.",
+      title: "Forex Integration",
+      description: "Manage your tour payment and forex easily.",
     },
     {
       imagePath: "/img/Clip path group.svg",
-      title: "Customized Templates",
-      description: "Create, save tailored itinerary templates for quick travel plans.",
+      title: "Integrated CRM",
+      description: "Manage client interactions, track leads, and automate follow-ups seamlessly.",
     },
     {
       imagePath: "/img/Group (1).svg",

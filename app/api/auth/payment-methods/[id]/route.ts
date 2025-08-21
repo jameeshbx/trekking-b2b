@@ -60,28 +60,11 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
           ...updateData,
           name: body.accountHolderName,
           identifier: body.accountNumber,
-          // Store all bank details as JSON in the 'bank' field
-          bank: {
-            bankName: body.bankName,
-            branchName: body.branchName,
-            ifscCode: body.ifscCode,
-            bankCountry: body.bankCountry,
-            currency: body.currency,
-          },
-          notes: body.notes,
+          notes: body.notes, // Keep only valid properties
         }
         break
 
-      case "CREDIT_CARD":
-      case "DEBIT_CARD":
-        updateData = {
-          ...updateData,
-          name: body.cardName,
-          identifier: body.cardNumber,
-          cardHolder: body.cardName,
-          expiryDate: body.expiryDate,
-        }
-        break
+    
 
       case "UPI":
         updateData = {
