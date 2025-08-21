@@ -299,6 +299,7 @@ model enquiries {
   customer           customers?          @relation(fields: [customerId], references: [id])
   itineraries        itineraries[]
   sharedCustomerPdfs SharedCustomerPdf[]
+  feedback Feedback?
 
   @@index([status])
   @@index([enquiryDate])
@@ -629,6 +630,28 @@ model Admin {
   @@index([email])
   @@index([status])
   @@map("admins")
+}
+
+model Feedback {
+  id                   String   @id @default(uuid())
+  enquiryId            String   @unique
+  name                 String
+  phone                String
+  email                String
+  destination          String
+  dateRange            String
+  overallExperience    Int      // Rating for overall experience
+  accommodationQuality Int      // Rating for accommodation quality
+  transportTransfers   Int      // Rating for transport & transfers
+  serviceFromTeam      Int      // Rating for service from our team
+  travelAgain          Boolean  // Would you travel with us again?
+  additionalComments   String?  // Any additional comments
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  enquiry              enquiries @relation(fields: [enquiryId], references: [id], onDelete: Cascade)
+
+  @@map("feedbacks")
 }
 
 enum AdminStatus {
