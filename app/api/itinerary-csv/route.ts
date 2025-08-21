@@ -1,6 +1,5 @@
-// app/api/itinerary-csv/route.ts
-import { NextRequest, NextResponse } from 'next/server'
-import Papa from 'papaparse'
+import { type NextRequest, NextResponse } from "next/server"
+import Papa from "papaparse"
 
 // Define the CSV data as constants with enhanced location matching
 const ITINERARY_CSV_DATA = {
@@ -218,123 +217,123 @@ day,time,activity,type,description
 4,4:30 PM,Tea Tasting,activity,Goodbye drinks with traditional Thai desserts
 4,5:00 PM,Rafting,adventure,Final adventure activity and souvenir collection
 4,7:00 PM,Leisure Activities,activity,Departure preparation and airport transfer
-4,9:00 PM,Airport Drop,transfer,Transfer to Bangkok Suvarnabhumi International Airport`
+4,9:00 PM,Airport Drop,transfer,Transfer to Bangkok Suvarnabhumi International Airport`,
 }
 
 // Enhanced location mapping with multiple keywords per location
 const LOCATION_TO_QUOTE_MAPPING: { [key: string]: string } = {
   // Kashmir variations
-  'kashmir': 'KASH001',
-  'srinagar': 'KASH001',
-  'gulmarg': 'KASH001',
-  'pahalgam': 'KASH001',
-  'jammu': 'KASH001',
-  'dal lake': 'KASH001',
-  
+  kashmir: "KASH001",
+  srinagar: "KASH001",
+  gulmarg: "KASH001",
+  pahalgam: "KASH001",
+  jammu: "KASH001",
+  "dal lake": "KASH001",
+
   // Kerala variations
-  'kerala': 'KER001',
-  'kochi': 'KER001',
-  'cochin': 'KER001',
-  'munnar': 'KER001',
-  'alleppey': 'KER001',
-  'alappuzha': 'KER001',
-  'backwaters': 'KER001',
-  'kumarakom': 'KER001',
-  'wayanad': 'KER001',
-  'thekkady': 'KER001',
-  'kovalam': 'KER001',
-  
+  kerala: "KER001",
+  kochi: "KER001",
+  cochin: "KER001",
+  munnar: "KER001",
+  alleppey: "KER001",
+  alappuzha: "KER001",
+  backwaters: "KER001",
+  kumarakom: "KER001",
+  wayanad: "KER001",
+  thekkady: "KER001",
+  kovalam: "KER001",
+
   // Goa variations
-  'goa': 'GOA001',
-  'panaji': 'GOA001',
-  'panjim': 'GOA001',
-  'calangute': 'GOA001',
-  'baga': 'GOA001',
-  'anjuna': 'GOA001',
-  'arambol': 'GOA001',
-  'vagator': 'GOA001',
-  'candolim': 'GOA001',
-  
+  goa: "GOA001",
+  panaji: "GOA001",
+  panjim: "GOA001",
+  calangute: "GOA001",
+  baga: "GOA001",
+  anjuna: "GOA001",
+  arambol: "GOA001",
+  vagator: "GOA001",
+  candolim: "GOA001",
+
   // Rajasthan variations
-  'rajasthan': 'RAJ001',
-  'jaipur': 'RAJ001',
-  'jodhpur': 'RAJ001',
-  'udaipur': 'RAJ001',
-  'jaisalmer': 'RAJ001',
-  'bikaner': 'RAJ001',
-  'pushkar': 'RAJ001',
-  'ajmer': 'RAJ001',
-  'mount abu': 'RAJ001',
-  'pink city': 'RAJ001',
-  'blue city': 'RAJ001',
-  'golden city': 'RAJ001',
-  
+  rajasthan: "RAJ001",
+  jaipur: "RAJ001",
+  jodhpur: "RAJ001",
+  udaipur: "RAJ001",
+  jaisalmer: "RAJ001",
+  bikaner: "RAJ001",
+  pushkar: "RAJ001",
+  ajmer: "RAJ001",
+  "mount abu": "RAJ001",
+  "pink city": "RAJ001",
+  "blue city": "RAJ001",
+  "golden city": "RAJ001",
+
   // Additional Kerala mapping for "Evergreen Kerala"
-  'evergreen': 'EVER001',
-  'evergreen kerala': 'EVER001',
-  
+  evergreen: "EVER001",
+  "evergreen kerala": "EVER001",
+
   // Thailand variations
-  'thailand': 'THAI001',
-  'bangkok': 'THAI001',
-  'phuket': 'THAI001',
-  'pattaya': 'THAI001',
-  'chiang mai': 'THAI001',
-  'krabi': 'THAI001',
-  'phi phi': 'THAI001',
-  'koh samui': 'THAI001',
-  'ayutthaya': 'THAI001'
+  thailand: "THAI001",
+  bangkok: "THAI001",
+  phuket: "THAI001",
+  pattaya: "THAI001",
+  "chiang mai": "THAI001",
+  krabi: "THAI001",
+  "phi phi": "THAI001",
+  "koh samui": "THAI001",
+  ayutthaya: "THAI001",
 }
 
 // Function to find the best matching quote ID based on location
 function findQuoteIdByLocation(location: string): string {
   const locationLower = location.toLowerCase().trim()
-  
+
   // Direct match first
   if (LOCATION_TO_QUOTE_MAPPING[locationLower]) {
     return LOCATION_TO_QUOTE_MAPPING[locationLower]
   }
-  
+
   // Partial match - check if location contains any of the keywords
   for (const [keyword, quoteId] of Object.entries(LOCATION_TO_QUOTE_MAPPING)) {
     if (locationLower.includes(keyword) || keyword.includes(locationLower)) {
       return quoteId
     }
   }
-  
+
   // Default fallback
-  return 'KASH001'
+  return "KASH001"
 }
 
 interface HeaderData {
-  quoteId: string;
-  name: string;
-  days: string;
-  nights: string;
-  startDate: string;
-  costINR: string;
-  costUSD: string;
-  guests: string;
-  adults: string;
-  kids: string;
+  quoteId: string
+  name: string
+  days: string
+  nights: string
+  startDate: string
+  costINR: string
+  costUSD: string
+  guests: string
+  adults: string
+  kids: string
 }
 
 interface ActivityData {
-  day: string;
-  time: string;
-  activity: string;
-  type: string;
-  description: string;
+  day: string
+  time: string
+  activity: string
+  type: string
+  description: string
 }
 
 export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams
-    const enquiryId = searchParams.get('enquiryId')
-    const quoteId = searchParams.get('quoteId')
-    const location = searchParams.get('location')
+    const enquiryId = searchParams.get("enquiryId")
+    const quoteId = searchParams.get("quoteId")
+    const location = searchParams.get("location")
 
     if (!enquiryId && !quoteId && !location) {
-      return NextResponse.json({ error: 'enquiryId, quoteId, or location is required' }, { status: 400 })
+      return NextResponse.json({ error: "enquiryId, quoteId, or location is required" }, { status: 400 })
     }
 
     let selectedQuoteId = quoteId
@@ -356,27 +355,25 @@ export async function GET(request: NextRequest) {
           }
         }
       } catch (error) {
-        console.log('Could not fetch enquiry data, using default mapping', error)
+        console.log("Could not fetch enquiry data, using default mapping", error)
       }
     }
 
     // Fallback to simple enquiry ID mapping if location not found
     if (!selectedQuoteId && enquiryId) {
       const enquiryLower = enquiryId.toLowerCase()
-      const foundKey = Object.keys(LOCATION_TO_QUOTE_MAPPING).find(key => 
-        enquiryLower.includes(key)
-      )
-      selectedQuoteId = foundKey ? LOCATION_TO_QUOTE_MAPPING[foundKey] : 'KASH001'
+      const foundKey = Object.keys(LOCATION_TO_QUOTE_MAPPING).find((key) => enquiryLower.includes(key))
+      selectedQuoteId = foundKey ? LOCATION_TO_QUOTE_MAPPING[foundKey] : "KASH001"
     }
 
     if (!selectedQuoteId || !ITINERARY_CSV_DATA[selectedQuoteId as keyof typeof ITINERARY_CSV_DATA]) {
-      return NextResponse.json({ error: 'Invalid quoteId or no data found' }, { status: 404 })
+      return NextResponse.json({ error: "Invalid quoteId or no data found" }, { status: 404 })
     }
 
     const csvData = ITINERARY_CSV_DATA[selectedQuoteId as keyof typeof ITINERARY_CSV_DATA]
-    
+
     // Split the CSV into header and activities sections
-    const sections = csvData.split('\n\n')
+    const sections = csvData.split("\n\n")
     const headerCsv = sections[0]
     const activitiesCsv = sections[1]
 
@@ -390,7 +387,7 @@ export async function GET(request: NextRequest) {
 
     // Group activities by day with proper typing
     const groupedByDay = activities.reduce((acc: Record<number, ActivityData[]>, activity: ActivityData) => {
-      const day = parseInt(activity.day)
+      const day = Number.parseInt(activity.day)
       if (!acc[day]) {
         acc[day] = []
       }
@@ -400,46 +397,46 @@ export async function GET(request: NextRequest) {
 
     // Create date progression starting from the start date
     const startDate = new Date(headerData.startDate)
-    const dailyItinerary = Object.keys(groupedByDay).map(day => {
-      const dayNumber = parseInt(day)
+    const dailyItinerary = Object.keys(groupedByDay).map((day) => {
+      const dayNumber = Number.parseInt(day)
       const currentDate = new Date(startDate)
       currentDate.setDate(startDate.getDate() + (dayNumber - 1))
-      
+
       return {
         day: dayNumber,
-        date: currentDate.toLocaleDateString('en-GB', { 
-          day: '2-digit', 
-          month: 'short', 
-          year: '2-digit' 
+        date: currentDate.toLocaleDateString("en-GB", {
+          day: "2-digit",
+          month: "short",
+          year: "2-digit",
         }),
         title: `Day ${day} - ${headerData.name}`,
-        activities: groupedByDay[dayNumber].map(activity => ({
+        activities: groupedByDay[dayNumber].map((activity) => ({
           time: activity.time,
           title: activity.activity,
-          type: activity.type || 'activity',
-          description: activity.description || activity.activity
-        }))
+          type: activity.type || "activity",
+          description: activity.description || activity.activity,
+        })),
       }
     })
 
     const result = {
       quoteId: selectedQuoteId,
       name: headerData.name,
-      days: parseInt(headerData.days),
-      nights: parseInt(headerData.nights),
+      days: Number.parseInt(headerData.days),
+      nights: Number.parseInt(headerData.nights),
       startDate: headerData.startDate,
-      costINR: parseInt(headerData.costINR),
-      costUSD: parseInt(headerData.costUSD),
-      guests: parseInt(headerData.guests),
-      adults: parseInt(headerData.adults),
-      kids: parseInt(headerData.kids),
+      costINR: Number.parseInt(headerData.costINR),
+      costUSD: Number.parseInt(headerData.costUSD),
+      guests: Number.parseInt(headerData.guests),
+      adults: Number.parseInt(headerData.adults),
+      kids: Number.parseInt(headerData.kids),
       dailyItinerary,
-      locationMatched: location || 'auto-detected'
+      locationMatched: location || "auto-detected",
     }
 
     return NextResponse.json(result)
   } catch (error) {
-    console.error('Error fetching itinerary CSV data:', error)
-    return NextResponse.json({ error: 'Failed to fetch itinerary data' }, { status: 500 })
+    console.error("Error fetching itinerary CSV data:", error)
+    return NextResponse.json({ error: "Failed to fetch itinerary data" }, { status: 500 })
   }
 }

@@ -142,6 +142,57 @@ const ShareCustomerDashboard = () => {
     console.log("Selected itinerary:", itinerary)
   }
 
+  const handleToggleActiveStatus = async (itinerary: Itinerary) => {
+    try {
+      const newActiveStatus = !itinerary.activeStatus
+
+      const response = await fetch("/api/update-itinerary-status", {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          itineraryId: itinerary.id,
+          activeStatus: newActiveStatus,
+          enquiryId: enquiryId,
+          customerId: customerId,
+        }),
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || "Failed to update status")
+      }
+
+      // Update local state - set this one as active and others as inactive if activating
+      setItineraries((prev) =>
+        prev.map((item) => ({
+          ...item,
+          activeStatus:
+            newActiveStatus && item.id === itinerary.id ? true : newActiveStatus ? false : item.activeStatus,
+        })),
+      )
+
+      // If activating this itinerary, select it
+      if (newActiveStatus) {
+        setSelectedItinerary(itinerary)
+      }
+
+      toast({
+        variant: "success",
+        title: "✅ Status Updated",
+        description: `Itinerary ${newActiveStatus ? "activated" : "deactivated"} successfully`,
+      })
+    } catch (error) {
+      console.error("Error updating active status:", error)
+      toast({
+        variant: "destructive",
+        title: "❌ Update Failed",
+        description: "Failed to update itinerary status. Please try again.",
+      })
+    }
+  }
+
   // Enhanced Send Itinerary function with better error handling
   const sendItineraryViaEmail = async () => {
     // Enhanced validation
@@ -234,7 +285,7 @@ const ShareCustomerDashboard = () => {
         documentName: formData.supportingDocument?.name ?? null,
       }
 
-      console.log("🚀 Sending request to API:", requestBody)
+      console.log(" Sending request to API:", requestBody)
 
       // Add timeout to the fetch request
       const controller = new AbortController()
@@ -251,12 +302,12 @@ const ShareCustomerDashboard = () => {
 
       clearTimeout(timeoutId)
 
-      console.log("📡 API Response status:", response.status)
-      console.log("📡 API Response headers:", Object.fromEntries(response.headers.entries()))
+      console.log("API Response status:", response.status)
+      console.log(" API Response headers:", Object.fromEntries(response.headers.entries()))
 
       // Get response text first to handle both JSON and non-JSON responses
       const responseText = await response.text()
-      console.log("📡 Raw response:", responseText.substring(0, 500)) // Log first 500 chars
+      console.log(" Raw response:", responseText.substring(0, 500)) // Log first 500 chars
 
       // Check if response is actually JSON
       let result
@@ -264,18 +315,18 @@ const ShareCustomerDashboard = () => {
       if (contentType && contentType.includes("application/json")) {
         try {
           result = JSON.parse(responseText)
-          console.log("✅ Parsed JSON result:", result)
+          console.log("Parsed JSON result:", result)
         } catch (parseError) {
-          console.error("❌ Failed to parse JSON:", parseError)
+          console.error(" Failed to parse JSON:", parseError)
           throw new Error(`Invalid JSON response: ${responseText.substring(0, 200)}`)
         }
       } else {
-        console.error("❌ API returned non-JSON response:", {
+        console.error(" API returned non-JSON response:", {
           status: response.status,
           contentType,
-          body: responseText.substring(0, 500)
+          body: responseText.substring(0, 500),
         })
-        
+
         // Try to extract meaningful error from HTML response
         if (responseText.includes("Email server connection failed")) {
           throw new Error("Email server connection failed. Please check email configuration.")
@@ -288,14 +339,16 @@ const ShareCustomerDashboard = () => {
 
       if (!response.ok) {
         const errorMessage = result?.error || result?.message || `HTTP error! status: ${response.status}`
-        
+
         // Handle specific error types
         if (errorMessage.includes("Email server connection failed")) {
-          throw new Error("❌ Email Configuration Error: The email server is not properly configured. Please contact your administrator.")
+          throw new Error(
+            " Email Configuration Error: The email server is not properly configured. Please contact your administrator.",
+          )
         } else if (errorMessage.includes("Invalid email")) {
-          throw new Error("❌ Invalid Email: Please check the email address and try again.")
+          throw new Error(" Invalid Email: Please check the email address and try again.")
         } else if (errorMessage.includes("PDF not found")) {
-          throw new Error("❌ PDF Error: The itinerary PDF could not be found. Please regenerate the PDF.")
+          throw new Error(" PDF Error: The itinerary PDF could not be found. Please regenerate the PDF.")
         } else {
           throw new Error(errorMessage)
         }
@@ -323,9 +376,9 @@ const ShareCustomerDashboard = () => {
       console.error("💥 Error sending itinerary:", error)
 
       let errorMessage = "Failed to send email"
-      
+
       if (error instanceof Error) {
-        if (error.name === 'AbortError') {
+        if (error.name === "AbortError") {
           errorMessage = "Request timeout. Please check your internet connection and try again."
         } else if (error.message.includes("fetch")) {
           errorMessage = "Network error. Please check your connection and try again."
@@ -347,7 +400,6 @@ const ShareCustomerDashboard = () => {
     }
   }
 
-  // Regenerate PDF function
   const handleRegeneratePDF = async (itinerary: Itinerary) => {
     setRegeneratingPDF(itinerary.id)
 
@@ -371,15 +423,37 @@ const ShareCustomerDashboard = () => {
 
       const result = await response.json()
 
-      // Update the itinerary with new PDF URL
+      // Update the itinerary with new PDF URL and set as active
       setItineraries((prev) =>
-        prev.map((item) => (item.id === itinerary.id ? { ...item, pdfUrl: result.pdfUrl, pdf: "D" } : item)),
+        prev.map((item) => ({
+          ...item,
+          ...(item.id === itinerary.id
+            ? { pdfUrl: result.pdfUrl, pdf: "Available", activeStatus: true }
+            : { activeStatus: false }), // Deactivate others
+        })),
       )
+
+      // Set this itinerary as selected
+      setSelectedItinerary({ ...itinerary, pdfUrl: result.pdfUrl, activeStatus: true })
+
+      // Update active status in database
+      await fetch("/api/update-itinerary-status", {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          itineraryId: itinerary.id,
+          activeStatus: true,
+          enquiryId: enquiryId,
+          customerId: customerId,
+        }),
+      })
 
       toast({
         variant: "success",
         title: "✅ PDF Regenerated Successfully!",
-        description: "The PDF has been successfully regenerated.",
+        description: "The PDF has been regenerated and set as active.",
       })
     } catch (error) {
       console.error("Error regenerating PDF:", error)
@@ -580,6 +654,9 @@ const ShareCustomerDashboard = () => {
                 {selectedItinerary && (
                   <p className="text-sm text-green-600 mt-1">
                     ✓ Selected: {selectedItinerary.destinations || `Itinerary ${selectedItinerary.id}`}
+                    {selectedItinerary.activeStatus && (
+                      <span className="ml-2 text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full">ACTIVE</span>
+                    )}
                   </p>
                 )}
               </div>
@@ -607,6 +684,8 @@ const ShareCustomerDashboard = () => {
                           key={item.id}
                           className={`${index % 2 === 0 ? "bg-gray-50" : "bg-white"} ${
                             selectedItinerary?.id === item.id ? "ring-2 ring-green-500 bg-green-50" : ""
+                          } ${
+                            item.activeStatus ? "border-l-4 border-l-green-500" : ""
                           } cursor-pointer hover:bg-green-50`}
                           onClick={() => handleSelectItinerary(item)}
                         >
@@ -619,7 +698,12 @@ const ShareCustomerDashboard = () => {
                                 onChange={() => handleSelectItinerary(item)}
                                 className="mr-2 text-green-600"
                               />
-                              <span className="text-sm text-gray-600">{item.dateGenerated}</span>
+                              <div>
+                                <span className="text-sm text-gray-600">{item.dateGenerated}</span>
+                                {item.activeStatus && (
+                                  <div className="text-xs text-green-600 font-medium">● ACTIVE</div>
+                                )}
+                              </div>
                             </div>
                           </td>
                           <td className="p-4">
@@ -646,17 +730,21 @@ const ShareCustomerDashboard = () => {
                             </div>
                           </td>
                           <td className="p-4">
-                            <div
-                              className={`w-12 h-6 rounded-full p-1 ${
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                handleToggleActiveStatus(item)
+                              }}
+                              className={`w-12 h-6 rounded-full p-1 transition-colors ${
                                 item.activeStatus ? "bg-green-400" : "bg-gray-300"
-                              }`}
+                              } hover:opacity-80`}
                             >
                               <div
                                 className={`w-4 h-4 rounded-full bg-white transition-transform ${
                                   item.activeStatus ? "translate-x-6" : "translate-x-0"
                                 }`}
                               ></div>
-                            </div>
+                            </button>
                           </td>
                           <td className="p-4">
                             <div className="flex gap-2">

@@ -2,7 +2,7 @@ export interface Customer {
   id: string
   name: string
   email: string
-  phone?: string
+  phone: string
   whatsappNumber?: string
   createdAt: string
   updatedAt: string
@@ -10,50 +10,47 @@ export interface Customer {
 
 export interface Itinerary {
   id: string
-  dateGenerated: string
-  pdf: string
+  enquiryId: string
+  destinations: string
+  startDate: string
+  endDate: string
+  budget: number
+  currency: string
+  pdfUrl?: string
   activeStatus: boolean
-  itinerary: string
+  dateGenerated: string
+  pdf?: string
   status: string
-  customerName: string
-  destinations?: string
-  startDate?: string | null
-  endDate?: string | null
-  budget?: number | null
-  currency?: string | null
-  pdfUrl?: string | null
+  createdAt: string
+  updatedAt: string
 }
 
 export interface CustomerFeedback {
   id: string
   customerId: string
-  itineraryId?: string | null
+  itineraryId?: string
   type: string
   title: string
   description: string
-  time: string
   status: string
-  customerName: string
-  documentUrl?: string | null
-  documentName?: string | null
+  documentUrl?: string
+  documentName?: string
   createdAt: string
+  updatedAt: string
 }
 
 export interface SentItinerary {
   id: string
-  date: string
-  customerId?: string
+  customerId: string
+  itineraryId: string
   customerName: string
   email: string
-  whatsappNumber?: string
+  whatsappNumber: string
   notes?: string
-  documents: string
   status: string
-  documentUrl?: string | null
-  documentName?: string | null
-  sentDate: string
-  itineraryId?: string | null
-  enquiryId?: string;
+  date: string
+  createdAt: string
+  updatedAt: string
 }
 
 export interface FormData {
@@ -72,7 +69,6 @@ export interface NewNote {
 }
 
 export interface CustomerDashboardData {
-  success: boolean
   customer?: Customer
   itineraries: Itinerary[]
   feedbacks: CustomerFeedback[]
