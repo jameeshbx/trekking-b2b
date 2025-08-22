@@ -10,6 +10,8 @@ export async function GET(request: NextRequest) {
     const customerId = searchParams.get("customerId")
     const itineraryId = searchParams.get("itineraryId")
 
+    console.log("API Parameters:", { enquiryId, customerId, itineraryId })
+
     // Handle both enquiryId and customerId parameters
     let customerData = null
     let finalCustomerId = null
@@ -84,15 +86,20 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Either enquiryId or customerId is required" }, { status: 400 })
     }
 
-    // Fetch itineraries based on enquiryId or customerId
+    // Fetch ALL itineraries - don't filter by specific ID unless requested
     let itineraryFilter = {}
     if (itineraryId) {
+      // Only filter by specific itinerary ID if explicitly requested
       itineraryFilter = { id: itineraryId }
     } else if (enquiryId) {
+      // Get ALL itineraries for this enquiry
       itineraryFilter = { enquiryId: enquiryId }
     } else if (customerId) {
+      // Get ALL itineraries for this customer
       itineraryFilter = { customerId: customerId }
     }
+
+    console.log("Itinerary Filter:", itineraryFilter)
 
     const itineraries = await prisma.itineraries.findMany({
       where: itineraryFilter,
@@ -120,29 +127,34 @@ export async function GET(request: NextRequest) {
       orderBy: { createdAt: "desc" },
     })
 
-    // Transform itineraries to match frontend interface
+    console.log("Found itineraries:", itineraries.length)
+
+    // Transform itineraries to match frontend interface - show ALL existing data
     const transformedItineraries = itineraries.map((itinerary) => ({
       id: itinerary.id,
       dateGenerated: new Date(itinerary.createdAt).toLocaleDateString("en-GB").replace(/\//g, " . "),
-      pdf: itinerary.pdfUrl ? "D" : "B",
+      pdf: itinerary.pdfUrl ? "Available" : "Not Generated", // Clear status
+      pdfStatus: itinerary.pdfUrl ? "available" : "missing", // For styling
       activeStatus: itinerary.activeStatus || false,
-      itinerary: "Download",
+      itinerary: "View Details", // Changed from "Download"
       status: itinerary.status || "draft",
-      customerName: itinerary.enquiry?.name || customerData.name,
+      customerName: itinerary.enquiry?.name || customerData?.name || "Unknown",
       destinations: itinerary.destinations || itinerary.enquiry?.locations || "Not specified",
       startDate: itinerary.startDate,
       endDate: itinerary.endDate,
       budget: itinerary.budget,
       currency: itinerary.currency,
       pdfUrl: itinerary.pdfUrl,
+      createdAt: itinerary.createdAt,
+      updatedAt: itinerary.updatedAt,
     }))
 
-    // Fetch customer feedbacks based on enquiryId or customerId
+    // Fetch customer feedbacks - get ALL feedbacks
     let feedbackFilter = {}
     if (itineraryId) {
       feedbackFilter = { itineraryId: itineraryId }
     } else if (enquiryId) {
-      // For enquiry-based flow, we need to find feedbacks by customer ID that matches enquiry ID
+      // For enquiry-based flow, get feedbacks by customer ID that matches enquiry ID
       feedbackFilter = { customerId: enquiryId }
     } else if (customerId) {
       feedbackFilter = { customerId: customerId }
@@ -176,18 +188,18 @@ export async function GET(request: NextRequest) {
       description: feedback.description,
       time: formatDateTime(feedback.createdAt),
       status: feedback.status,
-      customerName: customerData.name,
+      customerName: customerData?.name || "Unknown",
       documentUrl: feedback.documentUrl,
       documentName: feedback.documentName,
       createdAt: feedback.createdAt.toISOString(),
     }))
 
-    // Fetch sent itineraries history
+    // Fetch ALL sent itineraries history
     let sentItineraryFilter = {}
     if (itineraryId) {
       sentItineraryFilter = { itineraryId: itineraryId }
     } else if (enquiryId) {
-      // For enquiry-based flow, we need to find sent itineraries by customer ID that matches enquiry ID
+      // Get ALL sent itineraries for this enquiry/customer
       sentItineraryFilter = { customerId: enquiryId }
     } else if (customerId) {
       sentItineraryFilter = { customerId: customerId }
@@ -221,13 +233,20 @@ export async function GET(request: NextRequest) {
       email: sent.email,
       whatsappNumber: sent.whatsappNumber || "",
       notes: sent.notes || "",
-      documents: sent.documentUrl ? "Download" : "",
+      documents: sent.documentUrl ? "Available" : "None",
       status: sent.status,
       documentUrl: sent.documentUrl,
       documentName: sent.documentName,
       sentDate: sent.sentDate.toISOString(),
       itineraryId: sent.itineraryId,
     }))
+
+    console.log("Response Summary:", {
+      customer: customerData?.name,
+      itinerariesCount: transformedItineraries.length,
+      feedbacksCount: transformedFeedbacks.length,
+      sentItinerariesCount: transformedSentItineraries.length,
+    })
 
     return NextResponse.json({
       success: true,

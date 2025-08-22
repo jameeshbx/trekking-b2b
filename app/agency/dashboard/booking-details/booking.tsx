@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Download, MoreVertical, Plus, X } from 'lucide-react';
+import { Download, Plus, X } from 'lucide-react';
 
 const KashmirBookingDashboard = () => {
   const [] = useState('progress');
@@ -14,7 +14,7 @@ const KashmirBookingDashboard = () => {
       statusColor: 'bg-green-500',
       notes: 'Confirmed at Royal Retreat',
       hasDownload: true,
-      action: 'Send to someone'
+    
     },
     {
       date: '07 - 04 - 2025',
@@ -23,7 +23,6 @@ const KashmirBookingDashboard = () => {
       statusColor: 'bg-red-500',
       notes: 'Awaiting final hotel reply',
       hasDownload: false,
-      action: null
     },
     {
       date: '05 - 04 - 2025',
@@ -32,7 +31,7 @@ const KashmirBookingDashboard = () => {
       statusColor: 'bg-green-500',
       notes: 'Driver & SUV assigned',
       hasDownload: true,
-      action: 'Send to someone'
+      
     },
     {
       date: '07 - 04 - 2025',
@@ -41,7 +40,7 @@ const KashmirBookingDashboard = () => {
       statusColor: 'bg-gray-400',
       notes: 'Customer opted out',
       hasDownload: false,
-      action: null
+     
     },
     {
       date: '07 - 04 - 2025',
@@ -50,7 +49,7 @@ const KashmirBookingDashboard = () => {
       statusColor: 'bg-green-500',
       notes: 'Booked - Private Family',
       hasDownload: true,
-      action: 'Shared'
+      
     },
     {
       date: '05 - 04 - 2025',
@@ -59,7 +58,7 @@ const KashmirBookingDashboard = () => {
       statusColor: 'bg-red-500',
       notes: 'Awaiting assignment',
       hasDownload: false,
-      action: null
+      
     }
   ];
 
@@ -260,7 +259,6 @@ const KashmirBookingDashboard = () => {
                   <div className="col-span-2">Booking Status</div>
                   <div className="col-span-2">DMC Notes</div>
                   <div className="col-span-2">Download Files</div>
-                  <div className="col-span-2">Action</div>
                 </div>
               </div>
 
@@ -292,21 +290,7 @@ const KashmirBookingDashboard = () => {
                           </button>
                         )}
                       </div>
-                      <div className="col-span-2 flex items-center gap-2">
-                        {item.action === 'Send to someone' && (
-                          <button className="bg-yellow-500 text-white px-3 py-1 rounded text-sm">
-                            Send to someone
-                          </button>
-                        )}
-                        {item.action === 'Shared' && (
-                          <button className="bg-green-600 text-white px-3 py-1 rounded text-sm">
-                            Shared
-                          </button>
-                        )}
-                        <button className="text-gray-400 hover:text-gray-600">
-                          <MoreVertical size={16} />
-                        </button>
-                      </div>
+                     
                     </div>
                   </div>
                 ))}
@@ -358,7 +342,7 @@ const KashmirBookingDashboard = () => {
               {/* Send Reminder */}
               <div className="bg-white rounded-lg shadow-sm ">
                 <div className="p-6 ">
-                  <h3 className="text-lg font-semibold text-gray-800 ">Send Reminder</h3>
+                  <h3 className="text-lg font-semibold text-gray-800 ">Set Reminder</h3>
                 </div>
                 <div className="p-6">
                   <div className="space-y-4">

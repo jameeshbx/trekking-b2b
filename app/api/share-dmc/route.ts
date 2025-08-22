@@ -1,5 +1,7 @@
+// api/share-dmc/route.ts
 import { type NextRequest, NextResponse } from "next/server"
 import { PrismaClient } from "@prisma/client"
+import { sendEmail } from "@/lib/email"
 
 const prisma = new PrismaClient()
 
@@ -8,7 +10,7 @@ interface WhereClause {
   enquiryId?: string
 }
 
-type DMCStatus = 'AWAITING_TRANSFER' | 'VIEWED' | 'QUOTATION_RECEIVED'
+type DMCStatus = "AWAITING_TRANSFER" | "VIEWED" | "QUOTATION_RECEIVED"
 
 // GET - Fetch all shared DMCs with their details
 export async function GET(request: NextRequest) {
@@ -17,45 +19,49 @@ export async function GET(request: NextRequest) {
     const staffId = searchParams.get("staffId")
     const enquiryId = searchParams.get("enquiryId")
 
-    // Fetch shared itineraries from database
     const whereClause: WhereClause = {}
-    
+
     if (staffId) {
       whereClause.assignedStaffId = staffId
     }
-    
+
     if (enquiryId) {
       whereClause.enquiryId = enquiryId
     }
 
-    // For now, we'll create mock data that integrates with your existing structure
-    // In a real implementation, you'd have proper database tables for shared itineraries
-    
     // Fetch actual DMCs from your existing DMC table
     const dmcs = await prisma.dMCForm.findMany({
-      where: { status: 'ACTIVE' },
+      where: { status: "ACTIVE" },
       select: {
         id: true,
         name: true,
         contactPerson: true,
         email: true,
+        phoneNumber: true,
+        designation: true,
         status: true,
         primaryCountry: true,
         destinationsCovered: true,
         cities: true,
-      }
+        createdAt: true,
+        updatedAt: true,
+      },
     })
 
     // Transform DMCs to match interface
-    const transformedDMCs = dmcs.map(dmc => ({
+    const transformedDMCs = dmcs.map((dmc) => ({
       id: dmc.id,
       name: dmc.name,
-      primaryContact: dmc.contactPerson || '',
-      email: dmc.email || '',
-      status: dmc.status === 'ACTIVE' ? 'Active' : 'Inactive',
-      primaryCountry: dmc.primaryCountry || '',
-      destinationsCovered: dmc.destinationsCovered || '',
-      cities: dmc.cities || '',
+      primaryContact: dmc.contactPerson || "",
+      phoneNumber: dmc.phoneNumber || "",
+      designation: dmc.designation || "",
+      email: dmc.email || "",
+      status: dmc.status === "ACTIVE" ? "Active" : "Inactive",
+      primaryCountry: dmc.primaryCountry || "",
+      destinationsCovered: dmc.destinationsCovered || "",
+      cities: dmc.cities || "",
+      createdAt: dmc.createdAt?.toISOString() || "",
+      updatedAt: dmc.updatedAt?.toISOString() || "",
     }))
 
     // Create mock shared itineraries with real DMC data
@@ -71,12 +77,12 @@ export async function GET(request: NextRequest) {
         selectedDMCs: transformedDMCs.slice(0, 3).map((dmc, index) => ({
           id: `item-${index + 1}`,
           dmcId: dmc.id,
-          status: (['AWAITING_TRANSFER', 'VIEWED', 'QUOTATION_RECEIVED'] as const)[index] as DMCStatus,
+          status: (["AWAITING_TRANSFER", "VIEWED", "QUOTATION_RECEIVED"] as const)[index] as DMCStatus,
           dmc: dmc,
           lastUpdated: new Date().toISOString(),
           quotationAmount: index === 2 ? 1100 : undefined,
           notes: `Sample notes for ${dmc.name}`,
-        }))
+        })),
       },
       {
         id: "shared-2",
@@ -85,16 +91,16 @@ export async function GET(request: NextRequest) {
         activeStatus: false,
         enquiryId: "enquiry-2",
         assignedStaffId: "staff-1",
-        selectedDMCs: []
-      }
+        selectedDMCs: [],
+      },
     ]
 
     let filteredData = mockSharedItineraries
-    
+
     if (staffId) {
       filteredData = filteredData.filter((item) => item.assignedStaffId === staffId)
     }
-    
+
     if (enquiryId) {
       filteredData = filteredData.filter((item) => item.enquiryId === enquiryId)
     }
@@ -111,32 +117,89 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// POST - Create new shared DMC entry
+// POST - Create new shared DMC entry and send email
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { enquiryId, customerId, assignedStaffId, selectedDMCIds = [], dateGenerated } = body
+    const { enquiryId, customerId, assignedStaffId, selectedDMCIds = [], dateGenerated, pdfPath } = body
 
     // Fetch the selected DMCs from database
     const selectedDMCs = await prisma.dMCForm.findMany({
       where: {
         id: { in: selectedDMCIds },
-        status: 'ACTIVE'
+        status: "ACTIVE",
       },
       select: {
         id: true,
         name: true,
         contactPerson: true,
         email: true,
+        phoneNumber: true,
+        designation: true,
         status: true,
         primaryCountry: true,
         destinationsCovered: true,
         cities: true,
-      }
+      },
     })
 
-    // In a real implementation, you'd create a proper database record
-    // For now, we'll return a mock response with real DMC data
+    // Send emails to all selected DMCs
+    const emailResults = []
+    for (const dmc of selectedDMCs) {
+      if (dmc.email) {
+        try {
+          const emailResult = await sendEmail({
+            to: dmc.email,
+            subject: `New Itinerary Request - ${enquiryId}`,
+            html: `
+              <h2>New Itinerary Request</h2>
+              <p>Dear ${dmc.name},</p>
+              <p>You have received a new itinerary request.</p>
+              <p><strong>Enquiry ID:</strong> ${enquiryId}</p>
+              <p><strong>Date Generated:</strong> ${dateGenerated || new Date().toISOString().split("T")[0]}</p>
+              <p>Please review the attached itinerary and provide your quotation.</p>
+              <p>Best regards,<br>Travel Team</p>
+            `,
+            attachments: pdfPath
+              ? [
+                  {
+                    filename: `itinerary-${enquiryId}.pdf`,
+                    path: pdfPath,
+                    contentType: "application/pdf",
+                  },
+                ]
+              : undefined,
+          })
+
+          emailResults.push({
+            dmcId: dmc.id,
+            dmcName: dmc.name,
+            email: dmc.email,
+            sent: emailResult.success,
+            error: emailResult.success ? null : "Failed to send email",
+          })
+        } catch (emailError) {
+          console.error(`Error sending email to ${dmc.name} (${dmc.email}):`, emailError)
+          emailResults.push({
+            dmcId: dmc.id,
+            dmcName: dmc.name,
+            email: dmc.email,
+            sent: false,
+            error: emailError instanceof Error ? emailError.message : "Unknown email error",
+          })
+        }
+      } else {
+        emailResults.push({
+          dmcId: dmc.id,
+          dmcName: dmc.name,
+          email: null,
+          sent: false,
+          error: "No email address found",
+        })
+      }
+    }
+
+    // Create the shared DMC record
     const newSharedDMC = {
       id: `shared-${Date.now()}`,
       enquiryId,
@@ -152,15 +215,17 @@ export async function POST(request: NextRequest) {
         dmc: {
           id: dmc.id,
           name: dmc.name,
-          primaryContact: dmc.contactPerson || '',
-          email: dmc.email || '',
-          status: dmc.status === 'ACTIVE' ? 'Active' : 'Inactive',
-          primaryCountry: dmc.primaryCountry || '',
-          destinationsCovered: dmc.destinationsCovered || '',
-          cities: dmc.cities || '',
+          primaryContact: dmc.contactPerson || "",
+          phoneNumber: dmc.phoneNumber || "",
+          designation: dmc.designation || "",
+          email: dmc.email || "",
+          status: dmc.status === "ACTIVE" ? "Active" : "Inactive",
+          primaryCountry: dmc.primaryCountry || "",
+          destinationsCovered: dmc.destinationsCovered || "",
+          cities: dmc.cities || "",
         },
         lastUpdated: new Date().toISOString(),
-        notes: '',
+        notes: "",
       })),
     }
 
@@ -168,6 +233,7 @@ export async function POST(request: NextRequest) {
       success: true,
       message: "DMC sharing created successfully",
       data: newSharedDMC,
+      emailResults: emailResults,
     })
   } catch (error) {
     console.error("Error creating shared DMC:", error)
@@ -177,7 +243,7 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// PUT - Update shared DMC or DMC item status
+// PUT - Update shared DMC or DMC item status and send email notification
 export async function PUT(request: NextRequest) {
   try {
     const body = await request.json()
@@ -216,26 +282,65 @@ export async function PUT(request: NextRequest) {
           name: true,
           contactPerson: true,
           email: true,
+          phoneNumber: true,
+          designation: true,
           status: true,
           primaryCountry: true,
           destinationsCovered: true,
           cities: true,
-        }
+        },
       })
 
       if (!dmc) {
         return NextResponse.json({ error: "DMC not found" }, { status: 404 })
       }
 
+      // Send email to the newly added DMC
+      let emailSent = false
+      let emailError = null
+
+      if (dmc.email && updateData.enquiryId) {
+        try {
+          const emailResult = await sendEmail({
+            to: dmc.email,
+            subject: `New Itinerary Request - ${updateData.enquiryId}`,
+            html: `
+              <h2>New Itinerary Request</h2>
+              <p>Dear ${dmc.name},</p>
+              <p>You have been added to a new itinerary request.</p>
+              <p><strong>Enquiry ID:</strong> ${updateData.enquiryId}</p>
+              <p><strong>Date Generated:</strong> ${updateData.dateGenerated || new Date().toISOString().split("T")[0]}</p>
+              <p>Please review the attached itinerary and provide your quotation.</p>
+              <p>Best regards,<br>Travel Team</p>
+            `,
+            attachments: updateData.pdfPath
+              ? [
+                  {
+                    filename: `itinerary-${updateData.enquiryId}.pdf`,
+                    path: updateData.pdfPath,
+                    contentType: "application/pdf",
+                  },
+                ]
+              : undefined,
+          })
+          emailSent = emailResult.success
+        } catch (error) {
+          console.error(`Error sending email to ${dmc.name}:`, error)
+          emailError = error instanceof Error ? error.message : "Failed to send email"
+        }
+      }
+
       const transformedDMC = {
         id: dmc.id,
         name: dmc.name,
-        primaryContact: dmc.contactPerson || '',
-        email: dmc.email || '',
-        status: dmc.status === 'ACTIVE' ? 'Active' : 'Inactive',
-        primaryCountry: dmc.primaryCountry || '',
-        destinationsCovered: dmc.destinationsCovered || '',
-        cities: dmc.cities || '',
+        primaryContact: dmc.contactPerson || "",
+        phoneNumber: dmc.phoneNumber || "",
+        designation: dmc.designation || "",
+        email: dmc.email || "",
+        status: dmc.status === "ACTIVE" ? "Active" : "Inactive",
+        primaryCountry: dmc.primaryCountry || "",
+        destinationsCovered: dmc.destinationsCovered || "",
+        cities: dmc.cities || "",
       }
 
       return NextResponse.json({
@@ -250,9 +355,15 @@ export async function PUT(request: NextRequest) {
               status: (updateData.status || "AWAITING_TRANSFER") as DMCStatus,
               dmc: transformedDMC,
               lastUpdated: new Date().toISOString(),
-              notes: '',
+              notes: "",
             },
           ],
+        },
+        emailResult: {
+          dmcName: dmc.name,
+          email: dmc.email,
+          sent: emailSent,
+          error: emailError,
         },
       })
     }

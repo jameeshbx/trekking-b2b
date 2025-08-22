@@ -105,6 +105,7 @@ interface EnquiryData {
   tags?: string
   mustSeeSpots?: string
   pacePreference?: string
+  customerId?: string
 }
 
 interface ItineraryData {
@@ -532,7 +533,6 @@ function ItineraryFormContent() {
             errorMessage += `: ${errorData.details}`
           }
         } catch (jsonError) {
-          // If JSON parsing fails, use the status text
           console.error("Failed to parse error response:", jsonError)
           errorMessage = response.statusText || errorMessage
         }
@@ -542,8 +542,9 @@ function ItineraryFormContent() {
 
       const processedItinerary = await response.json()
 
-     /*  // Generate PDF after successfully creating/updating itinerary
+      // Generate PDF after successfully creating/updating itinerary
       try {
+        console.log("[v0] Generating PDF...")
         const pdfResponse = await fetch("/api/generate-pdf", {
           method: "POST",
           headers: {
@@ -552,22 +553,69 @@ function ItineraryFormContent() {
           body: JSON.stringify({
             enquiryId: enquiryData.id,
             itineraryId: processedItinerary.id,
+            formData: dataToSend,
           }),
         })
 
+        console.log("[v0] PDF response status:", pdfResponse.status)
+        console.log("[v0] PDF response headers:", Object.fromEntries(pdfResponse.headers.entries()))
+
         if (pdfResponse.ok) {
-          const pdfResult = await pdfResponse.json()
-          console.log("PDF generated successfully:", pdfResult)
+          const contentType = pdfResponse.headers.get("content-type")
+          if (contentType && contentType.includes("application/json")) {
+            const pdfResult = await pdfResponse.json()
+            console.log("[v0] PDF generated successfully:", pdfResult)
+          } else {
+            console.log("[v0] PDF generated successfully as binary data")
+          }
+
+          alert("Itinerary and PDF generated successfully!")
+
+          // Redirect to share customer page with the generated itinerary
+          router.push(
+            `/agency/dashboard/Itenary-view?enquiryId=${enquiryData.id}&itineraryId=${processedItinerary.id}&customerId=${enquiryData.customerId || ""}`,
+          )
         } else {
-          console.error("Failed to generate PDF")
+          let pdfErrorMessage = "PDF generation failed"
+          try {
+            const contentType = pdfResponse.headers.get("content-type")
+            console.log("[v0] Error response content type:", contentType)
+
+            if (contentType && contentType.includes("application/json")) {
+              const pdfError = await pdfResponse.json()
+              pdfErrorMessage = pdfError.error || pdfError.message || pdfErrorMessage
+              console.error("[v0] Failed to generate PDF (JSON response):", pdfError)
+              if (pdfError.details) {
+                pdfErrorMessage += `: ${pdfError.details}`
+              }
+            } else {
+              // If response is not JSON, get text content
+              const errorText = await pdfResponse.text()
+              pdfErrorMessage = errorText || `HTTP ${pdfResponse.status}: ${pdfResponse.statusText}`
+              console.error("[v0] Failed to generate PDF (non-JSON response):", errorText)
+            }
+          } catch (parseError) {
+            console.error("[v0] Failed to parse PDF error response:", parseError)
+            pdfErrorMessage = `HTTP ${pdfResponse.status}: ${pdfResponse.statusText}`
+          }
+
+          console.error("[v0] PDF generation failed:", pdfErrorMessage)
+          alert(`PDF generation failed: ${pdfErrorMessage}`)
+
+          // Still redirect to share customer page
+          router.push(
+            `/agency/dashboard/share-customer?enquiryId=${enquiryData.id}&itineraryId=${processedItinerary.id}&customerId=${enquiryData.customerId || ""}`,
+          )
         }
       } catch (pdfError) {
-        console.error("Error generating PDF:", pdfError)
-      } */
+        console.error("[v0] Error generating PDF:", pdfError)
+        alert("Itinerary saved, but PDF generation failed. You can regenerate it later.")
 
-      console.log("Itinerary processed successfully. Redirecting...")
-      alert("Itinerary processed successfully!")
-      router.push(`/agency/dashboard/Itenary-view?enquiryId=${enquiryData.id}&itineraryId=${processedItinerary.id}`)
+        // Still redirect to share customer page
+        router.push(
+          `/agency/dashboard/share-customer?enquiryId=${enquiryData.id}&itineraryId=${processedItinerary.id}&customerId=${enquiryData.customerId || ""}`,
+        )
+      }
     } catch (error) {
       console.error("Error processing itinerary:", error)
       alert(`Failed to process itinerary: ${error instanceof Error ? error.message : String(error)}`)
