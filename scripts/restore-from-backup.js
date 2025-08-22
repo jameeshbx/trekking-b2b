@@ -4,69 +4,80 @@ const { PrismaClient } = require('@prisma/client');
 const fs = require('fs');
 
 const prisma = new PrismaClient();
-const backupFile = 'database_backups/backup_2025-08-19T07-43-18-052Z.json';
 
-async function restoreData() {
+async function restoreDatabase() {
   try {
-    console.log('Restoring data from backup...');
+    const backupFile = process.argv[2] || 'database_backups/backup_20250821_181752.json';
     
     if (!fs.existsSync(backupFile)) {
-      throw new Error('Backup file not found');
+      throw new Error(`Backup file not found: ${backupFile}`);
     }
     
-    const backup = JSON.parse(fs.readFileSync(backupFile, 'utf8'));
+    console.log('Reading backup file...');
+    const backupData = JSON.parse(fs.readFileSync(backupFile, 'utf8'));
     
-    // Restore data in order (respecting foreign key constraints)
-    const restoreOrder = [
-      'File', 'Agency', 'DMC', 'Plan', 'Feature', 'AgencyForm', 'DMCForm',
-      'Manager', 'UserForm', 'Admin', 'Staff', 'User', 'PasswordReset',
-      'PaymentMethod', 'customers', 'enquiries', 'itineraries', 'customer_feedbacks',
-      'sent_itineraries', 'FlightEnquiry', 'AccommodationEnquiry', 'Comment',
-      'SharedDMC', 'SharedDMCItem', 'Subscription', 'AgencyCancellationPolicy',
-      'email_logs', 'shared_customer_pdfs'
-    ];
+    console.log('Starting database restore...');
     
-    for (const model of restoreOrder) {
-      if (backup[model] && backup[model].length > 0) {
-        try {
-          console.log(`Restoring ${model}...`);
-          
-          // Use createMany for better performance, fallback to individual creates
+    // Helper function to safely restore data
+    async function safeRestore(modelName, data, prismaModel) {
+      if (data && data.length > 0) {
+        console.log(`Restoring ${data.length} ${modelName}...`);
+        for (const item of data) {
           try {
-            await prisma[model].createMany({
-              data: backup[model],
-              skipDuplicates: true
+            await prismaModel.upsert({
+              where: { id: item.id },
+              update: item,
+              create: item
             });
-            console.log(`✓ ${model}: ${backup[model].length} records restored`);
           } catch (error) {
-            console.log(`⚠ ${model} createMany failed, trying individual creates: ${error.message}`);
-            let successCount = 0;
-            for (const record of backup[model]) {
-              try {
-                await prisma[model].create({
-                  data: record
-                });
-                successCount++;
-              } catch (createError) {
-                console.log(`⚠ Failed to restore record in ${model}: ${createError.message}`);
-              }
-            }
-            console.log(`✓ ${model}: ${successCount}/${backup[model].length} records restored`);
+            console.log(`Warning: Could not restore ${modelName} with id ${item.id}: ${error.message}`);
           }
-        } catch (error) {
-          console.log(`⚠ ${model}: ${error.message}`);
         }
+        console.log(`✓ Restored ${data.length} ${modelName}`);
+      } else {
+        console.log(`No ${modelName} to restore`);
       }
     }
+    
+    // Restore all tables with error handling
+    await safeRestore('files', backupData.files, prisma.file);
+    await safeRestore('users', backupData.users, prisma.user);
+    await safeRestore('agencies', backupData.agencies, prisma.agency);
+    await safeRestore('dmcs', backupData.dmcs, prisma.dMC);
+    await safeRestore('passwordResets', backupData.passwordResets, prisma.passwordReset);
+    await safeRestore('plans', backupData.plans, prisma.plan);
+    await safeRestore('features', backupData.features, prisma.feature);
+    await safeRestore('subscriptions', backupData.subscriptions, prisma.subscription);
+    await safeRestore('agencyForms', backupData.agencyForms, prisma.agencyForm);
+    await safeRestore('dmcForms', backupData.dmcForms, prisma.dMCForm);
+    await safeRestore('managers', backupData.managers, prisma.manager);
+    await safeRestore('userForms', backupData.userForms, prisma.userForm);
+    await safeRestore('paymentMethods', backupData.paymentMethods, prisma.paymentMethod);
+    await safeRestore('enquiries', backupData.enquiries, prisma.enquiries);
+    await safeRestore('itineraries', backupData.itineraries, prisma.itineraries);
+    await safeRestore('customers', backupData.customers, prisma.customers);
+    await safeRestore('customerFeedbacks', backupData.customerFeedbacks, prisma.customer_feedbacks);
+    await safeRestore('sentItineraries', backupData.sentItineraries, prisma.sent_itineraries);
+    await safeRestore('flightEnquiries', backupData.flightEnquiries, prisma.flightEnquiry);
+    await safeRestore('accommodationEnquiries', backupData.accommodationEnquiries, prisma.accommodationEnquiry);
+    await safeRestore('comments', backupData.comments, prisma.comment);
+    await safeRestore('staff', backupData.staff, prisma.staff);
+    await safeRestore('sharedDmcs', backupData.sharedDmcs, prisma.sharedDMC);
+    await safeRestore('sharedDmcItems', backupData.sharedDmcItems, prisma.sharedDMCItem);
+    await safeRestore('admins', backupData.admins, prisma.admin);
+    await safeRestore('agencyCancellationPolicies', backupData.agencyCancellationPolicies, prisma.agencyCancellationPolicy);
+    await safeRestore('emailLogs', backupData.emailLogs, prisma.emailLog);
+    await safeRestore('sharedCustomerPdfs', backupData.sharedCustomerPdfs, prisma.sharedCustomerPdf);
+    await safeRestore('feedbacks', backupData.feedbacks, prisma.feedback);
     
     console.log('✓ Database restore completed successfully!');
     
   } catch (error) {
-    console.error(`✗ Restore failed: ${error.message}`);
-    throw error;
+    console.error('✗ Restore failed:', error);
+    process.exit(1);
   } finally {
     await prisma.$disconnect();
   }
 }
 
-restoreData();
+restoreDatabase();
