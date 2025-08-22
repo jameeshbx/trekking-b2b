@@ -12,6 +12,7 @@ interface WhereClause {
 
 type DMCStatus = "AWAITING_TRANSFER" | "VIEWED" | "QUOTATION_RECEIVED"
 
+
 // GET - Fetch all shared DMCs with their details
 export async function GET(request: NextRequest) {
   try {
@@ -48,6 +49,23 @@ export async function GET(request: NextRequest) {
       },
     })
 
+    // Fetch shared DMC records
+    const sharedDMCs = await prisma.sharedDMC.findMany({
+      where: whereClause,
+      include: {
+        selectedDMCs: {
+          include: {
+            dmc: true,
+          },
+        },
+      },
+    })
+
+    // Fetch commissions for pricing info
+    const commissions = await prisma.commission?.findMany({
+      where: enquiryId ? { enquiryId } : {},
+    }) || []
+
     // Transform DMCs to match interface
     const transformedDMCs = dmcs.map((dmc) => ({
       id: dmc.id,
@@ -64,14 +82,50 @@ export async function GET(request: NextRequest) {
       updatedAt: dmc.updatedAt?.toISOString() || "",
     }))
 
-    // Create mock shared itineraries with real DMC data
-    const mockSharedItineraries = [
+    // Transform shared DMC data with commission info
+    const transformedSharedDMCs = sharedDMCs.map((shared) => ({
+      id: shared.id,
+      dateGenerated: shared.dateGenerated.toLocaleDateString("en-GB"),
+      pdf: shared.pdfUrl ? "D" : "B",
+      activeStatus: shared.isActive,
+      enquiryId: enquiryId || "default-enquiry",
+      assignedStaffId: shared.assignedStaffId,
+      selectedDMCs: shared.selectedDMCs.map((item) => {
+        const commission = commissions.find(c => c.dmcId === item.dmcId && c.enquiryId === enquiryId)
+        return {
+          id: item.id,
+          dmcId: item.dmcId,
+          status: item.status as DMCStatus,
+          dmc: {
+            id: item.dmc.id,
+            name: item.dmc.name,
+            primaryContact: item.dmc.contactPerson || "",
+            phoneNumber: item.dmc.phoneNumber || "",
+            designation: item.dmc.designation || "",
+            email: item.dmc.email || "",
+            status: item.dmc.status === "ACTIVE" ? "Active" : "Inactive",
+            primaryCountry: item.dmc.primaryCountry || "",
+            destinationsCovered: item.dmc.destinationsCovered || "",
+            cities: item.dmc.cities || "",
+          },
+          lastUpdated: item.updatedAt.toISOString(),
+          quotationAmount: commission?.quotationAmount,
+          markupPrice: commission?.markupPrice,
+          commissionAmount: commission?.commissionAmount,
+          commissionType: commission?.commissionType,
+          notes: commission?.comments || "",
+        }
+      }),
+    }))
+
+    // Create mock data if no shared DMCs exist
+    const mockSharedItineraries = transformedSharedDMCs.length > 0 ? transformedSharedDMCs : [
       {
         id: "shared-1",
         dateGenerated: "06-03-2025",
         pdf: "D",
         activeStatus: true,
-        enquiryId: "enquiry-1",
+        enquiryId: enquiryId || "enquiry-1",
         customerId: "customer-1",
         assignedStaffId: "staff-1",
         selectedDMCs: transformedDMCs.slice(0, 3).map((dmc, index) => ({
@@ -84,30 +138,11 @@ export async function GET(request: NextRequest) {
           notes: `Sample notes for ${dmc.name}`,
         })),
       },
-      {
-        id: "shared-2",
-        dateGenerated: "08-03-2025",
-        pdf: "B",
-        activeStatus: false,
-        enquiryId: "enquiry-2",
-        assignedStaffId: "staff-1",
-        selectedDMCs: [],
-      },
     ]
-
-    let filteredData = mockSharedItineraries
-
-    if (staffId) {
-      filteredData = filteredData.filter((item) => item.assignedStaffId === staffId)
-    }
-
-    if (enquiryId) {
-      filteredData = filteredData.filter((item) => item.enquiryId === enquiryId)
-    }
 
     return NextResponse.json({
       success: true,
-      data: filteredData,
+      data: mockSharedItineraries,
     })
   } catch (error) {
     console.error("Error fetching shared DMCs:", error)
@@ -117,11 +152,11 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// POST - Create new shared DMC entry and send email
+// POST - Create new shared DMC entry and send email with PDF
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { enquiryId, customerId, assignedStaffId, selectedDMCIds = [], dateGenerated, pdfPath } = body
+    const { enquiryId, customerId, assignedStaffId, selectedDMCIds = [], dateGenerated, } = body
 
     // Fetch the selected DMCs from database
     const selectedDMCs = await prisma.dMCForm.findMany({
@@ -143,7 +178,14 @@ export async function POST(request: NextRequest) {
       },
     })
 
-    // Send emails to all selected DMCs
+    // Generate PDF for the itinerary (mock implementation)
+    const pdfUrl = `/uploads/itineraries/itinerary-${enquiryId}-${Date.now()}.pdf`
+    
+    // In real implementation, you would generate the PDF here
+    // const pdfBuffer = await generateItineraryPDF(enquiryId)
+    // Save PDF to file system or cloud storage
+
+    // Send emails to all selected DMCs with PDF attachment
     const emailResults = []
     for (const dmc of selectedDMCs) {
       if (dmc.email) {
@@ -152,19 +194,41 @@ export async function POST(request: NextRequest) {
             to: dmc.email,
             subject: `New Itinerary Request - ${enquiryId}`,
             html: `
-              <h2>New Itinerary Request</h2>
-              <p>Dear ${dmc.name},</p>
-              <p>You have received a new itinerary request.</p>
-              <p><strong>Enquiry ID:</strong> ${enquiryId}</p>
-              <p><strong>Date Generated:</strong> ${dateGenerated || new Date().toISOString().split("T")[0]}</p>
-              <p>Please review the attached itinerary and provide your quotation.</p>
-              <p>Best regards,<br>Travel Team</p>
+              <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+                <h2 style="color: #4ECDC4;">New Itinerary Request</h2>
+                <p>Dear ${dmc.name},</p>
+                <p>You have received a new itinerary request for quotation.</p>
+                
+                <div style="background-color: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0;">
+                  <h3 style="margin-top: 0;">Request Details:</h3>
+                  <p><strong>Enquiry ID:</strong> ${enquiryId}</p>
+                  <p><strong>Date Generated:</strong> ${dateGenerated || new Date().toISOString().split("T")[0]}</p>
+                  <p><strong>Destinations:</strong> ${dmc.destinationsCovered}</p>
+                </div>
+
+                <p>Please review the attached itinerary document and provide your best quotation.</p>
+                
+                <div style="background-color: #e8f5f4; padding: 15px; border-radius: 6px; margin: 20px 0;">
+                  <p style="margin: 0;"><strong>Next Steps:</strong></p>
+                  <ol style="margin: 10px 0 0 20px;">
+                    <li>Review the attached itinerary</li>
+                    <li>Prepare your detailed quotation</li>
+                    <li>Submit your quote through our system</li>
+                  </ol>
+                </div>
+
+                <p>We look forward to your competitive quotation.</p>
+                
+                <p>Best regards,<br>
+                <strong>Travel Team</strong><br>
+                <em>Your Travel Partner</em></p>
+              </div>
             `,
-            attachments: pdfPath
+            attachments: pdfUrl
               ? [
                   {
                     filename: `itinerary-${enquiryId}.pdf`,
-                    path: pdfPath,
+                    path: pdfUrl,
                     contentType: "application/pdf",
                   },
                 ]
@@ -188,51 +252,64 @@ export async function POST(request: NextRequest) {
             error: emailError instanceof Error ? emailError.message : "Unknown email error",
           })
         }
-      } else {
-        emailResults.push({
-          dmcId: dmc.id,
-          dmcName: dmc.name,
-          email: null,
-          sent: false,
-          error: "No email address found",
-        })
       }
     }
 
-    // Create the shared DMC record
-    const newSharedDMC = {
-      id: `shared-${Date.now()}`,
-      enquiryId,
-      customerId,
-      assignedStaffId,
-      dateGenerated: dateGenerated || new Date().toISOString().split("T")[0],
-      activeStatus: true,
-      pdf: "B",
-      selectedDMCs: selectedDMCs.map((dmc) => ({
-        id: `item-${Date.now()}-${dmc.id}`,
-        dmcId: dmc.id,
-        status: "AWAITING_TRANSFER" as const,
-        dmc: {
-          id: dmc.id,
-          name: dmc.name,
-          primaryContact: dmc.contactPerson || "",
-          phoneNumber: dmc.phoneNumber || "",
-          designation: dmc.designation || "",
-          email: dmc.email || "",
-          status: dmc.status === "ACTIVE" ? "Active" : "Inactive",
-          primaryCountry: dmc.primaryCountry || "",
-          destinationsCovered: dmc.destinationsCovered || "",
-          cities: dmc.cities || "",
+    // Create the shared DMC record in database
+    const newSharedDMC = await prisma.sharedDMC.create({
+      data: {
+        dateGenerated: new Date(dateGenerated || new Date()),
+        pdfUrl: pdfUrl,
+        isActive: true,
+        assignedStaffId: assignedStaffId,
+        selectedDMCs: {
+          create: selectedDMCs.map((dmc) => ({
+            dmcId: dmc.id,
+            status: "AWAITING_TRANSFER",
+          })),
         },
-        lastUpdated: new Date().toISOString(),
-        notes: "",
-      })),
-    }
+      },
+      include: {
+        selectedDMCs: {
+          include: {
+            dmc: true,
+          },
+        },
+      },
+    })
 
     return NextResponse.json({
       success: true,
-      message: "DMC sharing created successfully",
-      data: newSharedDMC,
+      message: "DMC sharing created successfully and emails sent",
+      data: {
+        id: newSharedDMC.id,
+        enquiryId,
+        customerId,
+        assignedStaffId,
+        dateGenerated: newSharedDMC.dateGenerated.toLocaleDateString("en-GB"),
+        activeStatus: newSharedDMC.isActive,
+        pdf: "D",
+        pdfUrl: newSharedDMC.pdfUrl,
+        selectedDMCs: newSharedDMC.selectedDMCs.map((item) => ({
+          id: item.id,
+          dmcId: item.dmcId,
+          status: item.status,
+          dmc: {
+            id: item.dmc.id,
+            name: item.dmc.name,
+            primaryContact: item.dmc.contactPerson || "",
+            phoneNumber: item.dmc.phoneNumber || "",
+            designation: item.dmc.designation || "",
+            email: item.dmc.email || "",
+            status: item.dmc.status === "ACTIVE" ? "Active" : "Inactive",
+            primaryCountry: item.dmc.primaryCountry || "",
+            destinationsCovered: item.dmc.destinationsCovered || "",
+            cities: item.dmc.cities || "",
+          },
+          lastUpdated: item.updatedAt.toISOString(),
+          notes: "",
+        })),
+      },
       emailResults: emailResults,
     })
   } catch (error) {
@@ -243,59 +320,259 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// PUT - Update shared DMC or DMC item status and send email notification
+// PUT - Update shared DMC or DMC item status, add commission, and handle customer sharing
 export async function PUT(request: NextRequest) {
   try {
     const body = await request.json()
     const { id, action, ...updateData } = body
 
     if (action === "toggleActive") {
+      const updated = await prisma.sharedDMC.update({
+        where: { id },
+        data: { isActive: updateData.isActive },
+      })
+
       return NextResponse.json({
         success: true,
         message: "Active status updated",
-        data: { id, activeStatus: updateData.isActive },
+        data: { id, activeStatus: updated.isActive },
       })
     }
 
     if (action === "updateDMCStatus") {
+      const updated = await prisma.sharedDMCItem.update({
+        where: { id: updateData.itemId },
+        data: { status: updateData.status },
+      })
+
       return NextResponse.json({
         success: true,
         message: "DMC status updated",
-        data: { id, status: updateData.status, notes: updateData.notes },
+        data: { id, status: updated.status, notes: updateData.notes },
       })
     }
 
-    if (action === "reassignStaff") {
+    if (action === "addCommission") {
+      const { enquiryId, dmcId, quotationAmount, commissionType, commissionAmount, markupPrice, comments } = updateData
+
+      // Create or update commission record
+      const commission = await prisma.commission.upsert({
+        where: {
+          enquiryId_dmcId: {
+            enquiryId: enquiryId,
+            dmcId: dmcId,
+          },
+        },
+        create: {
+          enquiryId,
+          dmcId,
+          quotationAmount,
+          commissionType,
+          commissionAmount,
+          markupPrice,
+          comments,
+        },
+        update: {
+          quotationAmount,
+          commissionType,
+          commissionAmount,
+          markupPrice,
+          comments,
+          updatedAt: new Date(),
+        },
+      })
+
       return NextResponse.json({
         success: true,
-        message: "Staff reassigned successfully",
-        data: { id, assignedStaffId: updateData.newStaffId },
+        message: "Commission added successfully",
+        data: {
+          id,
+          commission: {
+            id: commission.id,
+            enquiryId: commission.enquiryId,
+            dmcId: commission.dmcId,
+            quotationAmount: commission.quotationAmount,
+            commissionType: commission.commissionType,
+            commissionAmount: commission.commissionAmount,
+            markupPrice: commission.markupPrice,
+            comments: commission.comments,
+          },
+        },
+      })
+    }
+
+    if (action === "shareToCustomer") {
+      const { enquiryId, customerId, dmcId, itineraryId } = updateData
+
+      // Get commission details
+      const commission = await prisma.commission.findUnique({
+        where: {
+          enquiryId_dmcId: {
+            enquiryId: enquiryId,
+            dmcId: dmcId,
+          },
+        },
+      })
+
+      // Get customer/enquiry details
+      let customer: { name: string; email: string; phone: string | null; locations?: string } | null = null;
+      
+
+ if (enquiryId) {
+  const enquiry = await prisma.enquiries.findUnique({
+    where: { id: enquiryId },
+    select: { name: true, email: true, phone: true, locations: true },
+  })
+  
+  if (enquiry) {
+    customer = {
+      name: enquiry.name,
+      email: enquiry.email,
+      phone: enquiry.phone,
+      locations: enquiry.locations || undefined // Convert null to undefined
+    };
+   
+  }
+} 
+  
+  if (!customer && customerId) {
+    const directCustomer = await prisma.customers.findUnique({
+      where: { id: customerId },
+      select: { name: true, email: true, phone: true },
+    })
+    
+    if (directCustomer) {
+      customer = directCustomer;
+     
+    }
+  }
+
+
+      if (!customer) {
+        return NextResponse.json({ error: "Customer not found" }, { status: 404 })
+      }
+
+      // Generate customer-facing PDF with pricing
+      const customerPdfUrl = `/uploads/customer-quotes/quote-${enquiryId || customerId}-${Date.now()}.pdf`
+      
+      // Send email to customer with quote
+      const emailResult = await sendEmail({
+        to: customer.email,
+        subject: `Your Travel Quote - ${enquiryId || 'Quote Request'}`,
+        html: `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            <h2 style="color: #4ECDC4;">Your Travel Quote is Ready!</h2>
+            <p>Dear ${customer.name},</p>
+            <p>Thank you for your interest in our travel services. We're excited to share your customized quote!</p>
+            
+            <div style="background-color: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0;">
+              <h3 style="margin-top: 0;">Quote Summary:</h3>
+              <p><strong>Destination:</strong> ${customer.locations || 'As per itinerary'}</p>
+              <p><strong>Total Price:</strong> $${commission?.markupPrice || 'Contact us for pricing'}</p>
+              <p><strong>Quote Valid Until:</strong> ${new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toLocaleDateString()}</p>
+            </div>
+
+            <p>Please find your detailed itinerary and quote attached to this email.</p>
+            
+            <div style="background-color: #e8f5f4; padding: 15px; border-radius: 6px; margin: 20px 0;">
+              <p style="margin: 0;"><strong>Ready to Book?</strong></p>
+              <p style="margin: 10px 0 0 0;">Contact us to confirm your booking or if you have any questions about your quote.</p>
+            </div>
+
+            <p>We look forward to making your travel dreams come true!</p>
+            
+            <p>Best regards,<br>
+            <strong>Your Travel Team</strong><br>
+            <em>Creating Unforgettable Journeys</em></p>
+          </div>
+        `,
+        attachments: [
+          {
+            filename: `travel-quote-${enquiryId || customerId}.pdf`,
+            path: customerPdfUrl,
+            contentType: "application/pdf",
+          },
+        ],
+      })
+
+      // Create shared customer PDF record
+      const sharedPdf = await prisma.sharedCustomerPdf.create({
+        data: {
+          itineraryId: itineraryId,
+          customerId: customerId || enquiryId,
+          enquiryId: enquiryId,
+          pdfUrl: customerPdfUrl,
+          pdfFileName: `travel-quote-${enquiryId || customerId}.pdf`,
+          customerName: customer.name,
+          customerEmail: customer.email,
+          customerPhone: customer.phone,
+          emailSent: emailResult.success,
+          emailSentAt: emailResult.success ? new Date() : null,
+          createdBy: "system",
+        },
+      })
+
+      return NextResponse.json({
+        success: true,
+        message: "Quote shared with customer successfully",
+        data: {
+          id,
+          sharedPdf: {
+            id: sharedPdf.id,
+            customerName: sharedPdf.customerName,
+            customerEmail: sharedPdf.customerEmail,
+            emailSent: sharedPdf.emailSent,
+            markupPrice: commission?.markupPrice,
+          },
+        },
       })
     }
 
     if (action === "addDMC") {
-      // Fetch the DMC details from database
-      const dmc = await prisma.dMCForm.findUnique({
-        where: { id: updateData.dmcId },
-        select: {
-          id: true,
-          name: true,
-          contactPerson: true,
-          email: true,
-          phoneNumber: true,
-          designation: true,
-          status: true,
-          primaryCountry: true,
-          destinationsCovered: true,
-          cities: true,
-        },
-      })
+  // Check if DMC is already added to this shared itinerary
+  const existingDMC = await prisma.sharedDMCItem.findFirst({
+    where: {
+      sharedDMCId: id,
+      dmcId: updateData.dmcId,
+    },
+  });
+
+  if (existingDMC) {
+    return NextResponse.json({ 
+      error: "This DMC is already added to the itinerary" 
+    }, { status: 400 });
+  }
+
+  const dmc = await prisma.dMCForm.findUnique({
+    where: { id: updateData.dmcId },
+    select: {
+      id: true,
+      name: true,
+      contactPerson: true,
+      email: true,
+      phoneNumber: true,
+      designation: true,
+      status: true,
+      primaryCountry: true,
+      destinationsCovered: true,
+      cities: true,
+    },
+  })
 
       if (!dmc) {
         return NextResponse.json({ error: "DMC not found" }, { status: 404 })
       }
 
-      // Send email to the newly added DMC
+      // Add DMC to shared list and send email
+      const sharedDMCItem = await prisma.sharedDMCItem.create({
+        data: {
+          sharedDMCId: id,
+          dmcId: updateData.dmcId,
+          status: "AWAITING_TRANSFER",
+        },
+      })
+
+      // Send email to newly added DMC
       let emailSent = false
       let emailError = null
 
@@ -305,13 +582,21 @@ export async function PUT(request: NextRequest) {
             to: dmc.email,
             subject: `New Itinerary Request - ${updateData.enquiryId}`,
             html: `
-              <h2>New Itinerary Request</h2>
-              <p>Dear ${dmc.name},</p>
-              <p>You have been added to a new itinerary request.</p>
-              <p><strong>Enquiry ID:</strong> ${updateData.enquiryId}</p>
-              <p><strong>Date Generated:</strong> ${updateData.dateGenerated || new Date().toISOString().split("T")[0]}</p>
-              <p>Please review the attached itinerary and provide your quotation.</p>
-              <p>Best regards,<br>Travel Team</p>
+              <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+                <h2 style="color: #4ECDC4;">New Itinerary Request</h2>
+                <p>Dear ${dmc.name},</p>
+                <p>You have been added to a new itinerary request for quotation.</p>
+                
+                <div style="background-color: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0;">
+                  <h3 style="margin-top: 0;">Request Details:</h3>
+                  <p><strong>Enquiry ID:</strong> ${updateData.enquiryId}</p>
+                  <p><strong>Date Generated:</strong> ${updateData.dateGenerated || new Date().toISOString().split("T")[0]}</p>
+                  <p><strong>Destinations:</strong> ${dmc.destinationsCovered}</p>
+                </div>
+
+                <p>Please review the attached itinerary and provide your quotation.</p>
+                <p>Best regards,<br>Travel Team</p>
+              </div>
             `,
             attachments: updateData.pdfPath
               ? [
@@ -350,9 +635,9 @@ export async function PUT(request: NextRequest) {
           id,
           selectedDMCs: [
             {
-              id: `item-${Date.now()}`,
+              id: sharedDMCItem.id,
               dmcId: updateData.dmcId,
-              status: (updateData.status || "AWAITING_TRANSFER") as DMCStatus,
+              status: "AWAITING_TRANSFER" as DMCStatus,
               dmc: transformedDMC,
               lastUpdated: new Date().toISOString(),
               notes: "",
@@ -387,7 +672,10 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: "ID is required" }, { status: 400 })
     }
 
-    // In a real implementation, you'd delete from database
+    await prisma.sharedDMC.delete({
+      where: { id },
+    })
+
     return NextResponse.json({
       success: true,
       message: "Shared DMC deleted successfully",

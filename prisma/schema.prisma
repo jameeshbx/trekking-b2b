@@ -193,6 +193,7 @@ model DMCForm {
   sharedItems               SharedDMCItem[] @relation("SharedDMCItems")
   registrationCertificate   File?           @relation("DMCRegistrationCertificate", fields: [registrationCertificateId], references: [id])
   paymentMethods            PaymentMethod[]
+  commissions               Commission[]
 
   @@index([name])
   @@index([email])
@@ -235,38 +236,37 @@ model UserForm {
 }
 
 model PaymentMethod {
-  id          String            @id @default(uuid())
-  dmcId       String?           // Made optional
-  dmc         DMCForm?          @relation(fields: [dmcId], references: [id])
-  type        PaymentMethodType
+  id    String            @id @default(uuid())
+  dmcId String? // Made optional
+  dmc   DMCForm?          @relation(fields: [dmcId], references: [id])
+  type  PaymentMethodType
 
   // Common fields
-  name        String?
-  identifier  String? // Account number, UPI ID, etc.
+  name       String?
+  identifier String? // Account number, UPI ID, etc.
 
   // UPI-specific fields
   upiProvider String?
 
   // QR Code
-  qrCodeId    String?   @unique
-  qrCode      File?     @relation("PaymentMethodQRCode", fields: [qrCodeId], references: [id], onDelete: Cascade)
+  qrCodeId String? @unique
+  qrCode   File?   @relation("PaymentMethodQRCode", fields: [qrCodeId], references: [id], onDelete: Cascade)
 
   // Payment Gateway
   paymentLink String?
 
   // Metadata
-  notes       String?
-  isActive    Boolean   @default(true)
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  notes     String?
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   // NEW FIELD for storing multiple bank details as JSON
-  bank        Json?    
+  bank Json?
 
   @@index([dmcId])
   @@index([type])
 }
-
 
 model enquiries {
   id                 String              @id @default(uuid())
@@ -299,7 +299,10 @@ model enquiries {
   customer           customers?          @relation(fields: [customerId], references: [id])
   itineraries        itineraries[]
   sharedCustomerPdfs SharedCustomerPdf[]
-  feedback Feedback?
+  feedback           Feedback?
+  commissions        Commission[]
+
+  sharedDMCs SharedDMC[] @relation("EnquirySharedDMCs")
 
   @@index([status])
   @@index([enquiryDate])
@@ -402,9 +405,7 @@ model SharedCustomerPdf {
   enquiry          enquiries?      @relation(fields: [enquiryId], references: [id])
   emailLogs        EmailLog[]
 
-  @@unique([itineraryId, customerId])
-  @@index([itineraryId])
-  @@index([customerId])
+  @@unique([itineraryId, customerId, createdAt])
   @@index([enquiryId])
   @@index([status])
   @@index([emailSent])
@@ -440,7 +441,6 @@ model EmailLog {
   @@map("email_logs")
 }
 
-
 model Feedback {
   id                   String   @id @default(uuid())
   enquiryId            String   @unique
@@ -449,16 +449,16 @@ model Feedback {
   email                String
   destination          String
   dateRange            String
-  overallExperience    Int      // Rating for overall experience
-  accommodationQuality Int      // Rating for accommodation quality
-  transportTransfers   Int      // Rating for transport & transfers
-  serviceFromTeam      Int      // Rating for service from our team
-  travelAgain          Boolean  // Would you travel with us again?
-  additionalComments   String?  // Any additional comments
+  overallExperience    Int // Rating for overall experience
+  accommodationQuality Int // Rating for accommodation quality
+  transportTransfers   Int // Rating for transport & transfers
+  serviceFromTeam      Int // Rating for service from our team
+  travelAgain          Boolean // Would you travel with us again?
+  additionalComments   String? // Any additional comments
   createdAt            DateTime @default(now())
   updatedAt            DateTime @updatedAt
 
-  enquiry              enquiries @relation(fields: [enquiryId], references: [id], onDelete: Cascade)
+  enquiry enquiries @relation(fields: [enquiryId], references: [id], onDelete: Cascade)
 
   @@map("feedbacks")
 }
@@ -609,12 +609,15 @@ model SharedDMC {
   isActive        Boolean         @default(false)
   status          SharedDMCStatus @default(PENDING)
   assignedStaffId String?
+  enquiryId       String?
   createdAt       DateTime        @default(now())
   updatedAt       DateTime        @updatedAt
   assignedStaff   Staff?          @relation("AssignedStaff", fields: [assignedStaffId], references: [id])
+  enquiry         enquiries?      @relation("EnquirySharedDMCs", fields: [enquiryId], references: [id]) // ADDED RELATION NAME
   selectedDMCs    SharedDMCItem[]
 
   @@index([assignedStaffId])
+  @@index([enquiryId])
   @@index([assignedStaffId], map: "SharedDMC_assignedStaffId_idx")
   @@map("shared_dmcs")
 }
@@ -656,26 +659,25 @@ model Admin {
   @@map("admins")
 }
 
-model Feedback {
-  id                   String   @id @default(uuid())
-  enquiryId            String   @unique
-  name                 String
-  phone                String
-  email                String
-  destination          String
-  dateRange            String
-  overallExperience    Int      // Rating for overall experience
-  accommodationQuality Int      // Rating for accommodation quality
-  transportTransfers   Int      // Rating for transport & transfers
-  serviceFromTeam      Int      // Rating for service from our team
-  travelAgain          Boolean  // Would you travel with us again?
-  additionalComments   String?  // Any additional comments
-  createdAt            DateTime @default(now())
-  updatedAt            DateTime @updatedAt
+model Commission {
+  id               String   @id @default(cuid())
+  enquiryId        String?
+  dmcId            String?
+  quotationAmount  Float?
+  commissionType   String? // "FLAT" or "PERCENTAGE"  
+  commissionAmount Float?
+  markupPrice      Float?
+  comments         String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
 
-  enquiry              enquiries @relation(fields: [enquiryId], references: [id], onDelete: Cascade)
+  // Add relations if you want to use them (optional)
+  enquiry enquiries? @relation(fields: [enquiryId], references: [id], onDelete: Cascade)
+  dmc     DMCForm?   @relation(fields: [dmcId], references: [id], onDelete: SetNull)
 
-  @@map("feedbacks")
+  // Add unique constraint if you want one commission per enquiry-dmc pair
+  @@unique([enquiryId, dmcId], name: "enquiryId_dmcId")
+  @@map("commissions")
 }
 
 enum AdminStatus {
@@ -739,6 +741,11 @@ enum ManagerStatus {
 enum DMCStatus {
   ACTIVE
   DEACTIVE
+}
+
+enum CommissionType {
+  FLAT
+  PERCENTAGE
 }
 
 enum DMCRequestStatusEnum {
