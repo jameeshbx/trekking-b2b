@@ -1,7 +1,6 @@
 "use client"
 
 import type React from "react"
-import { useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -9,8 +8,9 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Card } from "@/components/ui/card"
-import { Star, User, MessageSquare, Calendar } from "lucide-react"
+import { Star, User, MessageSquare, Calendar, CheckCircle } from "lucide-react"
 import Image from "next/image"
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 
 // Define the props interface for FeedbackForm
 interface FeedbackFormProps {
@@ -72,7 +72,7 @@ function TestimonialCard({ name, content, rating }: { name: string; content: str
 }
 
 export default function FeedbackForm({ enquiryId }: FeedbackFormProps) {
-  const router = useRouter()
+ 
   const [formData, setFormData] = useState({
     fullName: "",
     phoneNumber: "",
@@ -86,6 +86,8 @@ export default function FeedbackForm({ enquiryId }: FeedbackFormProps) {
     travelAgain: "",
     additionalComments: "",
   })
+  const [showSuccessModal, setShowSuccessModal] = useState(false)
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
   useEffect(() => {
     const fetchEnquiryDetails = async () => {
@@ -121,6 +123,7 @@ export default function FeedbackForm({ enquiryId }: FeedbackFormProps) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    setIsSubmitting(true)
 
     try {
       const response = await fetch("/api/feedbacks", {
@@ -145,8 +148,21 @@ export default function FeedbackForm({ enquiryId }: FeedbackFormProps) {
       })
 
       if (response.ok) {
-        alert("Feedback submitted successfully!")
-        router.push("/thank-you") // Redirect to a thank-you page
+        setShowSuccessModal(true)
+        // Reset form after successful submission
+        setFormData({
+          fullName: "",
+          phoneNumber: "",
+          email: "",
+          tripName: "",
+          dateOfTrip: "",
+          overallExperience: 0,
+          accommodationQuality: 0,
+          transportTransfers: 0,
+          serviceFromTeam: 0,
+          travelAgain: "",
+          additionalComments: "",
+        })
       } else {
         const errorData = await response.json()
         console.error("Error submitting feedback:", errorData)
@@ -155,11 +171,44 @@ export default function FeedbackForm({ enquiryId }: FeedbackFormProps) {
     } catch (error) {
       console.error("Error submitting feedback:", error)
       alert("An error occurred while submitting feedback.")
+    } finally {
+      setIsSubmitting(false)
     }
+  }
+
+  const handleCloseModal = () => {
+    setShowSuccessModal(false)
   }
 
   return (
     <div className="min-h-screen flex flex-col lg:flex-row">
+      {/* Success Modal */}
+      <Dialog open={showSuccessModal} onOpenChange={setShowSuccessModal}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <div className="flex justify-center mb-4">
+              <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center">
+                <CheckCircle className="w-10 h-10 text-green-600" />
+              </div>
+            </div>
+            <DialogTitle className="text-center text-2xl font-bold text-gray-900">
+              Feedback Submitted Successfully!
+            </DialogTitle>
+            <DialogDescription className="text-center text-gray-600">
+              Thank you for sharing your experience with us. Your feedback helps us improve our services.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex justify-center mt-6">
+            <Button
+              onClick={handleCloseModal}
+              className="bg-green-600 hover:bg-green-700 px-8"
+            >
+              Close
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       {/* Left Side - Brand Section */}
       <div className="bg-[#026451] lg:w-1/2 px-10 pb-6 lg:px-16  flex flex-col justify-center relative overflow-hidden">
         {/* Background Pattern */}
@@ -242,6 +291,7 @@ export default function FeedbackForm({ enquiryId }: FeedbackFormProps) {
                     value={formData.fullName}
                     onChange={(e) => handleInputChange("fullName", e.target.value)}
                     className="mt-1"
+                    required
                   />
                 </div>
                 <div>
@@ -254,6 +304,7 @@ export default function FeedbackForm({ enquiryId }: FeedbackFormProps) {
                       placeholder="Enter your phone number"
                       value={formData.phoneNumber}
                       onChange={(e) => handleInputChange("phoneNumber", e.target.value)}
+                      required
                     />
                     <MessageSquare className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-green-500" />
                   </div>
@@ -269,6 +320,7 @@ export default function FeedbackForm({ enquiryId }: FeedbackFormProps) {
                     value={formData.email}
                     onChange={(e) => handleInputChange("email", e.target.value)}
                     className="mt-1"
+                    required
                   />
                 </div>
               </div>
@@ -288,6 +340,7 @@ export default function FeedbackForm({ enquiryId }: FeedbackFormProps) {
                     value={formData.tripName}
                     onChange={(e) => handleInputChange("tripName", e.target.value)}
                     className="mt-1"
+                    required
                   />
                 </div>
                 <div>
@@ -300,6 +353,7 @@ export default function FeedbackForm({ enquiryId }: FeedbackFormProps) {
                       placeholder="enter date of trip"
                       value={formData.dateOfTrip}
                       onChange={(e) => handleInputChange("dateOfTrip", e.target.value)}
+                      required
                     />
                     <Calendar className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
                   </div>
@@ -344,6 +398,7 @@ export default function FeedbackForm({ enquiryId }: FeedbackFormProps) {
                     value={formData.travelAgain}
                     onValueChange={(value) => handleInputChange("travelAgain", value)}
                     className="flex gap-6"
+                    required
                   >
                     <div className="flex items-center space-x-2">
                       <RadioGroupItem value="yes" id="yes" />
@@ -377,9 +432,10 @@ export default function FeedbackForm({ enquiryId }: FeedbackFormProps) {
             {/* Submit Button */}
             <Button
               type="submit"
-              className="w-full bg-teal-600 hover:bg-teal-700 text-white py-3 rounded-lg font-medium"
+              disabled={isSubmitting}
+              className="w-full bg-teal-600 hover:bg-teal-700 text-white py-3 rounded-lg font-medium disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              Get started free
+              {isSubmitting ? "Submitting..." : "Submit Feedback"}
             </Button>
           </form>
         </div>
