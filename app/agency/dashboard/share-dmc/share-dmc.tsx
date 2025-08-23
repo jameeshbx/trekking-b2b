@@ -1,12 +1,13 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Calendar, FileText, X } from "lucide-react"
-import { useRouter } from "next/navigation"
+import { Calendar, FileText, X, Download, Send } from "lucide-react"
+import { useRouter, useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-
+import { Input } from "@/components/ui/input"
+import { Textarea } from "@/components/ui/textarea"
 import { toast } from "@/components/ui/use-toast"
 
 // Interface for DMC data from your API
@@ -18,10 +19,6 @@ interface DMC {
   designation: string
   email: string
   status: string
-  joinSource: string
-  registrationCertificateUrl: string | null
-  createdAt: string
-  updatedAt: string
   primaryCountry?: string
   destinationsCovered?: string
   cities?: string
@@ -34,13 +31,18 @@ interface SharedDMCItem {
   quotedPrice?: number
   lastUpdated?: string
   quotationAmount?: number
+  markupPrice?: number
+  commissionAmount?: number
+  commissionType?: "FLAT" | "PERCENTAGE"
   notes?: string
+  dmc?: DMC
 }
 
 interface SharedItinerary {
   id: string
   dateGenerated: string
   pdf: string
+  pdfUrl?: string
   activeStatus: boolean
   enquiryId: string
   customerId?: string
@@ -57,53 +59,17 @@ interface CommunicationLog {
   dmcName: string
 }
 
-// Mock itinerary data
-const mockItineraries: SharedItinerary[] = [
-  {
-    id: "itin-1",
-    dateGenerated: "08-03-2025",
-    pdf: "B",
-    activeStatus: false,
-    enquiryId: "ENQ-001",
-    selectedDMCs: [],
-  },
-  {
-    id: "itin-2",
-    dateGenerated: "01-04-2025",
-    pdf: "D",
-    activeStatus: true,
-    enquiryId: "ENQ-002",
-    selectedDMCs: [
-      { id: "sel-1", dmcId: "dmc-1", status: "AWAITING_TRANSFER" },
-      { id: "sel-2", dmcId: "dmc-2", status: "AWAITING_INTERNAL_REVIEW" },
-      { id: "sel-3", dmcId: "dmc-3", status: "QUOTATION_RECEIVED", quotedPrice: 1100, quotationAmount: 1100 },
-    ],
-  },
-  {
-    id: "itin-3",
-    dateGenerated: "01-04-2025",
-    pdf: "B",
-    activeStatus: false,
-    enquiryId: "ENQ-003",
-    selectedDMCs: [],
-  },
-  {
-    id: "itin-4",
-    dateGenerated: "28-02-2025",
-    pdf: "B",
-    activeStatus: false,
-    enquiryId: "ENQ-004",
-    selectedDMCs: [],
-  },
-]
-
 const DMCAdminInterface = () => {
   const router = useRouter()
-  const [itineraries, setItineraries] = useState<SharedItinerary[]>(mockItineraries)
+  const searchParams = useSearchParams()
+  const enquiryId = searchParams.get("enquiryId")
+  const customerId = searchParams.get("customerId")
+
+  const [itineraries, setItineraries] = useState<SharedItinerary[]>([])
   const [availableDMCs, setAvailableDMCs] = useState<DMC[]>([])
   const [selectedDMCForAdd, setSelectedDMCForAdd] = useState<string>("")
   const [loading, setLoading] = useState(true)
-  const [, setError] = useState<string | null>(null)
+  const [error, setError] = useState<string | null>(null)
 
   const [showCommunicationLog, setShowCommunicationLog] = useState(false)
   const [showUpdateStatus, setShowUpdateStatus] = useState(false)
@@ -113,15 +79,35 @@ const DMCAdminInterface = () => {
 
   const [statusDetails, setStatusDetails] = useState("Details sent")
   const [feedbackText, setFeedbackText] = useState("")
-  const [commissionType, setCommissionType] = useState("Flat commission")
+  const [commissionType, setCommissionType] = useState<"FLAT" | "PERCENTAGE">("FLAT")
   const [commissionAmount, setCommissionAmount] = useState("180")
   const [markupPrice, setMarkupPrice] = useState("1280")
   const [comments, setComments] = useState("")
   const [quotationPrice, setQuotationPrice] = useState("1100.00")
 
   const [communicationLogs, setCommunicationLogs] = useState<CommunicationLog[]>([])
+  const [isSubmittingCommission, setIsSubmittingCommission] = useState(false)
+  const [isShareToCustomerLoading, setIsShareToCustomerLoading] = useState(false)
 
-  // Fetch DMCs from API
+  // Calculate markup price dynamically
+  const calculateMarkupPrice = () => {
+    const quotation = parseFloat(quotationPrice) || 0
+    const commission = parseFloat(commissionAmount) || 0
+    
+    if (commissionType === "PERCENTAGE") {
+      const commissionValue = (quotation * commission) / 100
+      return (quotation + commissionValue).toFixed(2)
+    } else {
+      return (quotation + commission).toFixed(2)
+    }
+  }
+
+  // Update markup price when quotation or commission changes
+  useEffect(() => {
+    setMarkupPrice(calculateMarkupPrice())
+  }, [quotationPrice, commissionAmount, commissionType])
+
+  // Fetch DMCs and shared itineraries from API
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -129,22 +115,36 @@ const DMCAdminInterface = () => {
         setError(null)
 
         // Fetch DMCs from your API endpoint
-        const response = await fetch("/api/auth/agency-add-dmc?limit=100")
-
-        if (!response.ok) {
-          throw new Error(`Failed to fetch DMCs: ${response.statusText}`)
+        const dmcResponse = await fetch("/api/auth/agency-add-dmc?limit=100")
+        
+        if (!dmcResponse.ok) {
+          throw new Error(`Failed to fetch DMCs: ${dmcResponse.statusText}`)
         }
 
-        const data = await response.json()
-
-        if (data.success && data.data) {
-          setAvailableDMCs(data.data)
-        } else {
-          throw new Error("Invalid response format")
+        const dmcData = await dmcResponse.json()
+        if (dmcData.success && dmcData.data) {
+          setAvailableDMCs(dmcData.data)
         }
+
+        // Fetch shared DMC data
+        const params = new URLSearchParams()
+        if (enquiryId) params.append("enquiryId", enquiryId)
+        if (customerId) params.append("customerId", customerId)
+
+        const sharedResponse = await fetch(`/api/share-dmc?${params.toString()}`)
+        
+        if (!sharedResponse.ok) {
+          throw new Error(`Failed to fetch shared DMCs: ${sharedResponse.statusText}`)
+        }
+
+        const sharedData = await sharedResponse.json()
+        if (sharedData.success && sharedData.data) {
+          setItineraries(sharedData.data)
+        }
+
       } catch (err) {
-        console.error("Error fetching DMCs:", err)
-        setError(err instanceof Error ? err.message : "Failed to fetch DMCs")
+        console.error("Error fetching data:", err)
+        setError(err instanceof Error ? err.message : "Failed to fetch data")
         toast({
           title: "Error",
           description: "Failed to fetch data",
@@ -156,7 +156,7 @@ const DMCAdminInterface = () => {
     }
 
     fetchData()
-  }, [])
+  }, [enquiryId, customerId])
 
   const getDMCById = (dmcId: string) => {
     return availableDMCs.find((dmc) => dmc.id === dmcId)
@@ -164,6 +164,22 @@ const DMCAdminInterface = () => {
 
   const toggleActiveStatus = async (itineraryId: string, currentStatus: boolean) => {
     try {
+      const response = await fetch("/api/share-dmc", {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          id: itineraryId,
+          action: "toggleActive",
+          isActive: !currentStatus,
+        }),
+      })
+
+      if (!response.ok) {
+        throw new Error("Failed to update status")
+      }
+
       setItineraries((prev) =>
         prev.map((itin) => (itin.id === itineraryId ? { ...itin, activeStatus: !itin.activeStatus } : itin)),
       )
@@ -186,19 +202,33 @@ const DMCAdminInterface = () => {
     if (!dmcId) return
 
     try {
+      const response = await fetch("/api/share-dmc", {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          id: itineraryId,
+          action: "addDMC",
+          dmcId: dmcId,
+          enquiryId: enquiryId,
+          dateGenerated: new Date().toISOString().split("T")[0],
+        }),
+      })
+
+      if (!response.ok) {
+        throw new Error("Failed to add DMC")
+      }
+
+      const result = await response.json()
+
+      // Update local state
       setItineraries((prev) =>
         prev.map((itin) =>
           itin.id === itineraryId
             ? {
                 ...itin,
-                selectedDMCs: [
-                  ...itin.selectedDMCs,
-                  {
-                    id: `sel-${Date.now()}`,
-                    dmcId: dmcId,
-                    status: "AWAITING_TRANSFER",
-                  },
-                ],
+                selectedDMCs: [...itin.selectedDMCs, ...result.data.selectedDMCs],
               }
             : itin,
         ),
@@ -207,7 +237,7 @@ const DMCAdminInterface = () => {
       setSelectedDMCForAdd("")
       toast({
         title: "Success",
-        description: "DMC added to itinerary",
+        description: `DMC added to itinerary and email sent`,
       })
     } catch (error) {
       console.error("Error adding DMC:", error)
@@ -222,9 +252,7 @@ const DMCAdminInterface = () => {
   const handleViewUpdates = (dmcItem: SharedDMCItem, itinerary: SharedItinerary) => {
     setSelectedDMCItem(dmcItem)
     setSelectedItinerary(itinerary)
-
     setCommunicationLogs([])
-
     setShowCommunicationLog(true)
   }
 
@@ -238,26 +266,85 @@ const DMCAdminInterface = () => {
   const handleSetMargin = (dmcItem: SharedDMCItem) => {
     setSelectedDMCItem(dmcItem)
     setQuotationPrice(dmcItem.quotationAmount?.toString() || "1100.00")
+    setCommissionType(dmcItem.commissionType || "FLAT")
+    setCommissionAmount(dmcItem.commissionAmount?.toString() || "180")
+    setMarkupPrice(dmcItem.markupPrice?.toString() || calculateMarkupPrice())
+    setComments(dmcItem.notes || "")
     setShowSetMargin(true)
   }
 
-  const handleShareToCustomer = (itinerary: SharedItinerary) => {
-    const params = new URLSearchParams()
-    if (itinerary.enquiryId) {
-      params.append("enquiryId", itinerary.enquiryId)
-    }
-    if (itinerary.customerId) {
-      params.append("customerId", itinerary.customerId)
-    }
-    params.append("itineraryId", itinerary.id)
+  const handleShareToCustomer = async (itinerary: SharedItinerary, dmcItem: SharedDMCItem) => {
+    try {
+      setIsShareToCustomerLoading(true)
 
-    router.push(`/agency/dashboard/share-customer?${params.toString()}`)
+      const response = await fetch("/api/share-dmc", {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          id: itinerary.id,
+          action: "shareToCustomer",
+          enquiryId: enquiryId || itinerary.enquiryId,
+          customerId: customerId || itinerary.customerId,
+          dmcId: dmcItem.dmcId,
+          itineraryId: itinerary.id,
+        }),
+      })
+
+      if (!response.ok) {
+        throw new Error("Failed to share to customer")
+      }
+
+     await response.json()
+
+      toast({
+        title: "Success",
+        description: "Quote shared with customer successfully",
+      })
+
+      // Navigate to customer share page
+      const params = new URLSearchParams()
+      if (enquiryId) params.append("enquiryId", enquiryId)
+      if (customerId) params.append("customerId", customerId)
+      params.append("itineraryId", itinerary.id)
+
+      router.push(`/agency/dashboard/share-customer?${params.toString()}`)
+
+    } catch (error) {
+      console.error("Error sharing to customer:", error)
+      toast({
+        title: "Error",
+        description: "Failed to share quote with customer",
+        variant: "destructive",
+      })
+    } finally {
+      setIsShareToCustomerLoading(false)
+    }
   }
 
   const updateDMCStatus = async () => {
     if (!selectedDMCItem) return
 
     try {
+      const response = await fetch("/api/share-dmc", {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          id: selectedDMCItem.id,
+          action: "updateDMCStatus",
+          itemId: selectedDMCItem.id,
+          status: statusDetails.replace(" ", "_").toUpperCase(),
+          notes: feedbackText,
+        }),
+      })
+
+      if (!response.ok) {
+        throw new Error("Failed to update status")
+      }
+
       // Update local state
       setItineraries((prev) =>
         prev.map((itin) => ({
@@ -289,12 +376,93 @@ const DMCAdminInterface = () => {
     }
   }
 
+  const addCommission = async () => {
+    if (!selectedDMCItem || !enquiryId) return
+
+    try {
+      setIsSubmittingCommission(true)
+
+      const response = await fetch("/api/share-dmc", {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          id: selectedItinerary?.id,
+          action: "addCommission",
+          enquiryId: enquiryId,
+          dmcId: selectedDMCItem.dmcId,
+          quotationAmount: parseFloat(quotationPrice),
+          commissionType: commissionType,
+          commissionAmount: parseFloat(commissionAmount),
+          markupPrice: parseFloat(markupPrice),
+          comments: comments,
+        }),
+      })
+
+      if (!response.ok) {
+        throw new Error("Failed to add commission")
+      }
+
+     await response.json()
+
+      // Update local state with commission data
+      setItineraries((prev) =>
+        prev.map((itin) => ({
+          ...itin,
+          selectedDMCs: itin.selectedDMCs.map((dmc) =>
+            dmc.id === selectedDMCItem.id
+              ? {
+                  ...dmc,
+                  quotationAmount: parseFloat(quotationPrice),
+                  commissionAmount: parseFloat(commissionAmount),
+                  commissionType: commissionType,
+                  markupPrice: parseFloat(markupPrice),
+                  notes: comments,
+                }
+              : dmc,
+          ),
+        })),
+      )
+
+      setShowSetMargin(false)
+      toast({
+        title: "Success",
+        description: "Commission added successfully",
+      })
+    } catch (error) {
+      console.error("Error adding commission:", error)
+      toast({
+        title: "Error",
+        description: "Failed to add commission",
+        variant: "destructive",
+      })
+    } finally {
+      setIsSubmittingCommission(false)
+    }
+  }
+
+  const handlePayDMC = () => {
+    router.push("/agency/dashboard/share-dmc")
+  }
+
   if (loading) {
     return (
       <div className="flex items-center justify-center p-8">
         <div className="text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600 mx-auto"></div>
-          <p className="mt-2 text-gray-600">Loading...</p>
+          <p className="mt-2 text-gray-600">Loading DMC data...</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="flex items-center justify-center p-8">
+        <div className="text-center text-red-600">
+          <p className="text-lg font-semibold">Error Loading Data</p>
+          <p className="mt-2">{error}</p>
         </div>
       </div>
     )
@@ -307,6 +475,11 @@ const DMCAdminInterface = () => {
         <div className="flex justify-between items-center mb-6">
           <div className="text-sm text-gray-600">
             Handled by: <span className="font-medium text-gray-800">AStaff2</span>
+            {enquiryId && (
+              <span className="ml-4">
+                Enquiry: <span className="font-medium text-gray-800">{enquiryId}</span>
+              </span>
+            )}
           </div>
           <button className="bg-gray-400 hover:bg-gray-500 text-white px-4 py-2 rounded-md text-sm font-medium">
             Reassign Staff
@@ -350,6 +523,17 @@ const DMCAdminInterface = () => {
                       >
                         {itinerary.pdf}
                       </div>
+                      {itinerary.pdfUrl && (
+                        <a
+                          href={itinerary.pdfUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-xs text-blue-600 hover:text-blue-800 mt-1 block"
+                        >
+                          <Download className="w-3 h-3 inline mr-1" />
+                          Download
+                        </a>
+                      )}
                     </div>
                     <div className="text-center">
                       <label className="relative inline-flex items-center cursor-pointer">
@@ -372,8 +556,8 @@ const DMCAdminInterface = () => {
                           }
                         }}
                       >
-                        <SelectTrigger className="w-24 text-xs">
-                          <SelectValue placeholder="Select..." />
+                        <SelectTrigger className="w-32 text-xs">
+                          <SelectValue placeholder="Add DMC..." />
                         </SelectTrigger>
                         <SelectContent>
                           {availableDMCs
@@ -399,7 +583,7 @@ const DMCAdminInterface = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {itineraries.flatMap((itinerary) =>
             itinerary.selectedDMCs.map((dmcItem) => {
-              const dmc = getDMCById(dmcItem.dmcId)
+              const dmc = dmcItem.dmc || getDMCById(dmcItem.dmcId)
               if (!dmc) return null
 
               const getCardStatus = () => {
@@ -424,6 +608,8 @@ const DMCAdminInterface = () => {
                 }
               }
 
+              const hasCommission = dmcItem.quotationAmount && dmcItem.markupPrice
+
               return (
                 <Card key={dmcItem.id} className={`shadow-sm ${getCardColor()}`}>
                   <CardHeader className="pb-3">
@@ -444,10 +630,17 @@ const DMCAdminInterface = () => {
                     <div className="mb-4">
                       <h3 className="font-semibold text-lg mb-1">{getCardStatus()}</h3>
                       <p className="text-sm text-gray-500">Itinerary sent on : {itinerary.dateGenerated}</p>
-                      {dmcItem.status === "QUOTATION_RECEIVED" && dmcItem.quotedPrice && (
-                        <p className="text-sm font-semibold text-gray-900 mt-2">
-                          Quoted Price : <span className="text-lg">${dmcItem.quotedPrice}</span>
-                        </p>
+                      {dmcItem.status === "QUOTATION_RECEIVED" && dmcItem.quotationAmount && (
+                        <div className="mt-2 space-y-1">
+                          <p className="text-sm font-semibold text-gray-900">
+                            Quoted Price : <span className="text-lg">${dmcItem.quotationAmount}</span>
+                          </p>
+                          {hasCommission && (
+                            <p className="text-sm font-semibold text-blue-600">
+                              Final Price : <span className="text-lg">${dmcItem.markupPrice}</span>
+                            </p>
+                          )}
+                        </div>
                       )}
                     </div>
 
@@ -470,21 +663,31 @@ const DMCAdminInterface = () => {
                         <>
                           <Button
                             size="sm"
-                            className="bg-green-600 hover:bg-green-700 text-white text-xs px-3 py-1"
+                            className="bg-blue-600 hover:bg-blue-700 text-white text-xs px-3 py-1"
                             onClick={() => handleSetMargin(dmcItem)}
                           >
                             Set margin
                           </Button>
-                          <Button
-                            size="sm"
-                            className="bg-green-600 hover:bg-green-700 text-white text-xs px-3 py-1"
-                            onClick={() => handleShareToCustomer(itinerary)}
-                          >
-                            Share to customer
-                          </Button>
-                          <Button size="sm" className="bg-green-600 hover:bg-green-700 text-white text-xs px-3 py-1">
-                            Pay to DMC
-                          </Button>
+                          {hasCommission && (
+                            <>
+                              <Button
+                                size="sm"
+                                className="bg-purple-600 hover:bg-purple-700 text-white text-xs px-3 py-1"
+                                onClick={() => handleShareToCustomer(itinerary, dmcItem)}
+                                disabled={isShareToCustomerLoading}
+                              >
+                                <Send className="w-3 h-3 mr-1" />
+                                Share to customer
+                              </Button>
+                              <Button 
+                                size="sm" 
+                                className="bg-orange-600 hover:bg-orange-700 text-white text-xs px-3 py-1"
+                                onClick={handlePayDMC}
+                              >
+                                Pay to DMC
+                              </Button>
+                            </>
+                          )}
                         </>
                       )}
                     </div>
@@ -521,14 +724,22 @@ const DMCAdminInterface = () => {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-200">
-                    {communicationLogs.map((log) => (
-                      <tr key={log.id} className="hover:bg-gray-50">
-                        <td className="p-3 text-sm text-gray-600">{log.date}</td>
-                        <td className="p-3"></td>
-                        <td className="p-3 text-sm text-gray-600">{log.companyType}</td>
-                        <td className="p-3 text-sm text-gray-600">{log.feedback}</td>
+                    {communicationLogs.length === 0 ? (
+                      <tr>
+                        <td colSpan={4} className="p-8 text-center text-gray-500">
+                          No communication logs found
+                        </td>
                       </tr>
-                    ))}
+                    ) : (
+                      communicationLogs.map((log) => (
+                        <tr key={log.id} className="hover:bg-gray-50">
+                          <td className="p-3 text-sm text-gray-600">{log.date}</td>
+                          <td className="p-3 text-sm text-gray-600">{log.status}</td>
+                          <td className="p-3 text-sm text-gray-600">{log.companyType}</td>
+                          <td className="p-3 text-sm text-gray-600">{log.feedback}</td>
+                        </tr>
+                      ))
+                    )}
                   </tbody>
                 </table>
               </div>
@@ -549,9 +760,13 @@ const DMCAdminInterface = () => {
               <div className="space-y-4">
                 <div className="flex items-center space-x-3 mb-4">
                   <div className="w-10 h-10 bg-gray-300 rounded-full flex items-center justify-center">
-                    <span className="text-sm font-medium text-gray-600">LR</span>
+                    <span className="text-sm font-medium text-gray-600">
+                      {selectedDMCItem && getDMCById(selectedDMCItem.dmcId)?.name.charAt(0)}
+                    </span>
                   </div>
-                  <span className="font-medium text-gray-800">Lisa Ray</span>
+                  <span className="font-medium text-gray-800">
+                    {selectedDMCItem && getDMCById(selectedDMCItem.dmcId)?.name}
+                  </span>
                 </div>
                 <div>
                   <Select value={statusDetails} onValueChange={setStatusDetails}>
@@ -568,12 +783,12 @@ const DMCAdminInterface = () => {
                   </Select>
                 </div>
                 <div>
-                  <textarea
+                  <Textarea
                     value={feedbackText}
                     onChange={(e) => setFeedbackText(e.target.value)}
                     rows={4}
-                    className="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent resize-none"
-                    placeholder="Lorem ipsum dolor sit amet, consectetur adipiscing elit. Ut et massa mi. Aliquam in hendrerit urna. Ut et massa mi. Aliquam in hendrerit urna. Ut et massa mi. Aliquam in hendrerit urna."
+                    className="w-full"
+                    placeholder="Enter feedback or notes..."
                   />
                 </div>
                 <Button onClick={updateDMCStatus} className="w-full bg-green-600 hover:bg-green-700">
@@ -587,7 +802,7 @@ const DMCAdminInterface = () => {
         {/* Set Margin Modal */}
         {showSetMargin && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-lg p-6 w-full max-w-2xl mx-4">
+            <div className="bg-white rounded-lg p-6 w-full max-w-2xl mx-4 max-h-[90vh] overflow-y-auto">
               <div className="flex justify-between items-start mb-6">
                 <div className="flex-1">
                   <h2 className="text-lg font-semibold text-gray-800">Add commission</h2>
@@ -596,17 +811,9 @@ const DMCAdminInterface = () => {
                   </p>
                   <p className="text-sm text-gray-600">Quotation received</p>
                 </div>
-                <div className="flex gap-2 ml-4">
-                  <Button
-                    onClick={() => selectedItinerary && handleShareToCustomer(selectedItinerary)}
-                    className="bg-green-600 hover:bg-green-700 text-xs px-3 py-1"
-                  >
-                    Share to customer
-                  </Button>
-                  <Button variant="ghost" size="sm" onClick={() => setShowSetMargin(false)}>
-                    <X className="w-6 h-6" />
-                  </Button>
-                </div>
+                <Button variant="ghost" size="sm" onClick={() => setShowSetMargin(false)}>
+                  <X className="w-6 h-6" />
+                </Button>
               </div>
               <div className="space-y-4">
                 <div>
@@ -615,11 +822,12 @@ const DMCAdminInterface = () => {
                     <span className="flex items-center px-3 border border-r-0 border-gray-300 rounded-l-md bg-gray-50 text-gray-500">
                       $
                     </span>
-                    <input
-                      type="text"
+                    <Input
+                      type="number"
+                      step="0.01"
                       value={quotationPrice}
                       onChange={(e) => setQuotationPrice(e.target.value)}
-                      className="flex-1 p-3 border border-gray-300 rounded-r-md focus:outline-none focus:ring-2 focus:ring-green-500"
+                      className="rounded-l-none"
                       placeholder="Enter quotation amount"
                     />
                   </div>
@@ -627,75 +835,71 @@ const DMCAdminInterface = () => {
                 <div className="grid grid-cols-3 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">Commission type</label>
-                    <Select value={commissionType} onValueChange={setCommissionType}>
+                    <Select value={commissionType} onValueChange={(value: "FLAT" | "PERCENTAGE") => setCommissionType(value)}>
                       <SelectTrigger>
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="Flat commission">Flat commission</SelectItem>
-                        <SelectItem value="Percentage commission">Percentage commission</SelectItem>
+                        <SelectItem value="FLAT">Flat commission</SelectItem>
+                        <SelectItem value="PERCENTAGE">Percentage commission</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">Commission</label>
                     <div className="flex">
-                      <input
-                        type="text"
+                      <Input
+                        type="number"
+                        step="0.01"
                         value={commissionAmount}
                         onChange={(e) => setCommissionAmount(e.target.value)}
-                        className="flex-1 p-3 border border-gray-300 rounded-l-md focus:outline-none focus:ring-2 focus:ring-green-500"
-                        placeholder="180"
+                        className="rounded-r-none"
+                        placeholder={commissionType === "PERCENTAGE" ? "10" : "180"}
                       />
-                      <Select>
-                        <SelectTrigger className="w-20 rounded-l-none border-l-0">
-                          <SelectValue placeholder="US Dollar" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="USD">US Dollar</SelectItem>
-                          <SelectItem value="EUR">EUR</SelectItem>
-                          <SelectItem value="GBP">GBP</SelectItem>
-                        </SelectContent>
-                      </Select>
+                      <div className="flex items-center px-3 border border-l-0 border-gray-300 rounded-r-md bg-gray-50 text-gray-500 text-sm">
+                        {commissionType === "PERCENTAGE" ? "%" : "$"}
+                      </div>
                     </div>
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">Markup price</label>
                     <div className="flex">
-                      <input
+                      <Input
                         type="text"
                         value={markupPrice}
-                        onChange={(e) => setMarkupPrice(e.target.value)}
                         readOnly
-                        className="flex-1 p-3 border border-gray-300 rounded-l-md focus:outline-none focus:ring-2 focus:ring-green-500 bg-gray-50"
+                        className="rounded-r-none bg-gray-50"
                         placeholder="1280"
                       />
-                      <Select>
-                        <SelectTrigger className="w-20 rounded-l-none border-l-0">
-                          <SelectValue placeholder="US Dollar" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="USD">US Dollar</SelectItem>
-                          <SelectItem value="EUR">EUR</SelectItem>
-                          <SelectItem value="GBP">GBP</SelectItem>
-                        </SelectContent>
-                      </Select>
+                      <div className="flex items-center px-3 border border-l-0 border-gray-300 rounded-r-md bg-gray-50 text-gray-500 text-sm">
+                        $
+                      </div>
                     </div>
                   </div>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Comments</label>
-                  <textarea
+                  <Textarea
                     value={comments}
                     onChange={(e) => setComments(e.target.value)}
                     rows={3}
-                    className="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 resize-none"
                     placeholder="Enter comments..."
                   />
                 </div>
-                <div className="flex justify-end">
-                  <Button onClick={() => setShowSetMargin(false)} className="bg-green-600 hover:bg-green-700">
-                    Add commission
+                <div className="flex justify-end space-x-3">
+                  <Button 
+                    variant="outline" 
+                    onClick={() => setShowSetMargin(false)}
+                    disabled={isSubmittingCommission}
+                  >
+                    Cancel
+                  </Button>
+                  <Button 
+                    onClick={addCommission} 
+                    className="bg-green-600 hover:bg-green-700"
+                    disabled={isSubmittingCommission}
+                  >
+                    {isSubmittingCommission ? "Adding..." : "Add commission"}
                   </Button>
                 </div>
               </div>
