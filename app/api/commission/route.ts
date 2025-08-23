@@ -11,43 +11,42 @@ export async function GET(request: NextRequest) {
     const enquiryId = searchParams.get("enquiryId")
     const dmcId = searchParams.get("dmcId")
 
-    if (!enquiryId || !dmcId) {
-      return NextResponse.json({ error: "Enquiry ID and DMC ID are required" }, { status: 400 })
+    if (!enquiryId) {
+      return NextResponse.json({ error: "Enquiry ID is required" }, { status: 400 })
     }
 
-    const commission = await prisma.commission.findUnique({
-      where: {
-        enquiryId_dmcId: {
+    let commission;
+
+    if (dmcId) {
+      commission = await prisma.commission.findUnique({
+        where: {
+          enquiryId_dmcId: {
+            enquiryId: enquiryId,
+            dmcId: dmcId,
+          },
+        },
+        include: {
+          enquiry: { select: { name: true, locations: true, email: true } },
+          dmc: { select: { id: true, name: true, email: true, contactPerson: true } },
+        },
+      });
+    } else {
+      commission = await prisma.commission.findFirst({
+        where: {
           enquiryId: enquiryId,
-          dmcId: dmcId,
         },
-      },
-      include: {
-        enquiry: {
-          select: {
-            name: true,
-            locations: true,
-            email: true,
-          },
+        include: {
+          enquiry: { select: { name: true, locations: true, email: true } },
+          dmc: { select: { id: true, name: true, email: true, contactPerson: true } },
         },
-        dmc: {
-          select: {
-            name: true,
-            email: true,
-            contactPerson: true,
-          },
-        },
-      },
-    })
+      });
+    }
 
     if (!commission) {
       return NextResponse.json({ error: "Commission not found" }, { status: 404 })
     }
 
-    return NextResponse.json({
-      success: true,
-      data: commission,
-    })
+    return NextResponse.json(commission);
   } catch (error) {
     console.error("Error fetching commission:", error)
     return NextResponse.json({ error: "Failed to fetch commission" }, { status: 500 })
