@@ -1,32 +1,36 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { Plus, X, Calendar, MapPin, Users, Phone, User, Edit2, Save } from 'lucide-react';
+import { Plus, X, Calendar, MapPin, Users, Phone, User, Edit2, Save, Loader2 } from 'lucide-react';
 
 // Type definitions
 interface ProgressData {
-  id: number;
+  id: string;
   date: string;
   service: string;
   status: string;
-  dmcNotes: string;
+  dmcNotes: string | null;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 interface Feedback {
-  id: number;
+  id: string;
   note: string;
   createdAt: string;
 }
 
 interface Reminder {
-  id: number;
+  id: string;
   date: string;
   note: string;
+  isCompleted?: boolean;
+  createdAt?: string;
 }
 
 interface Service {
   time: string;
   activity: string;
-  type: string;
-  description: string;
+  type?: string;
+  description?: string;
 }
 
 interface ItineraryService {
@@ -52,14 +56,6 @@ interface ItineraryData {
   package: string;
 }
 
-interface DMCData {
-  id: string;
-  name: string;
-  contactPerson: string;
-  email: string;
-  phoneNumber: string;
-}
-
 interface NewRow {
   date: string;
   service: string;
@@ -76,21 +72,53 @@ interface NewReminder {
   note: string;
 }
 
-const statusOptions = ["Pending", "Confirmed", "Cancelled", "Not included", "In Progress", "Awaiting Confirmation"];
+// Define interfaces for mock data structure
+interface MockServiceRow {
+  day: string | number;
+  time: string;
+  activity: string;
+  type?: string;
+  description?: string;
+}
+
+interface MockItineraryData {
+  quoteId: string;
+  name: string;
+  days: number;
+  nights: number;
+  startDate: string;
+  costINR: number;
+  costUSD: number;
+  guests: number;
+  adults: number;
+  kids: number;
+  services: MockServiceRow[];
+}
+
+interface MockDataStructure {
+  [key: string]: MockItineraryData;
+}
+
+const statusOptions = ["PENDING", "CONFIRMED", "CANCELLED", "NOT_INCLUDED", "IN_PROGRESS", "COMPLETED"];
 
 const BookingProgressDashboard = () => {
-  // Get enquiry ID from URL params (in real app this would come from router)
-  const [enquiryId, ] = useState('enquiry-1'); 
-  const [, setAssignedStaffId] = useState('staff-1');
+  // Get enquiry ID from URL params or use default
+  const [itineraryId] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const urlParams = new URLSearchParams(window.location.search);
+      return urlParams.get('id') || 'KASH001'; // Default to KASH001 for demo
+    }
+    return 'KASH001';
+  });
 
   const [progressData, setProgressData] = useState<ProgressData[]>([]);
   const [itineraryData, setItineraryData] = useState<ItineraryData | null>(null);
-  const [, setDmcData] = useState<DMCData | null>(null);
   const [itineraryServices, setItineraryServices] = useState<ItineraryService[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
-  const [newRow, setNewRow] = useState<NewRow>({ date: "", service: "", status: "Pending", dmcNotes: "" });
+  const [saving, setSaving] = useState<boolean>(false);
+  const [newRow, setNewRow] = useState<NewRow>({ date: "", service: "", status: "PENDING", dmcNotes: "" });
   const [showAddProgressModal, setShowAddProgressModal] = useState<boolean>(false);
-  const [editingRow, setEditingRow] = useState<number | null>(null);
+  const [editingRow, setEditingRow] = useState<string | null>(null);
 
   // Feedback state
   const [feedbacks, setFeedbacks] = useState<Feedback[]>([]);
@@ -102,200 +130,403 @@ const BookingProgressDashboard = () => {
   const [showReminderModal, setShowReminderModal] = useState<boolean>(false);
   const [newReminder, setNewReminder] = useState<NewReminder>({ date: "", note: "" });
 
-  // Fetch enquiry data dynamically
-  const fetchEnquiryData = async (id: string) => {
+  // Mock data based on itinerary ID (replace with your actual data loading logic)
+  const loadItineraryFromMockData = useCallback(async () => {
     try {
-      const response = await fetch(`/api/enquiries/${id}`);
-      if (response.ok) {
-        const result = await response.json();
-        if (result.success) {
-          const enquiry = result.data;
-          
-          // Calculate days and nights
-          const start = new Date(enquiry.startDate);
-          const end = new Date(enquiry.endDate);
-          const timeDiff = end.getTime() - start.getTime();
-          const days = Math.ceil(timeDiff / (1000 * 3600 * 24)) + 1;
-          
-          setItineraryData({
-            id: enquiry.id,
-            name: enquiry.name,
-            phone: enquiry.phone,
-            email: enquiry.email,
-            startDate: enquiry.startDate,
-            endDate: enquiry.endDate,
-            days: days,
-            nights: days - 1,
-            adults: enquiry.adults || 2,
-            kids: enquiry.kids || 0,
-            costINR: enquiry.totalCostINR || 0,
-            costUSD: enquiry.totalCostUSD || 0,
-            locations: enquiry.locations || '',
-            package: enquiry.packageName || `${enquiry.locations} Adventure Package`
-          });
+      // Mock data based on the provided CSV files
+      const mockData: MockDataStructure = {
+        'KASH001': {
+          quoteId: 'KASH001',
+          name: 'Kashmir Family',
+          days: 3,
+          nights: 2,
+          startDate: '2025-08-11',
+          costINR: 38500,
+          costUSD: 500,
+          guests: 5,
+          adults: 2,
+          kids: 3,
+          services: [
+            { day: 1, time: '8:00 AM', activity: 'Breakfast', type: 'meal', description: 'Start your day with traditional Kashmiri breakfast' },
+            { day: 1, time: '10:00 AM', activity: 'Pickup for trekking', type: 'transfer', description: 'Hotel pickup for exciting trekking adventure' },
+            { day: 1, time: '12:30 PM', activity: 'Lunch', type: 'meal', description: 'Enjoy local cuisine with mountain views' },
+            { day: 1, time: '2:00 PM', activity: 'Adventure activities', type: 'adventure', description: 'Thrilling outdoor adventure activities' },
+            { day: 1, time: '4:30 PM', activity: 'Tea Tasting', type: 'activity', description: 'Experience authentic Kashmiri tea culture' },
+            { day: 1, time: '5:00 PM', activity: 'Horse riding', type: 'adventure', description: 'Scenic horse riding through valleys' },
+            { day: 1, time: '7:00 PM', activity: 'Cultural Activities', type: 'activity', description: 'Traditional Kashmiri cultural performances' },
+            { day: 1, time: '9:00 PM', activity: 'Dinner', type: 'meal', description: 'Delicious dinner with local specialties' },
+            { day: 2, time: '8:00 AM', activity: 'Breakfast', type: 'meal', description: 'Fresh morning breakfast' },
+            { day: 2, time: '10:00 AM', activity: 'Pickup for Sight Seeing', type: 'sightseeing', description: 'Explore famous Kashmir attractions' },
+            { day: 2, time: '12:30 PM', activity: 'Lunch', type: 'meal', description: 'Midday meal at scenic location' },
+            { day: 2, time: '2:00 PM', activity: 'Skiing', type: 'adventure', description: 'Exciting skiing experience' },
+            { day: 2, time: '4:30 PM', activity: 'Tea Tasting', type: 'activity', description: 'Afternoon tea break' },
+            { day: 2, time: '5:00 PM', activity: 'Rafting', type: 'adventure', description: 'White water rafting adventure' },
+            { day: 2, time: '7:00 PM', activity: 'Leisure Activities', type: 'activity', description: 'Relaxing evening activities' },
+            { day: 2, time: '9:00 PM', activity: 'Dinner', type: 'meal', description: 'Evening dinner' },
+            { day: 3, time: '8:00 AM', activity: 'Breakfast', type: 'meal', description: 'Final day breakfast' },
+            { day: 3, time: '10:00 AM', activity: 'Pickup for trekking', type: 'adventure', description: 'Last trekking experience' },
+            { day: 3, time: '12:30 PM', activity: 'Lunch', type: 'meal', description: 'Farewell lunch' },
+            { day: 3, time: '2:00 PM', activity: 'Camping', type: 'adventure', description: 'Short camping experience' },
+            { day: 3, time: '4:30 PM', activity: 'Tea Tasting', type: 'activity', description: 'Final tea session' },
+            { day: 3, time: '5:00 PM', activity: 'Departure', type: 'transfer', description: 'Check out and departure preparation' },
+            { day: 3, time: '7:00 PM', activity: 'Airport Drop', type: 'transfer', description: 'Safe transfer to airport' }
+          ]
+        },
+        'THAI001': {
+          quoteId: 'THAI001',
+          name: 'Exotic Thailand',
+          days: 4,
+          nights: 3,
+          startDate: '2025-08-11',
+          costINR: 60000,
+          costUSD: 750,
+          guests: 5,
+          adults: 2,
+          kids: 3,
+          services: []
         }
-      }
-    } catch (error) {
-      console.error('Error fetching enquiry data:', error);
-    }
-  };
+      };
 
-  // Fetch selected DMC data from share-dmc
-  const fetchSelectedDMC = async (enquiryId: string) => {
-    try {
-      const response = await fetch(`/api/share-dmc?enquiryId=${enquiryId}`);
-      if (response.ok) {
-        const result = await response.json();
-        if (result.success && result.data.length > 0) {
-          // Get the first shared DMC entry
-          const sharedDMC = result.data[0];
-          if (sharedDMC.selectedDMCs && sharedDMC.selectedDMCs.length > 0) {
-            // Get the first selected DMC (you can modify this logic as needed)
-            const selectedDMC = sharedDMC.selectedDMCs[0].dmc;
-            setDmcData({
-              id: selectedDMC.id,
-              name: selectedDMC.name,
-              contactPerson: selectedDMC.primaryContact,
-              email: selectedDMC.email,
-              phoneNumber: selectedDMC.phoneNumber
-            });
-            setAssignedStaffId(sharedDMC.assignedStaffId);
-          }
+      const data = mockData[itineraryId];
+      if (!data) {
+        console.error('Itinerary not found:', itineraryId);
+        return;
+      }
+
+      const startDate = new Date(data.startDate);
+      
+      const itinerary: ItineraryData = {
+        id: data.quoteId,
+        name: data.name,
+        phone: '+91-XXXXXXXXXX',
+        email: 'customer@example.com',
+        startDate: data.startDate,
+        endDate: new Date(startDate.getTime() + (data.days - 1) * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+        days: data.days,
+        nights: data.nights,
+        adults: data.adults,
+        kids: data.kids,
+        costINR: data.costINR,
+        costUSD: data.costUSD,
+        locations: data.name?.includes('Kashmir') ? 'Kashmir' : 
+                  data.name?.includes('Kerala') ? 'Kerala' : 
+                  data.name?.includes('Goa') ? 'Goa' : 
+                  data.name?.includes('Rajasthan') ? 'Rajasthan' : 
+                  data.name?.includes('Thailand') ? 'Thailand' : 'India',
+        package: data.name
+      };
+      
+      setItineraryData(itinerary);
+      
+      // Create services data
+      const servicesByDay: { [key: number]: Service[] } = {};
+      
+      data.services.forEach((row: MockServiceRow) => {
+        const day = typeof row.day === 'string' ? parseInt(row.day) : row.day;
+        if (!servicesByDay[day]) {
+          servicesByDay[day] = [];
         }
-      }
-    } catch (error) {
-      console.error('Error fetching DMC data:', error);
-    }
-  };
-
-  // Parse services from CSV (mock implementation - replace with actual CSV reading)
-  const loadServicesFromCSV = useCallback(async () => {
-    try {
-      // In a real implementation, you would read the CSV file here
-      // For now, we'll simulate this with some mock data based on the enquiry
+        
+        servicesByDay[day].push({
+          time: row.time,
+          activity: row.activity,
+          type: row.type || 'activity',
+          description: row.description || row.activity
+        });
+      });
       
-          if (itineraryData) {
-      const mockServices: ItineraryService[] = [];
-      
-      for (let day = 1; day <= itineraryData.days; day++) {
-        const dayDate = new Date(itineraryData.startDate);
+      // Convert to ItineraryService array
+      const services: ItineraryService[] = [];
+      for (let day = 1; day <= data.days; day++) {
+        const dayDate = new Date(startDate);
         dayDate.setDate(dayDate.getDate() + (day - 1));
         
-        const services: Service[] = [
-          {
-            time: "08:00",
-            activity: "Breakfast",
-            type: "meal",
-            description: "Hotel breakfast"
-          }
-        ];
-
-          
-          // Add location-specific activities
-          if (itineraryData.locations.toLowerCase().includes('kashmir')) {
-            services.push({
-              time: "09:30",
-              activity: day === 1 ? "Arrival & Check-in" : day === 2 ? "Dal Lake Shikara Ride" : "Gulmarg Gondola",
-              type: day === 1 ? "transfer" : "sightseeing",
-              description: day === 1 ? "Airport pickup and hotel check-in" : day === 2 ? "Romantic boat ride on Dal Lake" : "Cable car ride to Khilanmarg"
-            });
-          } else {
-            services.push({
-              time: "09:30",
-              activity: `${itineraryData.locations} Sightseeing`,
-              type: "sightseeing",
-              description: `Explore ${itineraryData.locations} attractions`
-            });
-          }
-          
-          services.push({
-            time: "19:00",
-            activity: "Dinner",
-            type: "meal",
-            description: "Local cuisine dinner"
-          });
-          
-          mockServices.push({
-            day,
-            date: dayDate,
-            services
-          });
-        }
-        
-        setItineraryServices(mockServices);
+        services.push({
+          day,
+          date: dayDate,
+          services: servicesByDay[day] || []
+        });
       }
+      
+      setItineraryServices(services);
+      
     } catch (error) {
-    console.error("Error loading services from CSV:", error);
-  }
-}, [itineraryData]);
+      console.error('Error loading mock data:', error);
+    }
+  }, [itineraryId]);
+
+  // Load booking progress from API (mock for now)
+  const loadProgressData = async () => {
+    try {
+      // Mock API call - replace with actual API endpoint
+      // const response = await fetch(`/api/booking-progress/${itineraryId}`);
+      // if (response.ok) {
+      //   const result = await response.json();
+      //   if (result.success) {
+      //     const formattedData = result.data.map((item: ProgressData) => ({
+      //       ...item,
+      //       date: new Date(item.date).toISOString().split('T')[0]
+      //     }));
+      //     setProgressData(formattedData);
+      //   }
+      // }
+      
+      // For now, start with empty array - data will be added through UI
+      setProgressData([]);
+    } catch (error) {
+      console.error('Error loading progress data:', error);
+    }
+  };
+
+  // Load feedback data from API (mock for now)
+  const loadFeedbackData = async () => {
+    try {
+      // Mock API call - replace with actual API endpoint
+      // const response = await fetch(`/api/booking-feedback/${itineraryId}`);
+      // if (response.ok) {
+      //   const result = await response.json();
+      //   if (result.success) {
+      //     setFeedbacks(result.data);
+      //   }
+      // }
+      
+      // For now, start with empty array - data will be added through UI
+      setFeedbacks([]);
+    } catch (error) {
+      console.error('Error loading feedback data:', error);
+    }
+  };
+
+  // Load reminder data from API (mock for now)
+  const loadReminderData = async () => {
+    try {
+      // Mock API call - replace with actual API endpoint
+      // const response = await fetch(`/api/booking-reminder/${itineraryId}`);
+      // if (response.ok) {
+      //   const result = await response.json();
+      //   if (result.success) {
+      //     const formattedData = result.data.map((item: Reminder) => ({
+      //       ...item,
+      //       date: new Date(item.date).toISOString().split('T')[0]
+      //     }));
+      //     setReminders(formattedData);
+      //   }
+      // }
+      
+      // For now, start with empty array - data will be added through UI
+      setReminders([]);
+    } catch (error) {
+      console.error('Error loading reminder data:', error);
+    }
+  };
 
   // Load data on component mount
   useEffect(() => {
     const loadData = async () => {
       setLoading(true);
-      await fetchEnquiryData(enquiryId);
-      await fetchSelectedDMC(enquiryId);
+      
+      try {
+        await loadItineraryFromMockData();
+        await Promise.all([
+          loadProgressData(),
+          loadFeedbackData(),
+          loadReminderData()
+        ]);
+      } catch (error) {
+        console.error('Error loading data:', error);
+      }
+      
       setLoading(false);
     };
     
     loadData();
-  }, [enquiryId]);
+  }, [itineraryId, loadItineraryFromMockData]);
 
-  // Load services when itinerary data is available
-  useEffect(() => {
-  loadServicesFromCSV();
-}, [loadServicesFromCSV]);
+  // Add new progress row (mock for now - replace with API call)
+  const handleAddProgress = async () => {
+    if (!newRow.date || !newRow.service) return;
+    
+    setSaving(true);
+    try {
+      // Simulate API call delay
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      // Mock API call - replace with actual API endpoint
+      // const response = await fetch(`/api/booking-progress/${itineraryId}`, {
+      //   method: 'POST',
+      //   headers: { 'Content-Type': 'application/json' },
+      //   body: JSON.stringify({
+      //     date: newRow.date,
+      //     service: newRow.service,
+      //     status: newRow.status,
+      //     dmcNotes: newRow.dmcNotes || null
+      //   })
+      // });
+      
+      // if (response.ok) {
+      //   const result = await response.json();
+      //   if (result.success) {
+      //     const formattedData = {
+      //       ...result.data,
+      //       date: new Date(result.data.date).toISOString().split('T')[0]
+      //     };
+      //     setProgressData(prev => [...prev, formattedData]);
+      //   }
+      // }
 
-  // Add new progress row
-  const handleAddProgress = () => {
-    const newProgress: ProgressData = {
-      id: Date.now(),
-      date: newRow.date,
-      service: newRow.service,
-      status: newRow.status,
-      dmcNotes: newRow.dmcNotes
-    };
-    setProgressData(prev => [...prev, newProgress]);
-    setNewRow({ date: "", service: "", status: "Pending", dmcNotes: "" });
-    setShowAddProgressModal(false);
+      // For now, add to local state with mock ID
+      const newProgress: ProgressData = {
+        id: Date.now().toString(),
+        date: newRow.date,
+        service: newRow.service,
+        status: newRow.status,
+        dmcNotes: newRow.dmcNotes || null,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      };
+      
+      setProgressData(prev => [...prev, newProgress]);
+      setNewRow({ date: "", service: "", status: "PENDING", dmcNotes: "" });
+      setShowAddProgressModal(false);
+      
+    } catch (error) {
+      console.error('Error adding progress:', error);
+    }
+    setSaving(false);
   };
 
   // Update progress row
-  const handleUpdateProgress = (id: number, field: string, value: string) => {
+  const handleUpdateProgress = (id: string, field: string, value: string) => {
     setProgressData(prev => prev.map(item => 
       item.id === id ? { ...item, [field]: value } : item
     ));
   };
 
-  // Save progress row
-  const handleSaveProgress = (id: number) => {
-    setEditingRow(null);
-    // Here you would typically save to the database
-    console.log('Saving progress row:', id);
+  // Save progress row (mock for now - replace with API call)
+  const handleSaveProgress = async (id: string) => {
+    const item = progressData.find(p => p.id === id);
+    if (!item) return;
+
+    setSaving(true);
+    try {
+      // Simulate API call delay
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      // Mock API call - replace with actual API endpoint
+      // const response = await fetch(`/api/booking-progress/${itineraryId}/${id}`, {
+      //   method: 'PUT',
+      //   headers: { 'Content-Type': 'application/json' },
+      //   body: JSON.stringify({
+      //     date: item.date,
+      //     service: item.service,
+      //     status: item.status,
+      //     dmcNotes: item.dmcNotes
+      //   })
+      // });
+      
+      // if (response.ok) {
+      //   setEditingRow(null);
+      // }
+      
+      // For now, just update the local state
+      setProgressData(prev => prev.map(p => 
+        p.id === id ? { ...p, updatedAt: new Date().toISOString() } : p
+      ));
+      setEditingRow(null);
+      
+    } catch (error) {
+      console.error('Error saving progress:', error);
+    }
+    setSaving(false);
   };
 
-  // Add new feedback
-  const handleAddFeedback = () => {
-    const newFeedbackItem: Feedback = {
-      id: Date.now(),
-      note: newFeedback.note,
-      createdAt: new Date().toISOString()
-    };
-    setFeedbacks(prev => [...prev, newFeedbackItem]);
-    setNewFeedback({ note: "" });
-    setShowAddNoteModal(false);
+  // Add new feedback (mock for now - replace with API call)
+  const handleAddFeedback = async () => {
+    if (!newFeedback.note.trim()) return;
+    
+    setSaving(true);
+    try {
+      // Simulate API call delay
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      // Mock API call - replace with actual API endpoint
+      // const response = await fetch(`/api/booking-feedback/${itineraryId}`, {
+      //   method: 'POST',
+      //   headers: { 'Content-Type': 'application/json' },
+      //   body: JSON.stringify({ note: newFeedback.note })
+      // });
+      
+      // if (response.ok) {
+      //   const result = await response.json();
+      //   if (result.success) {
+      //     setFeedbacks(prev => [...prev, result.data]);
+      //   }
+      // }
+
+      // For now, add to local state with mock ID
+      const newFeedbackItem: Feedback = {
+        id: Date.now().toString(),
+        note: newFeedback.note,
+        createdAt: new Date().toISOString()
+      };
+      
+      setFeedbacks(prev => [...prev, newFeedbackItem]);
+      setNewFeedback({ note: "" });
+      setShowAddNoteModal(false);
+      
+    } catch (error) {
+      console.error('Error adding feedback:', error);
+    }
+    setSaving(false);
   };
 
-  // Add new reminder
-  const handleAddReminder = () => {
-    const newReminderItem: Reminder = {
-      id: Date.now(),
-      date: newReminder.date,
-      note: newReminder.note
-    };
-    setReminders(prev => [...prev, newReminderItem]);
-    setNewReminder({ date: "", note: "" });
-    setShowReminderModal(false);
+  // Add new reminder (mock for now - replace with API call)
+  const handleAddReminder = async () => {
+    if (!newReminder.date || !newReminder.note.trim()) return;
+    
+    setSaving(true);
+    try {
+      // Simulate API call delay
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      // Mock API call - replace with actual API endpoint
+      // const response = await fetch(`/api/booking-reminder/${itineraryId}`, {
+      //   method: 'POST',
+      //   headers: { 'Content-Type': 'application/json' },
+      //   body: JSON.stringify({
+      //     date: newReminder.date,
+      //     note: newReminder.note
+      //   })
+      // });
+      
+      // if (response.ok) {
+      //   const result = await response.json();
+      //   if (result.success) {
+      //     const formattedData = {
+      //       ...result.data,
+      //       date: new Date(result.data.date).toISOString().split('T')[0]
+      //     };
+      //     setReminders(prev => [...prev, formattedData]);
+      //   }
+      // }
+
+      // For now, add to local state with mock ID
+      const newReminderItem: Reminder = {
+        id: Date.now().toString(),
+        date: newReminder.date,
+        note: newReminder.note,
+        isCompleted: false,
+        createdAt: new Date().toISOString()
+      };
+      
+      setReminders(prev => [...prev, newReminderItem]);
+      setNewReminder({ date: "", note: "" });
+      setShowReminderModal(false);
+      
+    } catch (error) {
+      console.error('Error adding reminder:', error);
+    }
+    setSaving(false);
   };
 
   // Get available services for dropdown based on itinerary
@@ -318,6 +549,7 @@ const BookingProgressDashboard = () => {
           <button 
             onClick={() => setShowAddProgressModal(false)}
             className="text-gray-400 hover:text-gray-600"
+            disabled={saving}
           >
             <X size={20} />
           </button>
@@ -330,6 +562,7 @@ const BookingProgressDashboard = () => {
               className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
               value={newRow.date}
               onChange={e => setNewRow({ ...newRow, date: e.target.value })}
+              disabled={saving}
             />
           </div>
           <div>
@@ -338,6 +571,7 @@ const BookingProgressDashboard = () => {
               className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
               value={newRow.service}
               onChange={e => setNewRow({ ...newRow, service: e.target.value })}
+              disabled={saving}
             >
               <option value="">Select a service</option>
               {getAvailableServices().map((service, idx) => (
@@ -351,6 +585,7 @@ const BookingProgressDashboard = () => {
                 className="w-full p-3 border border-gray-300 rounded-lg mt-2 focus:ring-2 focus:ring-green-500 focus:border-transparent"
                 placeholder="Enter custom service"
                 onChange={e => setNewRow({ ...newRow, service: e.target.value })}
+                disabled={saving}
               />
             )}
           </div>
@@ -360,29 +595,32 @@ const BookingProgressDashboard = () => {
               className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
               value={newRow.status}
               onChange={e => setNewRow({ ...newRow, status: e.target.value })}
+              disabled={saving}
             >
               {statusOptions.map(opt => (
-                <option key={opt} value={opt}>{opt}</option>
+                <option key={opt} value={opt}>{opt.replace('_', ' ')}</option>
               ))}
             </select>
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">DMC Notes</label>
-            <input
+            <textarea
               className="w-full p-3 border border-gray-300 rounded-lg h-20 focus:ring-2 focus:ring-green-500 focus:border-transparent resize-vertical"
               placeholder="Add notes..."
               value={newRow.dmcNotes}
               onChange={e => setNewRow({ ...newRow, dmcNotes: e.target.value })}
+              disabled={saving}
             />
           </div>
         </div>
         <div className="mt-8">
           <button
             onClick={handleAddProgress}
-            className="w-full bg-green-800 text-white py-3 rounded-lg font-medium hover:bg-green-900 disabled:bg-gray-400 disabled:cursor-not-allowed"
-            disabled={!newRow.date || !newRow.service}
+            className="w-full bg-green-800 text-white py-3 rounded-lg font-medium hover:bg-green-900 disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+            disabled={!newRow.date || !newRow.service || saving}
           >
-            Add Progress
+            {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
+            {saving ? 'Adding...' : 'Add Progress'}
           </button>
         </div>
       </div>
@@ -398,25 +636,28 @@ const BookingProgressDashboard = () => {
           <button 
             onClick={() => setShowAddNoteModal(false)}
             className="text-gray-400 hover:text-gray-600"
+            disabled={saving}
           >
             <X size={20} />
           </button>
         </div>
         <div className="space-y-4">
-          <textarea
+            <textarea
             className="w-full p-3 border border-gray-300 rounded-lg h-32 focus:ring-2 focus:ring-green-500 focus:border-transparent resize-vertical"
             placeholder="Enter customer feedback or notes..."
             value={newFeedback.note}
             onChange={e => setNewFeedback({ ...newFeedback, note: e.target.value })}
-          />
+            disabled={saving}
+            />
         </div>
         <div className="mt-8">
           <button
             onClick={handleAddFeedback}
-            className="w-full bg-green-800 text-white py-3 rounded-lg font-medium hover:bg-green-900 disabled:bg-gray-400 disabled:cursor-not-allowed"
-            disabled={!newFeedback.note.trim()}
+            className="w-full bg-green-800 text-white py-3 rounded-lg font-medium hover:bg-green-900 disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+            disabled={!newFeedback.note.trim() || saving}
           >
-            Add Feedback
+            {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
+            {saving ? 'Adding...' : 'Add Feedback'}
           </button>
         </div>
       </div>
@@ -432,6 +673,7 @@ const BookingProgressDashboard = () => {
           <button 
             onClick={() => setShowReminderModal(false)}
             className="text-gray-400 hover:text-gray-600"
+            disabled={saving}
           >
             <X size={20} />
           </button>
@@ -444,6 +686,7 @@ const BookingProgressDashboard = () => {
               className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
               value={newReminder.date}
               onChange={e => setNewReminder({ ...newReminder, date: e.target.value })}
+              disabled={saving}
             />
           </div>
           <div>
@@ -453,16 +696,18 @@ const BookingProgressDashboard = () => {
               placeholder="Enter reminder details..."
               value={newReminder.note}
               onChange={e => setNewReminder({ ...newReminder, note: e.target.value })}
+              disabled={saving}
             />
           </div>
         </div>
         <div className="mt-8">
           <button
             onClick={handleAddReminder}
-            className="w-full bg-green-800 text-white py-3 rounded-lg font-medium hover:bg-green-900 disabled:bg-gray-400 disabled:cursor-not-allowed"
-            disabled={!newReminder.date || !newReminder.note.trim()}
+            className="w-full bg-green-800 text-white py-3 rounded-lg font-medium hover:bg-green-900 disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+            disabled={!newReminder.date || !newReminder.note.trim() || saving}
           >
-            Set Reminder
+            {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
+            {saving ? 'Setting...' : 'Set Reminder'}
           </button>
         </div>
       </div>
@@ -471,14 +716,18 @@ const BookingProgressDashboard = () => {
 
   const getStatusBadgeColor = (status: string) => {
     switch (status) {
-      case 'Confirmed': return 'bg-green-100 text-green-800';
-      case 'Pending': return 'bg-yellow-100 text-yellow-800';
-      case 'Cancelled': return 'bg-red-100 text-red-800';
-      case 'Not included': return 'bg-gray-100 text-gray-800';
-      case 'In Progress': return 'bg-blue-100 text-blue-800';
-      case 'Awaiting Confirmation': return 'bg-orange-100 text-orange-800';
+      case 'CONFIRMED': return 'bg-green-100 text-green-800';
+      case 'PENDING': return 'bg-yellow-100 text-yellow-800';
+      case 'CANCELLED': return 'bg-red-100 text-red-800';
+      case 'NOT_INCLUDED': return 'bg-gray-100 text-gray-800';
+      case 'IN_PROGRESS': return 'bg-blue-100 text-blue-800';
+      case 'COMPLETED': return 'bg-purple-100 text-purple-800';
       default: return 'bg-gray-100 text-gray-800';
     }
+  };
+
+  const formatStatusDisplay = (status: string) => {
+    return status.replace('_', ' ').toLowerCase().replace(/\b\w/g, l => l.toUpperCase());
   };
 
   return (
@@ -490,7 +739,7 @@ const BookingProgressDashboard = () => {
             Booking Progress Dashboard
           </h1>
           <p className="text-gray-600">
-            {itineraryData?.package || 'Loading...'} - {enquiryId}
+            {itineraryData?.package || 'Loading...'} - {itineraryId}
           </p>
         </div>
 
@@ -504,7 +753,8 @@ const BookingProgressDashboard = () => {
                   <h2 className="text-xl font-semibold text-gray-800">Booking Progress Monitor</h2>
                   <button 
                     onClick={() => setShowAddProgressModal(true)}
-                    className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-colors"
+                    className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-colors disabled:bg-gray-400"
+                    disabled={saving}
                   >
                     <Plus size={16} />
                     Add Progress
@@ -529,16 +779,16 @@ const BookingProgressDashboard = () => {
                       <tr>
                         <td colSpan={5} className="px-6 py-8 text-center text-gray-500">
                           <div className="flex items-center justify-center">
-                            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-green-600"></div>
-                            <span className="ml-2">Loading progress...</span>
+                            <Loader2 className="w-6 h-6 animate-spin mr-2" />
+                            <span>Loading progress...</span>
                           </div>
                         </td>
                       </tr>
                     ) : progressData.length === 0 ? (
                       <tr>
                         <td colSpan={5} className="px-6 py-8 text-center text-gray-500">
-  No progress entries yet. Click &quot;Add Progress&quot; to get started.
-</td>
+                          No progress entries yet. Click &quot;Add Progress&quot; to get started.
+                        </td>
                       </tr>
                     ) : (
                       progressData.map((item) => (
@@ -550,6 +800,7 @@ const BookingProgressDashboard = () => {
                                 value={item.date}
                                 onChange={e => handleUpdateProgress(item.id, 'date', e.target.value)}
                                 className="w-full p-2 border border-gray-300 rounded text-sm"
+                                disabled={saving}
                               />
                             ) : (
                               item.date ? new Date(item.date).toLocaleDateString() : ""
@@ -561,6 +812,7 @@ const BookingProgressDashboard = () => {
                                 value={item.service}
                                 onChange={e => handleUpdateProgress(item.id, 'service', e.target.value)}
                                 className="w-full p-2 border border-gray-300 rounded text-sm"
+                                disabled={saving}
                               >
                                 {getAvailableServices().map((service, idx) => (
                                   <option key={idx} value={service}>{service}</option>
@@ -576,27 +828,29 @@ const BookingProgressDashboard = () => {
                                 value={item.status}
                                 onChange={e => handleUpdateProgress(item.id, 'status', e.target.value)}
                                 className="w-full p-2 border border-gray-300 rounded text-sm"
+                                disabled={saving}
                               >
                                 {statusOptions.map(opt => (
-                                  <option key={opt} value={opt}>{opt}</option>
+                                  <option key={opt} value={opt}>{formatStatusDisplay(opt)}</option>
                                 ))}
                               </select>
                             ) : (
                               <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusBadgeColor(item.status)}`}>
-                                {item.status}
+                                {formatStatusDisplay(item.status)}
                               </span>
                             )}
                           </td>
                           <td className="px-6 py-4 text-sm text-gray-600 max-w-xs">
                             {editingRow === item.id ? (
                               <textarea
-                                value={item.dmcNotes}
+                                value={item.dmcNotes || ''}
                                 onChange={e => handleUpdateProgress(item.id, 'dmcNotes', e.target.value)}
                                 className="w-full p-2 border border-gray-300 rounded text-sm h-20 resize-vertical"
                                 placeholder="Enter DMC notes..."
+                                disabled={saving}
                               />
                             ) : (
-                              <div className="truncate" title={item.dmcNotes}>
+                              <div className="truncate" title={item.dmcNotes || ''}>
                                 {item.dmcNotes || "—"}
                               </div>
                             )}
@@ -605,15 +859,17 @@ const BookingProgressDashboard = () => {
                             {editingRow === item.id ? (
                               <button
                                 onClick={() => handleSaveProgress(item.id)}
-                                className="text-green-600 hover:text-green-900 flex items-center gap-1"
+                                className="text-green-600 hover:text-green-900 flex items-center gap-1 disabled:text-gray-400"
+                                disabled={saving}
                               >
-                                <Save size={16} />
+                                {saving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
                                 Save
                               </button>
                             ) : (
                               <button
                                 onClick={() => setEditingRow(item.id)}
-                                className="text-blue-600 hover:text-blue-900 flex items-center gap-1"
+                                className="text-blue-600 hover:text-blue-900 flex items-center gap-1 disabled:text-gray-400"
+                                disabled={saving}
                               >
                                 <Edit2 size={16} />
                                 Edit
@@ -637,7 +893,8 @@ const BookingProgressDashboard = () => {
                     <h3 className="text-lg font-semibold text-gray-800">Customer Feedback</h3>
                     <button 
                       onClick={() => setShowAddNoteModal(true)}
-                      className="bg-green-600 hover:bg-green-700 text-white px-3 py-1.5 rounded-full text-sm flex items-center gap-1 transition-colors"
+                      className="bg-green-600 hover:bg-green-700 text-white px-3 py-1.5 rounded-full text-sm flex items-center gap-1 transition-colors disabled:bg-gray-400"
+                      disabled={saving}
                     >
                       <Plus size={14} />
                       Add Note
@@ -669,7 +926,8 @@ const BookingProgressDashboard = () => {
                     <h3 className="text-lg font-semibold text-gray-800">Reminders</h3>
                     <button 
                       onClick={() => setShowReminderModal(true)}
-                      className="bg-green-600 hover:bg-green-700 text-white px-3 py-1.5 rounded-full text-sm flex items-center gap-1 transition-colors"
+                      className="bg-green-600 hover:bg-green-700 text-white px-3 py-1.5 rounded-full text-sm flex items-center gap-1 transition-colors disabled:bg-gray-400"
+                      disabled={saving}
                     >
                       <Plus size={14} />
                       Set Reminder
