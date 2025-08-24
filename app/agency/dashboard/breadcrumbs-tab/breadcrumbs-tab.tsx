@@ -106,7 +106,7 @@ const BreadcrumbNavigation = () => {
       id: "booking-details",
       label: "Booking details",
       icon: Download,
-      path: `/agency/dashboard/booking-details?${createQueryParams().toString()}`,
+      path: `/agency/dashboard/booking-details?${enquiryId && itineraryId ? `?enquiryId=${enquiryId}&itineraryId=${itineraryId}` : ""}`,
     },
     {
       id: "feedbacks",

@@ -359,6 +359,9 @@ model itineraries {
   sentItineraries            sent_itineraries[]
   agencyCancellationPolicy   AgencyCancellationPolicy? @relation(fields: [agencyCancellationPolicyId], references: [id])
   sharedCustomerPdfs         SharedCustomerPdf[]
+  bookingProgress            BookingProgress[]
+  bookingFeedbacks           BookingFeedback[]
+  bookingReminders           BookingReminder[]
 
   @@index([enquiryId])
   @@index([customerId])
@@ -610,10 +613,11 @@ model SharedDMC {
   status          SharedDMCStatus @default(PENDING)
   assignedStaffId String?
   enquiryId       String?
+  customerId      String?
   createdAt       DateTime        @default(now())
   updatedAt       DateTime        @updatedAt
   assignedStaff   Staff?          @relation("AssignedStaff", fields: [assignedStaffId], references: [id])
-  enquiry         enquiries?      @relation("EnquirySharedDMCs", fields: [enquiryId], references: [id]) // ADDED RELATION NAME
+  enquiry         enquiries?      @relation("EnquirySharedDMCs", fields: [enquiryId], references: [id])
   selectedDMCs    SharedDMCItem[]
 
   @@index([assignedStaffId])
@@ -626,6 +630,7 @@ model SharedDMCItem {
   id          String        @id @default(uuid())
   sharedDMCId String
   dmcId       String
+  notes       String?
   status      DMCItemStatus @default(AWAITING_TRANSFER)
   createdAt   DateTime      @default(now())
   updatedAt   DateTime      @updatedAt
@@ -671,13 +676,64 @@ model Commission {
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
 
-  // Add relations if you want to use them (optional)
   enquiry enquiries? @relation(fields: [enquiryId], references: [id], onDelete: Cascade)
   dmc     DMCForm?   @relation(fields: [dmcId], references: [id], onDelete: SetNull)
 
-  // Add unique constraint if you want one commission per enquiry-dmc pair
   @@unique([enquiryId, dmcId], name: "enquiryId_dmcId")
   @@map("commissions")
+}
+
+// Updated booking progress models with proper types
+model BookingProgress {
+  id           String        @id @default(uuid())
+  itineraryId  String
+  date         DateTime
+  service      String
+  status       BookingStatus @default(PENDING)
+  dmcNotes     String?
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  createdBy    String?
+
+  itinerary itineraries @relation(fields: [itineraryId], references: [id], onDelete: Cascade)
+
+  @@index([itineraryId])
+  @@index([status])
+  @@index([date])
+  @@map("booking_progress")
+}
+
+model BookingFeedback {
+  id          String      @id @default(uuid())
+  itineraryId String
+  note        String
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  createdBy   String?
+
+  itinerary itineraries @relation(fields: [itineraryId], references: [id], onDelete: Cascade)
+
+  @@index([itineraryId])
+  @@index([createdAt])
+  @@map("booking_feedback")
+}
+
+model BookingReminder {
+  id          String      @id @default(uuid())
+  itineraryId String
+  date        DateTime
+  note        String
+  isCompleted Boolean     @default(false)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  createdBy   String?
+
+  itinerary itineraries @relation(fields: [itineraryId], references: [id], onDelete: Cascade)
+
+  @@index([itineraryId])
+  @@index([date])
+  @@index([isCompleted])
+  @@map("booking_reminder")
 }
 
 enum AdminStatus {
@@ -822,4 +878,14 @@ enum EmailStatus {
   OPENED
   FAILED
   BOUNCED
+}
+
+// New enum for booking status
+enum BookingStatus {
+  PENDING
+  CONFIRMED
+  CANCELLED
+  NOT_INCLUDED
+  IN_PROGRESS
+  COMPLETED
 }
