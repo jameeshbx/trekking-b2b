@@ -7,6 +7,24 @@ import { Info, Download } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useToast } from "@/hooks/use-toast"
 
+interface PaymentRecord {
+  id: string
+  paymentDate: string
+  transactionId: string | null
+  amountPaid: number
+  remainingBalance: number
+  paymentStatus: string
+  paymentChannel: string
+  receiptFile?: {
+    id: string
+    url: string
+    name: string
+  } | null
+  enquiry?: {
+    currency: string
+  }
+}
+
 interface PaymentData {
   dmcName: string
   itineraryReference: string
@@ -62,6 +80,7 @@ const DMCPaymentInterface: React.FC = () => {
     selectedBank: "",
     paymentGateway: "",
   })
+  const [payments, setPayments] = useState<PaymentRecord[]>([])
 
   const { toast } = useToast()
 
@@ -122,7 +141,7 @@ const DMCPaymentInterface: React.FC = () => {
             const gateway = paymentMethodsData.find((pm) => pm.paymentLink)
             setPaymentData((prev) => ({
               ...prev,
-              paymentGateway: gateway?.paymentLink || '',
+              paymentGateway: gateway?.paymentLink || "",
             }))
           }
         } catch (error) {
@@ -133,6 +152,20 @@ const DMCPaymentInterface: React.FC = () => {
       fetchPaymentMethods()
     }
   }, [dmcId])
+
+  useEffect(() => {
+    if (enquiryId && dmcId) {
+      fetch(`/api/dmc-payment?enquiryId=${enquiryId}&dmcId=${dmcId}`)
+        .then((res) => res.json())
+        .then((data) => {
+          if (Array.isArray(data)) setPayments(data)
+          else if (Array.isArray(data.payments)) setPayments(data.payments)
+        })
+        .catch((err) => {
+          console.error("Error fetching payments:", err)
+        })
+    }
+  }, [enquiryId, dmcId])
 
   useEffect(() => {
     const total = Number.parseFloat(paymentData.totalCost) || 0
@@ -191,6 +224,81 @@ const DMCPaymentInterface: React.FC = () => {
     }
   }
 
+  const handleDownload = async (fileUrl: string, fileName: string) => {
+    try {
+      // If it's a full URL, use it directly, otherwise prepend the base URL
+      const fullUrl = fileUrl.startsWith("http") ? fileUrl : `${window.location.origin}${fileUrl}`
+
+      // Fetch the file
+      const response = await fetch(fullUrl)
+      const blob = await response.blob()
+
+      // Create a temporary URL for the blob
+      const url = window.URL.createObjectURL(blob)
+
+      // Create a temporary anchor element to trigger the download
+      const a = document.createElement("a")
+      a.href = url
+      a.download = fileName || "receipt"
+      document.body.appendChild(a)
+      a.click()
+
+      // Cleanup
+      window.URL.revokeObjectURL(url)
+      document.body.removeChild(a)
+    } catch (error) {
+      console.error("Error downloading file:", error)
+      toast({
+        title: "Error",
+        description: "Failed to download the file. Please try again.",
+        variant: "destructive",
+      })
+    }
+  }
+
+  const handleSendReminder = async () => {
+    if (!enquiryId || !dmcId) {
+      toast({
+        title: "Error",
+        description: "Missing required information to send reminder",
+        variant: "destructive",
+      })
+      return
+    }
+
+    try {
+      const response = await fetch("/api/send-dmc-payment-email", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          enquiryId,
+          dmcId,
+        }),
+      })
+
+      const data = await response.json()
+
+      if (response.ok) {
+        toast({
+          title: "Success",
+          description: "Reminder email has been sent successfully",
+          variant: "default",
+        })
+      } else {
+        throw new Error(data.message || "Failed to send reminder")
+      }
+    } catch (error) {
+      console.error("Error sending reminder:", error)
+      toast({
+        title: "Error",
+        description: "Failed to send reminder. Please try again.",
+        variant: "destructive",
+      })
+    }
+  }
+
   const handleSubmit = async () => {
     if (!enquiryId || !dmcId) {
       toast({ title: "Error", description: "Missing Enquiry ID or DMC ID.", variant: "destructive" })
@@ -215,62 +323,107 @@ const DMCPaymentInterface: React.FC = () => {
     setIsLoading(true)
 
     try {
-      // Step 1: Save payment data with the receipt file name
-      const paymentPayload = {
-        ...paymentData,
-        dmcId,
-        enquiryId,
-        paymentDate: new Date(paymentData.paymentDate).toISOString(),
-        receiptUrl: selectedFile.name,
-        currency,
+      const paymentFormData = new FormData()
+      paymentFormData.append("dmcId", dmcId)
+      paymentFormData.append("enquiryId", enquiryId)
+      paymentFormData.append("amountPaid", paymentData.amountPaid)
+      paymentFormData.append("paymentDate", new Date(paymentData.paymentDate).toISOString())
+      paymentFormData.append("transactionId", paymentData.transactionId || "")
+      paymentFormData.append("paymentChannel", paymentData.paymentChannel)
+      paymentFormData.append("paymentStatus", paymentData.paymentStatus)
+      paymentFormData.append("totalCost", paymentData.totalCost)
+      paymentFormData.append("currency", currency)
+      paymentFormData.append("selectedBank", paymentData.selectedBank || "")
+
+      // Add the receipt file
+      if (selectedFile) {
+        paymentFormData.append("receipt", selectedFile)
       }
 
       const paymentResponse = await fetch("/api/dmc-payment", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(paymentPayload),
+        body: paymentFormData, // Send FormData instead of JSON
       })
 
       if (!paymentResponse.ok) {
         const errorData = await paymentResponse.json()
-        throw new Error(errorData.error || "Failed to save payment details.")
+        throw new Error(errorData.details || errorData.error || "Failed to save payment details.")
       }
 
-      await paymentResponse.json()
+      const savedPayment = await paymentResponse.json()
+
+      if (enquiryId && dmcId) {
+        fetch(`/api/dmc-payment?enquiryId=${enquiryId}&dmcId=${dmcId}`)
+          .then((res) => res.json())
+          .then((data) => {
+            if (Array.isArray(data)) setPayments(data)
+            else if (Array.isArray(data.payments)) setPayments(data.payments)
+          console.log("data.payments",data.payments);
+          
+          })
+          .catch((err) => {
+            console.error("Error refreshing payments:", err)
+          })
+      }
 
       if (commission?.dmc?.email) {
-        const emailFormData = new FormData()
-        emailFormData.append("to", commission.dmc.email)
-        emailFormData.append("subject", `Payment Notification for Itinerary: ${paymentData.itineraryReference}`)
-        emailFormData.append(
-          "paymentDetails",
-          JSON.stringify({
+        try {
+          const emailFormData = new FormData()
+          emailFormData.append("to", commission.dmc.email)
+          emailFormData.append("subject", `Payment Notification for Itinerary: ${paymentData.itineraryReference}`)
+
+          // Add payment details with proper data structure
+          const emailPaymentDetails = {
             ...paymentData,
+            dmcName: commission.dmc.name,
             currency,
-          }),
-        )
-        emailFormData.append("file", selectedFile)
+            paymentDate: paymentData.paymentDate,
+            itineraryReference: savedPayment.itineraryReference || paymentData.itineraryReference,
+          }
 
-        const emailResponse = await fetch("/api/send-dmc-payment-email", {
-          method: "POST",
-          body: emailFormData,
-        })
+          emailFormData.append("paymentDetails", JSON.stringify(emailPaymentDetails))
 
-        if (!emailResponse.ok) {
-          console.warn("Payment saved, but failed to send email.")
+          // Add file if it exists
+          if (selectedFile) {
+            emailFormData.append("file", selectedFile)
+          }
+
+          console.log("Sending email to:", commission.dmc.email)
+
+          const emailResponse = await fetch("/api/send-dmc-payment-email", {
+            method: "POST",
+            body: emailFormData,
+          })
+
+          const responseData = await emailResponse.json()
+
+          if (!emailResponse.ok) {
+            console.warn("Failed to send email:", responseData)
+            toast({
+              title: "Payment Saved",
+              description: `Payment saved successfully, but email notification failed: ${responseData.details || responseData.error}`,
+              variant: "destructive",
+            })
+          } else {
+            console.log("Email sent successfully:", responseData.messageId)
+            toast({
+              title: "Success",
+              description: "Payment updated and email sent successfully!",
+            })
+          }
+        } catch (error) {
+          console.error("Error sending email:", error)
+          const errorMessage = error instanceof Error ? error.message : "Failed to send email notification"
           toast({
-            title: "Warning",
-            description: "Payment saved successfully, but failed to send email notification.",
+            title: "Payment Saved",
+            description: `Payment saved successfully, but email notification failed: ${errorMessage}`,
             variant: "destructive",
           })
-        } else {
-          toast({ title: "Success", description: "Payment updated and email sent successfully!" })
         }
       } else {
         toast({
-          title: "Warning",
-          description: "Payment saved, but DMC email is not available to send notification.",
-          variant: "destructive",
+          title: "Payment Saved",
+          description: "Payment saved successfully, but DMC email is not available to send notification.",
         })
       }
 
@@ -282,6 +435,12 @@ const DMCPaymentInterface: React.FC = () => {
         transactionId: "",
         selectedBank: "",
       }))
+
+      // Reset file input
+      const fileInput = document.getElementById("file-upload") as HTMLInputElement
+      if (fileInput) {
+        fileInput.value = ""
+      }
     } catch (error) {
       console.error("Error in payment submission:", error)
       const errorMessage = error instanceof Error ? error.message : "An unexpected error occurred."
@@ -581,77 +740,133 @@ const DMCPaymentInterface: React.FC = () => {
                     </tr>
                   </thead>
                   <tbody className="bg-white">
-                    <tr>
-                      <td className="px-2 py-3 whitespace-nowrap text-xs text-gray-900">12 - 04 - 25</td>
-                      <td className="px-2 py-3 whitespace-nowrap text-xs text-gray-900">41431545</td>
-                      <td className="px-2 py-3 whitespace-nowrap text-xs text-gray-900">500.00 USD</td>
-                      <td className="px-2 py-3 whitespace-nowrap text-xs text-gray-900">780.00 USD</td>
-                      <td className="px-2 py-3 whitespace-nowrap">
-                        <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-yellow-500 text-white">
-                          PARTIALLY PAID
-                        </span>
-                      </td>
-                      <td className="px-2 py-3 whitespace-nowrap text-xs text-gray-900">
-                        {showBankDetails ? "Bank transfer" : "Payment gateway"}
-                      </td>
-                      <td className="px-2 py-3 whitespace-nowrap">
-                        <button className="flex items-center text-xs text-blue-600 hover:text-blue-800">
-                          <Download className="w-3 h-3 mr-1" />
-                          Download
-                        </button>
-                      </td>
-                    </tr>
+                    {payments.length === 0 ? (
+                      <tr>
+                        <td colSpan={7} className="px-2 py-3 text-center text-xs text-gray-400">
+                          No payments found.
+                        </td>
+                      </tr>
+                    ) : (
+                      payments.map((payment, idx) => (
+                        <tr key={payment.id || idx}>
+                          <td className="px-2 py-3 whitespace-nowrap text-xs text-gray-900">
+                            {new Date(payment.paymentDate).toLocaleDateString()}
+                          </td>
+                          <td className="px-2 py-3 whitespace-nowrap text-xs text-gray-900">
+                            {payment.transactionId || "-"}
+                          </td>
+                          <td className="px-2 py-3 whitespace-nowrap text-xs text-gray-900">
+                            {payment.amountPaid} {payment.enquiry?.currency || currency}
+                          </td>
+                          <td className="px-2 py-3 whitespace-nowrap text-xs text-gray-900">
+                            {payment.remainingBalance} {payment.enquiry?.currency || currency}
+                          </td>
+                          <td className="px-2 py-3 whitespace-nowrap">
+                            <span
+                              className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${payment.paymentStatus === "PAID" ? "bg-green-500" : payment.paymentStatus === "PARTIAL" ? "bg-yellow-500" : "bg-gray-400"} text-white`}
+                            >
+                              {payment.paymentStatus}
+                            </span>
+                          </td>
+                          <td className="px-2 py-3 whitespace-nowrap text-xs text-gray-900">
+                            {payment.paymentChannel}
+                          </td>
+                          <td className="px-2 py-3 whitespace-nowrap">
+                            {payment.receiptFile?.url ? (
+                              <button
+                                onClick={() =>
+                                  handleDownload(payment.receiptFile!.url, payment.receiptFile?.name || "receipt")
+                                }
+                                className="flex items-center text-xs text-blue-600 hover:text-blue-800"
+                              >
+                                <Download className="w-3 h-3 mr-1" />
+                                Download
+                              </button>
+                            ) : (
+                              <span className="text-xs text-gray-400">No file</span>
+                            )}
+                          </td>
+                        </tr>
+                      ))
+                    )}
                   </tbody>
                 </table>
               </div>
 
               {/* Mobile/Tablet Card View */}
-              <div className="block lg:hidden p-4">
-                <div className="bg-gray-50 rounded-lg p-4 border">
-                  <div className="space-y-2 text-sm">
-                    <div className="flex justify-between">
-                      <span className="text-gray-600 font-medium">Paid on:</span>
-                      <span className="text-gray-900">12 - 04 - 25</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-gray-600 font-medium">Transaction ID:</span>
-                      <span className="text-gray-900">41431545</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-gray-600 font-medium">Amount paid:</span>
-                      <span className="text-gray-900">500.00 USD</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-gray-600 font-medium">Pending:</span>
-                      <span className="text-gray-900">780.00 USD</span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-gray-600 font-medium">Status:</span>
-                      <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-yellow-500 text-white">
-                        PARTIALLY PAID
-                      </span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-gray-600 font-medium">Payment channel:</span>
-                      <span className="text-gray-900">{showBankDetails ? "Bank transfer" : "Payment gateway"}</span>
-                    </div>
-                    <div className="flex justify-between items-center pt-2 border-t">
-                      <span className="text-gray-600 font-medium">Invoice:</span>
-                      <button className="flex items-center text-sm text-blue-600 hover:text-blue-800">
-                        <Download className="w-3 h-3 mr-1" />
-                        Download
-                      </button>
-                    </div>
+              <div className="block lg:hidden">
+                <h3 className="text-sm font-medium text-gray-900 mb-4">Payment History</h3>
+                {payments.length === 0 ? (
+                  <div className="text-center text-sm text-gray-400 py-8">No payments found.</div>
+                ) : (
+                  <div className="space-y-4">
+                    {payments.map((payment, idx) => (
+                      <div key={payment.id || idx} className="bg-gray-50 rounded-lg p-4 border">
+                        <div className="space-y-3 text-sm">
+                          <div className="flex justify-between items-start">
+                            <span className="text-gray-600 font-medium">Paid on:</span>
+                            <span className="text-gray-900">{new Date(payment.paymentDate).toLocaleDateString()}</span>
+                          </div>
+                          <div className="flex justify-between items-start">
+                            <span className="text-gray-600 font-medium">Transaction ID:</span>
+                            <span className="text-gray-900 text-right">{payment.transactionId || "-"}</span>
+                          </div>
+                          <div className="flex justify-between items-start">
+                            <span className="text-gray-600 font-medium">Amount paid:</span>
+                            <span className="text-gray-900">
+                              {payment.amountPaid} {payment.enquiry?.currency || currency}
+                            </span>
+                          </div>
+                          <div className="flex justify-between items-start">
+                            <span className="text-gray-600 font-medium">Pending:</span>
+                            <span className="text-gray-900">
+                              {payment.remainingBalance} {payment.enquiry?.currency || currency}
+                            </span>
+                          </div>
+                          <div className="flex justify-between items-center">
+                            <span className="text-gray-600 font-medium">Status:</span>
+                            <span
+                              className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${payment.paymentStatus === "PAID" ? "bg-green-500" : payment.paymentStatus === "PARTIAL" ? "bg-yellow-500" : "bg-gray-400"} text-white`}
+                            >
+                              {payment.paymentStatus}
+                            </span>
+                          </div>
+                          <div className="flex justify-between items-start">
+                            <span className="text-gray-600 font-medium">Payment channel:</span>
+                            <span className="text-gray-900 text-right">{payment.paymentChannel}</span>
+                          </div>
+                          <div className="flex justify-between items-center pt-2 border-t">
+                            <span className="text-gray-600 font-medium">Invoice:</span>
+                            {payment.receiptFile?.url ? (
+                              <button
+                                onClick={() =>
+                                  handleDownload(payment.receiptFile!.url, payment.receiptFile?.name || "receipt")
+                                }
+                                className="flex items-center text-sm text-blue-600 hover:text-blue-800"
+                              >
+                                <Download className="w-4 h-4 mr-1" />
+                                Download
+                              </button>
+                            ) : (
+                              <span className="text-sm text-gray-400">No file</span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
                   </div>
-                </div>
+                )}
               </div>
             </div>
 
-            {/* Send Reminder */}
+            {/* Send Reminder Section */}
             <div className="bg-white rounded-lg shadow-sm p-4 w-full lg:w-[528px] lg:ml-[-143px]">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 gap-2">
                 <h3 className="text-sm sm:text-md font-semibold">Send Reminder</h3>
-                <button className="px-3 py-1 bg-green-600 text-white rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-colors text-xs font-medium">
+                <button
+                  onClick={handleSendReminder}
+                  className="px-3 py-1 bg-green-600 text-white rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-colors text-xs font-medium"
+                >
                   Send reminder
                 </button>
               </div>
