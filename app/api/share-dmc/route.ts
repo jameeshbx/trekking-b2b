@@ -82,8 +82,12 @@ export async function GET(request: NextRequest) {
     // Fetch shared DMC records - handle the case where table might not exist or be empty
     let sharedDMCs: (SharedDMC & { selectedDMCs: SharedDMCItemWithDMC[] })[] = []
     try {
+      const whereClause: Record<string, unknown> = {}
+      if (enquiryId) whereClause.enquiryId = enquiryId
+      if (customerId) whereClause.customerId = customerId
+
       sharedDMCs = await prisma.sharedDMC.findMany({
-        where: dmcWhereClause,
+        where: whereClause,
         include: {
           selectedDMCs: {
             include: {
@@ -136,7 +140,7 @@ export async function GET(request: NextRequest) {
       pdfUrl: shared.pdfUrl,
       activeStatus: shared.isActive,
       enquiryId: shared.enquiryId || enquiryId || "default-enquiry",
-      customerId: customerId, // Use from query params instead of trying to access non-existent field
+      customerId: shared.customerId || customerId, // Use from database or query params
       assignedStaffId: shared.assignedStaffId,
       selectedDMCs: shared.selectedDMCs.map((item) => {
         const commission = commissions.find(c => c.dmcId === item.dmcId && c.enquiryId === (shared.enquiryId || enquiryId))
@@ -264,59 +268,83 @@ export async function POST(request: NextRequest) {
     const emailResults: LocalEmailResult[] = []
     for (const dmc of selectedDMCs) {
       if (dmc.email) {
-        // Check if PDF exists
-        let attachments = undefined
-        if (pdfPath && fs.existsSync(pdfPath)) {
-          attachments = [
-            {
-              filename: `itinerary-${enquiryId}.pdf`,
-              path: pdfPath,
-              contentType: "application/pdf",
-            },
-          ]
-        } else if (pdfPath) {
-          console.warn("PDF path provided but file does not exist:", pdfPath);
-        }
+        try {
+          // Check if PDF exists
+          let attachments = undefined
+          const resolvedPdfPath = pdfPath ? path.resolve(pdfPath) : null
+          
+          if (resolvedPdfPath && fs.existsSync(resolvedPdfPath)) {
+            attachments = [
+              {
+                filename: `itinerary-${enquiryId}.pdf`,
+                path: resolvedPdfPath,
+                contentType: "application/pdf",
+              },
+            ]
+          } else if (pdfPath) {
+            console.warn("PDF path provided but file does not exist:", pdfPath);
+          }
 
-        const emailResult = await sendEmail({
-          to: dmc.email,
-          subject: `New Itinerary Request - ${enquiryId}`,
-          html: `
-            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-              <h2 style="color: #4ECDC4;">New Itinerary Request</h2>
-              <p>Dear ${dmc.name},</p>
-              <p>You have been added to a new itinerary request for quotation.</p>
-              <div style="background-color: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0;">
-                <h3 style="margin-top: 0;">Request Details:</h3>
-                <p><strong>Enquiry ID:</strong> ${enquiryId}</p>
-                <p><strong>Customer:</strong> ${customerDetails.name}</p>
-                <p><strong>Date Generated:</strong> ${dateGenerated || new Date().toISOString().split("T")[0]}</p>
-                <p><strong>Destinations:</strong> ${dmc.destinationsCovered}</p>
-                ${customerDetails.locations ? `<p><strong>Requested Locations:</strong> ${customerDetails.locations}</p>` : ''}
+          const emailResult = await sendEmail({
+            to: dmc.email,
+            subject: `New Itinerary Request - ${enquiryId}`,
+            html: `
+              <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+                <h2 style="color: #4ECDC4;">New Itinerary Request</h2>
+                <p>Dear ${dmc.name},</p>
+                <p>You have been added to a new itinerary request for quotation.</p>
+                <div style="background-color: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0;">
+                  <h3 style="margin-top: 0;">Request Details:</h3>
+                  <p><strong>Enquiry ID:</strong> ${enquiryId}</p>
+                  <p><strong>Customer:</strong> ${customerDetails.name}</p>
+                  <p><strong>Date Generated:</strong> ${dateGenerated || new Date().toISOString().split("T")[0]}</p>
+                  <p><strong>Destinations:</strong> ${dmc.destinationsCovered}</p>
+                  ${customerDetails.locations ? `<p><strong>Requested Locations:</strong> ${customerDetails.locations}</p>` : ''}
+                </div>
+                <p>Please review the ${attachments ? 'attached itinerary' : 'itinerary details'} and provide your quotation.</p>
+                <div style="background-color: #e8f5f4; padding: 15px; border-radius: 6px; margin: 20px 0;">
+                  <p style="margin: 0;"><strong>Next Steps:</strong></p>
+                  <ul style="margin: 10px 0;">
+                    <li>Review the itinerary requirements</li>
+                    <li>Prepare your quotation</li>
+                    <li>Respond with your best offer</li>
+                  </ul>
+                </div>
+                <p>We look forward to your response!</p>
+                <p>Best regards,<br><strong>Travel Team</strong></p>
               </div>
-              <p>Please review the ${pdfPath && fs.existsSync(pdfPath) ? 'attached itinerary' : 'itinerary details'} and provide your quotation.</p>
-              <div style="background-color: #e8f5f4; padding: 15px; border-radius: 6px; margin: 20px 0;">
-                <p style="margin: 0;"><strong>Next Steps:</strong></p>
-                <ul style="margin: 10px 0;">
-                  <li>Review the itinerary requirements</li>
-                  <li>Prepare your quotation</li>
-                  <li>Respond with your best offer</li>
-                </ul>
-              </div>
-              <p>We look forward to your response!</p>
-              <p>Best regards,<br><strong>Travel Team</strong></p>
-            </div>
-          `,
-          attachments: attachments,
-        })
-        
+            `,
+            attachments: attachments,
+          })
+          
+          emailResults.push({
+            dmcId: dmc.id,
+            dmcName: dmc.name,
+            email: dmc.email,
+            sent: emailResult.success || false,
+            error: emailResult.success ? undefined : (emailResult.error || "Failed to send email"),
+            messageId: emailResult.messageId ?? undefined,
+          })
+
+          console.log(`Email result for ${dmc.name}:`, emailResult)
+
+        } catch (emailError) {
+          console.error(`Error sending email to ${dmc.name}:`, emailError)
+          emailResults.push({
+            dmcId: dmc.id,
+            dmcName: dmc.name,
+            email: dmc.email,
+            sent: false,
+            error: emailError instanceof Error ? emailError.message : "Failed to send email",
+          })
+        }
+      } else {
         emailResults.push({
           dmcId: dmc.id,
           dmcName: dmc.name,
-          email: dmc.email,
-          sent: emailResult.success,
-          error: emailResult.success ? undefined : (emailResult.error || undefined),
-          messageId: emailResult.messageId ?? undefined,
+          email: "No email provided",
+          sent: false,
+          error: "DMC has no email address",
         })
       }
     }
@@ -327,6 +355,7 @@ export async function POST(request: NextRequest) {
       newSharedDMC = await prisma.sharedDMC.create({
         data: {
           enquiryId: enquiryId,
+          customerId: customerId,
           dateGenerated: new Date(dateGenerated || new Date()),
           pdfUrl: pdfPath,
           isActive: true,
@@ -368,7 +397,7 @@ export async function POST(request: NextRequest) {
       data: {
         id: newSharedDMC.id,
         enquiryId,
-        customerId, // Pass from input params since it's not stored in DB
+        customerId,
         assignedStaffId: newSharedDMC.assignedStaffId,
         dateGenerated: newSharedDMC.dateGenerated.toLocaleDateString("en-GB"),
         activeStatus: newSharedDMC.isActive,
@@ -424,7 +453,10 @@ export async function PUT(request: NextRequest) {
     if (action === "toggleActive") {
       const updated = await prisma.sharedDMC.update({
         where: { id },
-        data: { isActive: updateData.isActive },
+        data: { 
+          isActive: updateData.isActive,
+          updatedAt: new Date(),
+        },
       })
 
       return NextResponse.json({
@@ -435,18 +467,44 @@ export async function PUT(request: NextRequest) {
     }
 
     if (action === "updateDMCStatus") {
+      // Validate that itemId exists
+      if (!updateData.itemId) {
+        return NextResponse.json({ 
+          error: "itemId is required for updating DMC status",
+          success: false 
+        }, { status: 400 })
+      }
+
+      // Check if the shared DMC item exists
+      const existingItem = await prisma.sharedDMCItem.findUnique({
+        where: { id: updateData.itemId },
+      })
+
+      if (!existingItem) {
+        return NextResponse.json({ 
+          error: "SharedDMC item not found",
+          success: false 
+        }, { status: 404 })
+      }
+
       const updated = await prisma.sharedDMCItem.update({
         where: { id: updateData.itemId },
         data: { 
           status: updateData.status,
           notes: updateData.notes,
+          updatedAt: new Date(),
         },
       })
 
       return NextResponse.json({
         success: true,
         message: "DMC status updated",
-        data: { id, status: updated.status, notes: updated.notes },
+        data: { 
+          id: updated.id, 
+          status: updated.status, 
+          notes: updated.notes,
+          updatedAt: updated.updatedAt.toISOString(),
+        },
       })
     }
 
@@ -652,7 +710,7 @@ export async function PUT(request: NextRequest) {
             customerName: customer.name,
             customerEmail: customer.email,
             customerPhone: customer.phone,
-            emailSent: emailResult.success,
+            emailSent: emailResult.success || false,
             emailSentAt: emailResult.success ? new Date() : null,
             createdBy: "system",
           },
@@ -686,7 +744,6 @@ export async function PUT(request: NextRequest) {
         }, { status: 400 })
       }
 
-      // Always send the email, even if already added
       const dmc = await prisma.dMCForm.findUnique({
         where: { id: updateData.dmcId },
         select: {
@@ -736,6 +793,23 @@ export async function PUT(request: NextRequest) {
       if (dmc.email && updateData.enquiryId) {
         try {
           console.log("Preparing to send DMC email to:", dmc.email, "with PDF:", updateData.pdfPath)
+          
+          // Check if PDF exists
+          let attachments = undefined
+          const resolvedPdfPath = updateData.pdfPath ? path.resolve(updateData.pdfPath) : null
+          
+          if (resolvedPdfPath && fs.existsSync(resolvedPdfPath)) {
+            attachments = [
+              {
+                filename: `itinerary-${updateData.enquiryId}.pdf`,
+                path: resolvedPdfPath,
+                contentType: "application/pdf",
+              },
+            ]
+          } else if (updateData.pdfPath) {
+            console.warn("PDF path provided but file does not exist:", updateData.pdfPath);
+          }
+
           const emailResult = await sendEmail({
             to: dmc.email,
             subject: `New Itinerary Request - ${updateData.enquiryId}`,
@@ -750,23 +824,25 @@ export async function PUT(request: NextRequest) {
                   <p><strong>Date Generated:</strong> ${updateData.dateGenerated || new Date().toISOString().split("T")[0]}</p>
                   <p><strong>Destinations:</strong> ${dmc.destinationsCovered}</p>
                 </div>
-                <p>Please review the attached itinerary and provide your quotation.</p>
-                <p>Best regards,<br>Travel Team</p>
+                <p>Please review the ${attachments ? 'attached itinerary' : 'itinerary details'} and provide your quotation.</p>
+                <div style="background-color: #e8f5f4; padding: 15px; border-radius: 6px; margin: 20px 0;">
+                  <p style="margin: 0;"><strong>Next Steps:</strong></p>
+                  <ul style="margin: 10px 0;">
+                    <li>Review the itinerary requirements</li>
+                    <li>Prepare your quotation</li>
+                    <li>Respond with your best offer</li>
+                  </ul>
+                </div>
+                <p>We look forward to your response!</p>
+                <p>Best regards,<br><strong>Travel Team</strong></p>
               </div>
             `,
-            attachments: updateData.pdfPath
-              ? [
-                  {
-                    filename: `itinerary-${updateData.enquiryId}.pdf`,
-                    path: updateData.pdfPath,
-                    contentType: "application/pdf",
-                  },
-                ]
-              : undefined,
+            attachments: attachments,
           })
+          
           console.log("DMC email send result:", emailResult)
-          emailSent = emailResult.success
-          emailError = emailResult.success ? null : emailResult.error || "Failed to send email";
+          emailSent = emailResult.success || false
+          emailError = emailResult.success ? null : (emailResult.error || "Failed to send email");
         } catch (error) {
           console.error(`Error sending email to ${dmc.name}:`, error)
           emailError = error instanceof Error ? error.message : "Failed to send email"
@@ -842,6 +918,12 @@ export async function DELETE(request: NextRequest) {
       }, { status: 400 })
     }
 
+    // Delete related SharedDMCItems first (if not using cascade delete)
+    await prisma.sharedDMCItem.deleteMany({
+      where: { sharedDMCId: id },
+    })
+
+    // Delete the SharedDMC record
     await prisma.sharedDMC.delete({
       where: { id },
     })

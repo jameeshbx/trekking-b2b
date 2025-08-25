@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Calendar, FileText, X, Download, Send, Eye } from "lucide-react"
+import { Calendar, FileText, X, Download, Send, Eye, RefreshCw } from "lucide-react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -78,7 +78,7 @@ const DMCAdminInterface = () => {
   const [selectedDMCItem, setSelectedDMCItem] = useState<SharedDMCItem | null>(null)
   const [selectedItinerary, setSelectedItinerary] = useState<SharedItinerary | null>(null)
 
-  const [statusDetails, setStatusDetails] = useState("Details sent")
+  const [statusDetails, setStatusDetails] = useState("AWAITING_TRANSFER")
   const [feedbackText, setFeedbackText] = useState("")
   const [commissionType, setCommissionType] = useState<"FLAT" | "PERCENTAGE">("FLAT")
   const [commissionAmount, setCommissionAmount] = useState("180")
@@ -115,76 +115,76 @@ const DMCAdminInterface = () => {
 
   // Fetch DMCs and shared itineraries from API
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setLoading(true)
-        setError(null)
-
-        // Fetch DMCs from your API endpoint
-        const dmcResponse = await fetch("/api/auth/agency-add-dmc?limit=100")
-        
-        if (!dmcResponse.ok) {
-          const errorData = await dmcResponse.text()
-          console.error("DMC API Error:", errorData)
-          throw new Error(`Failed to fetch DMCs: ${dmcResponse.statusText}`)
-        }
-
-        const dmcData = await dmcResponse.json()
-        if (dmcData.success && dmcData.data) {
-          setAvailableDMCs(dmcData.data)
-        } else {
-          console.warn("DMC API returned no data or unsuccessful response:", dmcData)
-          setAvailableDMCs([])
-        }
-
-        // Fetch shared DMC data
-        const params = new URLSearchParams()
-        if (enquiryId) params.append("enquiryId", enquiryId)
-        if (customerId) params.append("customerId", customerId)
-
-        const sharedResponse = await fetch(`/api/share-dmc?${params.toString()}`)
-        
-        if (!sharedResponse.ok) {
-          const errorData = await sharedResponse.text()
-          console.error("Shared DMC API Error:", errorData)
-          
-          // Try to parse as JSON for better error info
-          try {
-            const errorJson = JSON.parse(errorData)
-            throw new Error(errorJson.error || errorJson.details || `Failed to fetch shared DMCs: ${sharedResponse.statusText}`)
-          } catch  {
-            throw new Error(`Failed to fetch shared DMCs: ${sharedResponse.statusText}`)
-          }
-        }
-
-        const sharedData = await sharedResponse.json()
-        if (sharedData.success && sharedData.data) {
-          setItineraries(sharedData.data)
-          // Also update available DMCs if provided in the response
-          if (sharedData.availableDMCs) {
-            setAvailableDMCs(sharedData.availableDMCs)
-          }
-        } else {
-          console.warn("Shared DMC API returned unsuccessful response:", sharedData)
-          setError(sharedData.error || sharedData.details || "Failed to fetch shared DMCs")
-        }
-
-      } catch (err) {
-        console.error("Error fetching data:", err)
-        const errorMessage = err instanceof Error ? err.message : "Failed to fetch data"
-        setError(errorMessage)
-        toast({
-          title: "Error",
-          description: errorMessage,
-          variant: "destructive",
-        })
-      } finally {
-        setLoading(false)
-      }
-    }
-
     fetchData()
   }, [enquiryId, customerId])
+
+  const fetchData = async () => {
+    try {
+      setLoading(true)
+      setError(null)
+
+      // Fetch DMCs from your API endpoint
+      const dmcResponse = await fetch("/api/auth/agency-add-dmc?limit=100")
+      
+      if (!dmcResponse.ok) {
+        const errorData = await dmcResponse.text()
+        console.error("DMC API Error:", errorData)
+        throw new Error(`Failed to fetch DMCs: ${dmcResponse.statusText}`)
+      }
+
+      const dmcData = await dmcResponse.json()
+      if (dmcData.success && dmcData.data) {
+        setAvailableDMCs(dmcData.data)
+      } else {
+        console.warn("DMC API returned no data or unsuccessful response:", dmcData)
+        setAvailableDMCs([])
+      }
+
+      // Fetch shared DMC data
+      const params = new URLSearchParams()
+      if (enquiryId) params.append("enquiryId", enquiryId)
+      if (customerId) params.append("customerId", customerId)
+
+      const sharedResponse = await fetch(`/api/share-dmc?${params.toString()}`)
+      
+      if (!sharedResponse.ok) {
+        const errorData = await sharedResponse.text()
+        console.error("Shared DMC API Error:", errorData)
+        
+        // Try to parse as JSON for better error info
+        try {
+          const errorJson = JSON.parse(errorData)
+          throw new Error(errorJson.error || errorJson.details || `Failed to fetch shared DMCs: ${sharedResponse.statusText}`)
+        } catch  {
+          throw new Error(`Failed to fetch shared DMCs: ${sharedResponse.statusText}`)
+        }
+      }
+
+      const sharedData = await sharedResponse.json()
+      if (sharedData.success && sharedData.data) {
+        setItineraries(sharedData.data)
+        // Also update available DMCs if provided in the response
+        if (sharedData.availableDMCs) {
+          setAvailableDMCs(sharedData.availableDMCs)
+        }
+      } else {
+        console.warn("Shared DMC API returned unsuccessful response:", sharedData)
+        setError(sharedData.error || sharedData.details || "Failed to fetch shared DMCs")
+      }
+
+    } catch (err) {
+      console.error("Error fetching data:", err)
+      const errorMessage = err instanceof Error ? err.message : "Failed to fetch data"
+      setError(errorMessage)
+      toast({
+        title: "Error",
+        description: errorMessage,
+        variant: "destructive",
+      })
+    } finally {
+      setLoading(false)
+    }
+  }
 
   const getDMCById = (dmcId: string) => {
     return availableDMCs.find((dmc) => dmc.id === dmcId)
@@ -325,6 +325,8 @@ const DMCAdminInterface = () => {
     try {
       setAddingDMC(dmcId)
 
+      const currentItinerary = itineraries.find(itin => itin.id === itineraryId)
+
       const response = await fetch("/api/share-dmc", {
         method: "PUT",
         headers: {
@@ -334,9 +336,9 @@ const DMCAdminInterface = () => {
           id: itineraryId,
           action: "addDMC",
           dmcId: dmcId,
-          enquiryId: enquiryId,
-          dateGenerated: new Date().toISOString().split("T")[0],
-          pdfPath: "/itinerary.pdf", // You might want to use the actual PDF path from the itinerary
+          enquiryId: enquiryId || currentItinerary?.enquiryId,
+          dateGenerated: currentItinerary?.dateGenerated || new Date().toISOString().split("T")[0],
+          pdfPath: currentItinerary?.pdfUrl || null,
         }),
       })
 
@@ -402,7 +404,7 @@ const DMCAdminInterface = () => {
 
   const handleUpdateStatus = (dmcItem: SharedDMCItem) => {
     setSelectedDMCItem(dmcItem)
-    setStatusDetails(dmcItem.status.replace("_", " "))
+    setStatusDetails(dmcItem.status)
     setFeedbackText(dmcItem.notes || "")
     setShowUpdateStatus(true)
   }
@@ -447,9 +449,6 @@ const DMCAdminInterface = () => {
         description: "Quote shared with customer successfully",
       })
 
-      // Do NOT redirect here!
-      // router.push(`/agency/dashboard/share-customer?${params.toString()}`)
-
     } catch (error) {
       console.error("Error sharing to customer:", error)
       toast({
@@ -475,7 +474,7 @@ const DMCAdminInterface = () => {
           id: selectedDMCItem.id,
           action: "updateDMCStatus",
           itemId: selectedDMCItem.id,
-          status: statusDetails.replace(" ", "_").toUpperCase(),
+          status: statusDetails,
           notes: feedbackText,
         }),
       })
@@ -494,8 +493,9 @@ const DMCAdminInterface = () => {
             dmc.id === selectedDMCItem.id
               ? {
                   ...dmc,
-                  status: statusDetails.replace(" ", "_").toUpperCase() as SharedDMCItem["status"],
+                  status: statusDetails as SharedDMCItem["status"],
                   notes: feedbackText,
+                  lastUpdated: result.data.updatedAt,
                 }
               : dmc,
           ),
@@ -587,6 +587,14 @@ const DMCAdminInterface = () => {
     router.push("/agency/dashboard/share-dmc")
   }
 
+  const handleRefresh = () => {
+    fetchData()
+    toast({
+      title: "Refreshing",
+      description: "Fetching latest data...",
+    })
+  }
+
   if (loading) {
     return (
       <div className="flex items-center justify-center p-8">
@@ -605,10 +613,11 @@ const DMCAdminInterface = () => {
           <p className="text-lg font-semibold">Error Loading Data</p>
           <p className="mt-2">{error}</p>
           <Button 
-            onClick={() => window.location.reload()} 
+            onClick={fetchData} 
             className="mt-4"
             variant="outline"
           >
+            <RefreshCw className="w-4 h-4 mr-2" />
             Retry
           </Button>
         </div>
@@ -629,9 +638,19 @@ const DMCAdminInterface = () => {
               </span>
             )}
           </div>
-          <button className="bg-gray-400 hover:bg-gray-500 text-white px-4 py-2 rounded-md text-sm font-medium">
-            Reassign Staff
-          </button>
+          <div className="flex gap-2">
+            <Button 
+              onClick={handleRefresh}
+              variant="outline"
+              size="sm"
+            >
+              <RefreshCw className="w-4 h-4 mr-2" />
+              Refresh
+            </Button>
+            <Button className="bg-gray-400 hover:bg-gray-500 text-white px-4 py-2 rounded-md text-sm font-medium">
+              Reassign Staff
+            </Button>
+          </div>
         </div>
 
         {/* Main Table */}
@@ -825,6 +844,14 @@ const DMCAdminInterface = () => {
                           )}
                         </div>
                       )}
+                      {dmcItem.notes && (
+                        <p className="text-xs text-gray-500 mt-2">Notes: {dmcItem.notes}</p>
+                      )}
+                      {dmcItem.lastUpdated && (
+                        <p className="text-xs text-gray-400 mt-1">
+                          Last updated: {new Date(dmcItem.lastUpdated).toLocaleString()}
+                        </p>
+                      )}
                     </div>
 
                     <div className="flex flex-wrap gap-2">
@@ -960,20 +987,22 @@ const DMCAdminInterface = () => {
                   </span>
                 </div>
                 <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Status</label>
                   <Select value={statusDetails} onValueChange={setStatusDetails}>
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="Details sent">Details sent</SelectItem>
-                      <SelectItem value="Awaiting response">Awaiting response</SelectItem>
-                      <SelectItem value="Under review">Under review</SelectItem>
-                      <SelectItem value="Quotation received">Quotation received</SelectItem>
-                      <SelectItem value="Rejected">Rejected</SelectItem>
+                      <SelectItem value="AWAITING_TRANSFER">Awaiting Transfer</SelectItem>
+                      <SelectItem value="VIEWED">Viewed</SelectItem>
+                      <SelectItem value="AWAITING_INTERNAL_REVIEW">Awaiting Internal Review</SelectItem>
+                      <SelectItem value="QUOTATION_RECEIVED">Quotation Received</SelectItem>
+                      <SelectItem value="REJECTED">Rejected</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
                 <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Feedback/Notes</label>
                   <Textarea
                     value={feedbackText}
                     onChange={(e) => setFeedbackText(e.target.value)}
@@ -982,9 +1011,20 @@ const DMCAdminInterface = () => {
                     placeholder="Enter feedback or notes..."
                   />
                 </div>
-                <Button onClick={updateDMCStatus} className="w-full bg-green-600 hover:bg-green-700">
-                  Update Status
-                </Button>
+                <div className="flex justify-end space-x-3">
+                  <Button 
+                    variant="outline" 
+                    onClick={() => setShowUpdateStatus(false)}
+                  >
+                    Cancel
+                  </Button>
+                  <Button 
+                    onClick={updateDMCStatus} 
+                    className="bg-green-600 hover:bg-green-700"
+                  >
+                    Update Status
+                  </Button>
+                </div>
               </div>
             </div>
           </div>

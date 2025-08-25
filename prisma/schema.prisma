@@ -26,6 +26,10 @@ model File {
   paymentMethodQRCode        PaymentMethod? @relation("PaymentMethodQRCode")
   adminProfile               Admin?         @relation("AdminProfile")
 
+   // QR Code relation
+  agencyPaymentMethodQRCode  AgencyPaymentMethod? @relation("AgencyPaymentMethodQRCode")
+
+
   @@map("file")
 }
 
@@ -64,6 +68,8 @@ model Agency {
   updatedAt     DateTime       @updatedAt
   subscriptions Subscription[]
   users         User[]
+  paymentMethods AgencyPaymentMethod[]
+
 
   @@index([name])
 }
@@ -306,6 +312,7 @@ model enquiries {
   feedback           Feedback?
   commissions        Commission[]
   dmcPayments    DmcPayment[]
+  
 
 
   sharedDMCs SharedDMC[] @relation("EnquirySharedDMCs")
@@ -365,7 +372,7 @@ model itineraries {
   sentItineraries            sent_itineraries[]
   agencyCancellationPolicy   AgencyCancellationPolicy? @relation(fields: [agencyCancellationPolicyId], references: [id])
   sharedCustomerPdfs         SharedCustomerPdf[]
-  bookingProgress            BookingProgress[]
+ 
   bookingFeedbacks           BookingFeedback[]
   bookingReminders           BookingReminder[]
 
@@ -485,6 +492,7 @@ model customers {
   feedbacks          customer_feedbacks[]
   sentItineraries    sent_itineraries[]
   sharedCustomerPdfs SharedCustomerPdf[]
+ 
 }
 
 model customer_feedbacks {
@@ -496,9 +504,9 @@ model customer_feedbacks {
   createdAt    DateTime     @default(now())
   updatedAt    DateTime     @updatedAt
   customerId   String
-  documentName String?      @map("document_name")
-  documentUrl  String?      @map("document_url")
-  itineraryId  String?      @map("itinerary_id")
+  documentName String?
+  documentUrl  String?
+  itineraryId  String?
   customer     customers?   @relation(fields: [customerId], references: [id], onDelete: Cascade)
   itinerary    itineraries? @relation(fields: [itineraryId], references: [id], onDelete: SetNull)
 
@@ -691,24 +699,19 @@ model Commission {
 
 // Updated booking progress models with proper types
 model BookingProgress {
-  id           String        @id @default(uuid())
-  itineraryId  String
-  date         DateTime
-  service      String
-  status       BookingStatus @default(PENDING)
-  dmcNotes     String?
-  createdAt    DateTime      @default(now())
-  updatedAt    DateTime      @updatedAt
-  createdBy    String?
+  id          String   @id @default(cuid())
+  itineraryId String
+  date        DateTime
+  service     String
+  status      String
+  dmcNotes    String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
-  itinerary itineraries @relation(fields: [itineraryId], references: [id], onDelete: Cascade)
-
-  @@index([itineraryId])
-  @@index([status])
-  @@index([date])
-  @@map("booking_progress")
+  @@map("BookingProgress")
 }
-
+  
+  
 model BookingFeedback {
   id          String      @id @default(uuid())
   itineraryId String
@@ -767,6 +770,44 @@ model DmcPayment {
   @@index([enquiryId])
   @@map("dmc_payments")
 }
+model AgencyPaymentMethod {
+  id          String            @id @default(uuid())
+  agencyId    String
+  agency      Agency?           @relation(fields: [agencyId], references: [id])
+  type        PaymentMethodType
+
+  // Common fields
+  name        String?
+  identifier  String? // Account number, UPI ID, etc.
+ 
+  // Card-specific fields 
+  cardHolder  String?
+  expiryDate  String?
+
+  // UPI-specific fields
+  upiProvider String?
+
+    // QR Code relation - FIXED: Added relation name
+  qrCodeId    String?  @unique
+  qrCode      File?    @relation("AgencyPaymentMethodQRCode", fields: [qrCodeId], references: [id], onDelete: Cascade)
+
+  // Payment Gateway
+  paymentLink String?
+  
+
+  // Metadata
+  notes       String?
+  isActive    Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  // Bank details stored as JSON
+  bank        Json?
+
+  @@index([agencyId])
+  @@index([type])
+}
+
 
 enum PaymentStatus {
   PENDING
