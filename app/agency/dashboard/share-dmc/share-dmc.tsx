@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Calendar, FileText, X, Download, Send } from "lucide-react"
+import { Calendar, FileText, X, Download, Send, Eye } from "lucide-react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -42,7 +42,7 @@ interface SharedItinerary {
   id: string
   dateGenerated: string
   pdf: string
-  pdfUrl?: string
+  pdfUrl?: string | null
   activeStatus: boolean
   enquiryId: string
   customerId?: string
@@ -70,6 +70,7 @@ const DMCAdminInterface = () => {
   const [selectedDMCForAdd, setSelectedDMCForAdd] = useState<string>("")
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [addingDMC, setAddingDMC] = useState<string | null>(null)
 
   const [showCommunicationLog, setShowCommunicationLog] = useState(false)
   const [showUpdateStatus, setShowUpdateStatus] = useState(false)
@@ -89,6 +90,11 @@ const DMCAdminInterface = () => {
   const [isSubmittingCommission, setIsSubmittingCommission] = useState(false)
   const [isShareToCustomerLoading, setIsShareToCustomerLoading] = useState(false)
 
+  // PDF-related state
+  const [showPDFPreview, setShowPDFPreview] = useState(false)
+  const [selectedPDFUrl, setSelectedPDFUrl] = useState<string | null>(null)
+  const [regeneratingPDF, setRegeneratingPDF] = useState<string | null>(null)
+
   // Calculate markup price dynamically
   const calculateMarkupPrice = () => {
     const quotation = parseFloat(quotationPrice) || 0
@@ -105,7 +111,7 @@ const DMCAdminInterface = () => {
   // Update markup price when quotation or commission changes
   useEffect(() => {
     setMarkupPrice(calculateMarkupPrice())
-  }, [quotationPrice, commissionAmount, commissionType])
+  }, [quotationPrice, commissionAmount, commissionType, calculateMarkupPrice])
 
   // Fetch DMCs and shared itineraries from API
   useEffect(() => {
@@ -118,12 +124,17 @@ const DMCAdminInterface = () => {
         const dmcResponse = await fetch("/api/auth/agency-add-dmc?limit=100")
         
         if (!dmcResponse.ok) {
+          const errorData = await dmcResponse.text()
+          console.error("DMC API Error:", errorData)
           throw new Error(`Failed to fetch DMCs: ${dmcResponse.statusText}`)
         }
 
         const dmcData = await dmcResponse.json()
         if (dmcData.success && dmcData.data) {
           setAvailableDMCs(dmcData.data)
+        } else {
+          console.warn("DMC API returned no data or unsuccessful response:", dmcData)
+          setAvailableDMCs([])
         }
 
         // Fetch shared DMC data
@@ -134,20 +145,37 @@ const DMCAdminInterface = () => {
         const sharedResponse = await fetch(`/api/share-dmc?${params.toString()}`)
         
         if (!sharedResponse.ok) {
-          throw new Error(`Failed to fetch shared DMCs: ${sharedResponse.statusText}`)
+          const errorData = await sharedResponse.text()
+          console.error("Shared DMC API Error:", errorData)
+          
+          // Try to parse as JSON for better error info
+          try {
+            const errorJson = JSON.parse(errorData)
+            throw new Error(errorJson.error || errorJson.details || `Failed to fetch shared DMCs: ${sharedResponse.statusText}`)
+          } catch  {
+            throw new Error(`Failed to fetch shared DMCs: ${sharedResponse.statusText}`)
+          }
         }
 
         const sharedData = await sharedResponse.json()
         if (sharedData.success && sharedData.data) {
           setItineraries(sharedData.data)
+          // Also update available DMCs if provided in the response
+          if (sharedData.availableDMCs) {
+            setAvailableDMCs(sharedData.availableDMCs)
+          }
+        } else {
+          console.warn("Shared DMC API returned unsuccessful response:", sharedData)
+          setError(sharedData.error || sharedData.details || "Failed to fetch shared DMCs")
         }
 
       } catch (err) {
         console.error("Error fetching data:", err)
-        setError(err instanceof Error ? err.message : "Failed to fetch data")
+        const errorMessage = err instanceof Error ? err.message : "Failed to fetch data"
+        setError(errorMessage)
         toast({
           title: "Error",
-          description: "Failed to fetch data",
+          description: errorMessage,
           variant: "destructive",
         })
       } finally {
@@ -160,6 +188,97 @@ const DMCAdminInterface = () => {
 
   const getDMCById = (dmcId: string) => {
     return availableDMCs.find((dmc) => dmc.id === dmcId)
+  }
+
+  // PDF Generation function
+  const handleRegeneratePDF = async (itinerary: SharedItinerary) => {
+    setRegeneratingPDF(itinerary.id)
+
+    try {
+      const response = await fetch("/api/generate-pdf", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          enquiryId: enquiryId || itinerary.enquiryId,
+          itineraryId: itinerary.id,
+          formData: {
+            customerName: "DMC Customer",
+            destinations: ["Default Destination"],
+            startDate: new Date().toISOString().split("T")[0],
+            endDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split("T")[0],
+            adults: 2,
+            travelType: "Premium",
+            currency: "USD",
+            budget: 2000,
+            // Add other form data as needed
+          },
+        }),
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || "Failed to regenerate PDF")
+      }
+
+      const result = await response.json()
+
+      // Update the itinerary with new PDF URL
+      setItineraries((prev) =>
+        prev.map((item) => 
+          item.id === itinerary.id
+            ? { ...item, pdfUrl: result.pdfUrl, pdf: "D" }
+            : item
+        )
+      )
+
+      toast({
+        title: "Success",
+        description: "PDF regenerated successfully",
+      })
+    } catch (error) {
+      console.error("Error regenerating PDF:", error)
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to regenerate PDF",
+        variant: "destructive",
+      })
+    } finally {
+      setRegeneratingPDF(null)
+    }
+  }
+
+  // View PDF function
+  const handleViewPDF = (pdfUrl: string | null) => {
+    if (pdfUrl) {
+      setSelectedPDFUrl(pdfUrl)
+      setShowPDFPreview(true)
+    } else {
+      toast({
+        title: "Error",
+        description: "PDF not available",
+        variant: "destructive",
+      })
+    }
+  }
+
+  // Download PDF function
+  const handleDownloadPDF = (pdfUrl: string | null, filename: string) => {
+    if (pdfUrl) {
+      const link = document.createElement("a")
+      link.href = pdfUrl
+      link.download = filename || "itinerary.pdf"
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+    } else {
+      toast({
+        title: "Error",
+        description: "PDF not available",
+        variant: "destructive",
+      })
+    }
   }
 
   const toggleActiveStatus = async (itineraryId: string, currentStatus: boolean) => {
@@ -176,8 +295,10 @@ const DMCAdminInterface = () => {
         }),
       })
 
-      if (!response.ok) {
-        throw new Error("Failed to update status")
+      const result = await response.json()
+
+      if (!response.ok || !result.success) {
+        throw new Error(result.error || result.details || "Failed to update status")
       }
 
       setItineraries((prev) =>
@@ -192,7 +313,7 @@ const DMCAdminInterface = () => {
       console.error("Error toggling status:", error)
       toast({
         title: "Error",
-        description: "Failed to update status",
+        description: error instanceof Error ? error.message : "Failed to update status",
         variant: "destructive",
       })
     }
@@ -202,6 +323,8 @@ const DMCAdminInterface = () => {
     if (!dmcId) return
 
     try {
+      setAddingDMC(dmcId)
+
       const response = await fetch("/api/share-dmc", {
         method: "PUT",
         headers: {
@@ -213,14 +336,15 @@ const DMCAdminInterface = () => {
           dmcId: dmcId,
           enquiryId: enquiryId,
           dateGenerated: new Date().toISOString().split("T")[0],
+          pdfPath: "/itinerary.pdf", // You might want to use the actual PDF path from the itinerary
         }),
       })
 
-      if (!response.ok) {
-        throw new Error("Failed to add DMC")
-      }
-
       const result = await response.json()
+
+      if (!response.ok || !result.success) {
+        throw new Error(result.error || result.details || "Failed to add DMC")
+      }
 
       // Update local state
       setItineraries((prev) =>
@@ -235,17 +359,37 @@ const DMCAdminInterface = () => {
       )
 
       setSelectedDMCForAdd("")
-      toast({
-        title: "Success",
-        description: `DMC added to itinerary and email sent`,
-      })
+
+      // Show email result in toast
+      if (result.emailResult) {
+        const { dmcName, email, sent, error: emailError } = result.emailResult
+        if (sent) {
+          toast({
+            title: "Success",
+            description: `DMC "${dmcName}" added and email sent to ${email}`,
+          })
+        } else {
+          toast({
+            title: "Warning",
+            description: `DMC "${dmcName}" added but email failed: ${emailError}`,
+            variant: "destructive",
+          })
+        }
+      } else {
+        toast({
+          title: "Success",
+          description: "DMC added to itinerary",
+        })
+      }
     } catch (error) {
       console.error("Error adding DMC:", error)
       toast({
         title: "Error",
-        description: "Failed to add DMC",
+        description: error instanceof Error ? error.message : "Failed to add DMC",
         variant: "destructive",
       })
+    } finally {
+      setAddingDMC(null)
     }
   }
 
@@ -292,30 +436,25 @@ const DMCAdminInterface = () => {
         }),
       })
 
-      if (!response.ok) {
-        throw new Error("Failed to share to customer")
-      }
+      const result = await response.json()
 
-     await response.json()
+      if (!response.ok || !result.success) {
+        throw new Error(result.error || result.details || "Failed to share to customer")
+      }
 
       toast({
         title: "Success",
         description: "Quote shared with customer successfully",
       })
 
-      // Navigate to customer share page
-      const params = new URLSearchParams()
-      if (enquiryId) params.append("enquiryId", enquiryId)
-      if (customerId) params.append("customerId", customerId)
-      params.append("itineraryId", itinerary.id)
-
-      router.push(`/agency/dashboard/share-customer?${params.toString()}`)
+      // Do NOT redirect here!
+      // router.push(`/agency/dashboard/share-customer?${params.toString()}`)
 
     } catch (error) {
       console.error("Error sharing to customer:", error)
       toast({
         title: "Error",
-        description: "Failed to share quote with customer",
+        description: error instanceof Error ? error.message : "Failed to share quote with customer",
         variant: "destructive",
       })
     } finally {
@@ -341,8 +480,10 @@ const DMCAdminInterface = () => {
         }),
       })
 
-      if (!response.ok) {
-        throw new Error("Failed to update status")
+      const result = await response.json()
+
+      if (!response.ok || !result.success) {
+        throw new Error(result.error || result.details || "Failed to update status")
       }
 
       // Update local state
@@ -370,7 +511,7 @@ const DMCAdminInterface = () => {
       console.error("Error updating status:", error)
       toast({
         title: "Error",
-        description: "Failed to update status",
+        description: error instanceof Error ? error.message : "Failed to update status",
         variant: "destructive",
       })
     }
@@ -400,11 +541,11 @@ const DMCAdminInterface = () => {
         }),
       })
 
-      if (!response.ok) {
-        throw new Error("Failed to add commission")
-      }
+      const result = await response.json()
 
-     await response.json()
+      if (!response.ok || !result.success) {
+        throw new Error(result.error || result.details || "Failed to add commission")
+      }
 
       // Update local state with commission data
       setItineraries((prev) =>
@@ -434,7 +575,7 @@ const DMCAdminInterface = () => {
       console.error("Error adding commission:", error)
       toast({
         title: "Error",
-        description: "Failed to add commission",
+        description: error instanceof Error ? error.message : "Failed to add commission",
         variant: "destructive",
       })
     } finally {
@@ -463,6 +604,13 @@ const DMCAdminInterface = () => {
         <div className="text-center text-red-600">
           <p className="text-lg font-semibold">Error Loading Data</p>
           <p className="mt-2">{error}</p>
+          <Button 
+            onClick={() => window.location.reload()} 
+            className="mt-4"
+            variant="outline"
+          >
+            Retry
+          </Button>
         </div>
       </div>
     )
@@ -488,12 +636,13 @@ const DMCAdminInterface = () => {
 
         {/* Main Table */}
         <div className="bg-white rounded-lg shadow-sm overflow-hidden mb-8">
-          <div className="bg-green-100 px-6 py-3 grid grid-cols-4 text-sm font-medium text-gray-700">
+          <div className="bg-green-100 px-6 py-3 grid grid-cols-5 text-sm font-medium text-gray-700">
             <div className="flex items-center">
               <Calendar className="w-4 h-4 mr-2" />
               Date generated
             </div>
             <div className="text-center">PDF</div>
+            <div className="text-center">PDF Actions</div>
             <div className="text-center">Active Status</div>
             <div className="text-center">Send to DMC</div>
           </div>
@@ -510,7 +659,7 @@ const DMCAdminInterface = () => {
                 .map((itinerary) => (
                   <div
                     key={itinerary.id}
-                    className={`px-6 py-4 grid grid-cols-4 items-center ${
+                    className={`px-6 py-4 grid grid-cols-5 items-center ${
                       itinerary.activeStatus ? "bg-orange-50" : ""
                     }`}
                   >
@@ -523,17 +672,38 @@ const DMCAdminInterface = () => {
                       >
                         {itinerary.pdf}
                       </div>
-                      {itinerary.pdfUrl && (
-                        <a
-                          href={itinerary.pdfUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-xs text-blue-600 hover:text-blue-800 mt-1 block"
+                      {!itinerary.pdfUrl && (
+                        <button
+                          onClick={() => handleRegeneratePDF(itinerary)}
+                          disabled={regeneratingPDF === itinerary.id}
+                          className="text-xs text-blue-600 hover:underline disabled:opacity-50 mt-1"
                         >
-                          <Download className="w-3 h-3 inline mr-1" />
-                          Download
-                        </a>
+                          {regeneratingPDF === itinerary.id ? "Generating..." : "Generate PDF"}
+                        </button>
                       )}
+                    </div>
+                    <div className="text-center">
+                      <div className="flex gap-1 justify-center">
+                        {itinerary.pdfUrl && (
+                          <>
+                            <button
+                              onClick={() => handleViewPDF(itinerary.pdfUrl ?? null)}
+                              className="flex items-center gap-1 px-2 py-1 bg-blue-500 hover:bg-blue-600 rounded text-xs text-white transition-colors"
+                              disabled={!itinerary.pdfUrl}
+                            >
+                              <Eye className="w-3 h-3" />
+                              View
+                            </button>
+                            <button
+                              onClick={() => handleDownloadPDF(itinerary.pdfUrl ?? null, `itinerary-${itinerary.id}.pdf`)}
+                              className="flex items-center gap-1 px-2 py-1 bg-gray-500 hover:bg-gray-600 rounded text-xs text-white transition-colors"
+                              disabled={!itinerary.pdfUrl}
+                            >
+                              <Download className="w-3 h-3" />
+                            </button>
+                          </>
+                        )}
+                      </div>
                     </div>
                     <div className="text-center">
                       <label className="relative inline-flex items-center cursor-pointer">
@@ -555,9 +725,10 @@ const DMCAdminInterface = () => {
                             addDMCToItinerary(itinerary.id, value)
                           }
                         }}
+                        disabled={addingDMC !== null}
                       >
                         <SelectTrigger className="w-32 text-xs">
-                          <SelectValue placeholder="Add DMC..." />
+                          <SelectValue placeholder={addingDMC ? "Adding..." : "Add DMC..."} />
                         </SelectTrigger>
                         <SelectContent>
                           {availableDMCs
@@ -568,6 +739,9 @@ const DMCAdminInterface = () => {
                                 {dmc.name}
                               </SelectItem>
                             ))}
+                          {availableDMCs.filter((dmc) => dmc.status === "Active").length === 0 && (
+                            <SelectItem value="" disabled>No active DMCs available</SelectItem>
+                          )}
                         </SelectContent>
                       </Select>
                     </div>
@@ -594,6 +768,8 @@ const DMCAdminInterface = () => {
                     return "Awaiting internal review"
                   case "QUOTATION_RECEIVED":
                     return "Quotation received"
+                  case "REJECTED":
+                    return "Rejected"
                   default:
                     return "Itinerary sent"
                 }
@@ -603,6 +779,10 @@ const DMCAdminInterface = () => {
                 switch (dmcItem.status) {
                   case "QUOTATION_RECEIVED":
                     return "bg-white border-l-4 border-green-500"
+                  case "REJECTED":
+                    return "bg-white border-l-4 border-red-500"
+                  case "VIEWED":
+                    return "bg-white border-l-4 border-blue-500"
                   default:
                     return "bg-white border-l-4 border-gray-300"
                 }
@@ -622,6 +802,9 @@ const DMCAdminInterface = () => {
                         <p className="text-sm text-gray-500">
                           {dmcItem.status === "AWAITING_INTERNAL_REVIEW" ? "Not responded" : "Manually entered"}
                         </p>
+                        {dmc.email && (
+                          <p className="text-xs text-gray-400">{dmc.email}</p>
+                        )}
                       </div>
                     </div>
                   </CardHeader>
@@ -697,6 +880,14 @@ const DMCAdminInterface = () => {
             }),
           )}
         </div>
+
+        {itineraries.every(itinerary => itinerary.selectedDMCs.length === 0) && (
+          <div className="text-center py-8 text-gray-500">
+            <FileText className="w-16 h-16 mx-auto mb-4 text-gray-300" />
+            <p className="text-lg font-medium">No DMCs added yet</p>
+            <p className="text-sm">Use the dropdown above to add DMCs to your itinerary</p>
+          </div>
+        )}
 
         {/* Communication Log Modal */}
         {showCommunicationLog && (
@@ -903,6 +1094,28 @@ const DMCAdminInterface = () => {
                   </Button>
                 </div>
               </div>
+            </div>
+          </div>
+        )}
+
+        {/* PDF Preview Modal */}
+        {showPDFPreview && selectedPDFUrl && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white rounded-lg p-4 w-full max-w-4xl mx-4 h-5/6">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-semibold">PDF Preview</h3>
+                <button 
+                  onClick={() => setShowPDFPreview(false)} 
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+              <iframe 
+                src={selectedPDFUrl} 
+                className="w-full h-full border rounded" 
+                title="PDF Preview" 
+              />
             </div>
           </div>
         )}

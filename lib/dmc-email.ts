@@ -1,4 +1,4 @@
-// lib/email.ts
+// lib/dmc-email.ts - Updated to use your existing SMTP configuration
 import nodemailer from 'nodemailer'
 import { PrismaClient } from '@prisma/client'
 
@@ -20,31 +20,64 @@ interface EmailOptions {
 }
 
 interface EmailResult {
+  sent: boolean
   success: boolean
   messageId?: string
   error?: string
 }
 
+// Fixed transporter creation using your existing env variables
+const createTransporter = () => {
+  const host = process.env.SMTP_HOST;
+  const user = process.env.SMTP_USER;
+  const pass = process.env.SMTP_PASS;
+
+  console.log('SMTP Configuration:', {
+    host,
+    user: user ? '***' + user.slice(-10) : 'undefined',
+    pass: pass ? '***' : 'undefined',
+    port: process.env.SMTP_PORT,
+    secure: process.env.SMTP_SECURE
+  });
+
+  if (!host || !user || !pass) {
+    throw new Error(`SMTP configuration missing. Check SMTP_HOST (${host ? 'OK' : 'MISSING'}), SMTP_USER (${user ? 'OK' : 'MISSING'}), SMTP_PASS (${pass ? 'OK' : 'MISSING'})`);
+  }
+
+  return nodemailer.createTransport({
+    host: host,
+    port: parseInt(process.env.SMTP_PORT || "587"),
+    secure: process.env.SMTP_SECURE === "true",
+    auth: {
+      user: user,
+      pass: pass,
+    },
+    tls: {
+      rejectUnauthorized: false
+    }
+  });
+};
+
 class EmailService {
   private transporter: nodemailer.Transporter
 
   constructor() {
-    this.transporter = nodemailer.createTransport({
-      host: process.env.SMTP_HOST || 'smtp.gmail.com',
-      port: parseInt(process.env.SMTP_PORT || '587'),
-      secure: process.env.SMTP_SECURE === 'true',
-      auth: {
-        user: process.env.SMTP_USER,
-        pass: process.env.SMTP_PASSWORD,
-      },
-    })
+    this.transporter = createTransporter()
   }
 
-  // Generic send email method
+  // Generic send email method with better error handling
   async sendEmail(options: EmailOptions): Promise<EmailResult> {
     try {
+      console.log(`Attempting to send email to: ${options.to}`);
+      
+      // Verify transporter configuration
+      await this.transporter.verify();
+      console.log('SMTP connection verified successfully');
+
+      const from = process.env.SMTP_FROM || process.env.SMTP_USER;
+
       const mailOptions = {
-        from: `"Travel Agency" <${process.env.SMTP_USER}>`,
+        from: `"Travel Agency" <${from}>`,
         to: options.to,
         cc: options.cc,
         bcc: options.bcc,
@@ -54,21 +87,50 @@ class EmailService {
       }
 
       const result = await this.transporter.sendMail(mailOptions)
+      console.log("Email sent successfully:", result.messageId);
 
       return {
+        sent: true,
         success: true,
         messageId: result.messageId,
       }
     } catch (error) {
       console.error('Error sending email:', error)
+      
+      // Better error messages for common Gmail issues
+      if (error instanceof Error) {
+        if (error.message.includes('Invalid login')) {
+          return {
+            sent: false,
+            success: false,
+            error: 'Gmail authentication failed. Please check if you are using an App Password instead of your regular password.'
+          }
+        }
+        if (error.message.includes('Connection timeout')) {
+          return {
+            sent: false,
+            success: false,
+            error: 'SMTP connection timeout. Please check your network connection and SMTP settings.'
+          }
+        }
+        if (error.message.includes('ENOTFOUND')) {
+          return {
+            sent: false,
+            success: false,
+            error: 'SMTP host not found. Please verify your SMTP_HOST setting.'
+          }
+        }
+      }
+      
       return {
+        sent: false,
         success: false,
         error: error instanceof Error ? error.message : 'Unknown email error',
       }
     }
   }
 
-  // Send itinerary to DMC
+  // Send itinerary to DMC - Email 1
   async sendItineraryToDMC(
     dmcEmail: string,
     dmcName: string,
@@ -136,7 +198,7 @@ class EmailService {
             <p>We value our partnership and look forward to your competitive quotation. Your expertise in <strong>${destinations}</strong> makes you an ideal partner for this request.</p>
             
             <div style="text-align: center;">
-                <a href="#" class="cta-button">Submit Your Quote</a>
+                <a href="${process.env.NEXT_PUBLIC_APP_URL}/dmc/quote-response?enquiryId=${enquiryId}" class="cta-button">Submit Your Quote</a>
             </div>
         </div>
         
@@ -165,7 +227,7 @@ class EmailService {
     })
   }
 
-  // Send quote to customer
+  // Send quote to customer - Email 2
   async sendQuoteToCustomer(
     customerEmail: string,
     customerName: string,
@@ -192,7 +254,7 @@ class EmailService {
         .price-box { background: linear-gradient(135deg, #27ae60 0%, #2ecc71 100%); color: white; padding: 20px; border-radius: 8px; text-align: center; margin: 20px 0; }
         .cta-button { background: #e74c3c; color: white; padding: 15px 40px; text-decoration: none; border-radius: 25px; display: inline-block; margin: 20px 0; font-weight: bold; box-shadow: 0 4px 15px rgba(231, 76, 60, 0.4); }
         .footer { background: #2c3e50; color: white; padding: 25px; text-align: center; border-radius: 0 0 10px 10px; }
-        .highlight { background: #fff3cd; padding: 20px; border-radius: 6px; margin: 20px 0; border-left: 4px solid #ffc107; }
+        .highlight { background: #fff3cd; padding: 20px; border-radius: 6px; margin: 20px 0; border-left: 4px solid 'ffc107'; }
         .feature-list { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin: 20px 0; }
         .feature-item { background: white; padding: 15px; border-radius: 6px; text-align: center; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
     </style>
@@ -252,7 +314,7 @@ class EmailService {
 
             <div style="text-align: center;">
                 <p><strong>Ready to make memories?</strong></p>
-                <a href="#" class="cta-button">🚀 Book This Trip Now</a>
+                <a href="${process.env.NEXT_PUBLIC_APP_URL}/customer/booking?enquiryId=${enquiryId}" class="cta-button">🚀 Book This Trip Now</a>
                 <p style="margin: 20px 0; color: #666;">or call us to discuss your options</p>
             </div>
 
@@ -321,7 +383,8 @@ class EmailService {
   async sendBookingConfirmation(
     customerEmail: string,
     customerName: string,
-    enquiryId: string  ): Promise<EmailResult> {
+    enquiryId: string
+  ): Promise<EmailResult> {
     const html = `
 <!DOCTYPE html>
 <html>
@@ -330,7 +393,7 @@ class EmailService {
     <style>
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; line-height: 1.6; color: #333; }
         .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-        .header { background: linear-gradient(135deg, #27ae60 0%, #2ecc71 100%); color: white; padding: 40px; text-align: center; border-radius: 10px 10px 0 0; }
+        .header { background: linear-gradient(135deg, #27ae60 0%, '2ecc71' 100%); color: white; padding: 40px; text-align: center; border-radius: 10px 10px 0 0; }
         .content { background: #f9f9f9; padding: 30px; }
         .confirmation-box { background: white; padding: 25px; border-radius: 8px; margin: 20px 0; box-shadow: 0 2px 10px rgba(0,0,0,0.1); text-align: center; }
         .booking-id { font-size: 2em; font-weight: bold; color: #27ae60; margin: 15px 0; }
@@ -431,5 +494,28 @@ class EmailService {
 // Export singleton instance
 export const emailService = new EmailService()
 
-// Export legacy function for backward compatibility
+// Export individual functions for direct use
 export const sendEmail = (options: EmailOptions) => emailService.sendEmail(options)
+
+// Export additional utility functions
+export const sendItineraryToDMC = (
+  dmcEmail: string,
+  dmcName: string,
+  enquiryId: string,
+  customerName: string,
+  destinations: string,
+  pdfPath?: string
+) => emailService.sendItineraryToDMC(dmcEmail, dmcName, enquiryId, customerName, destinations, pdfPath)
+
+export const sendQuoteToCustomer = (
+  customerEmail: string,
+  customerName: string,
+  enquiryId: string,
+  destinations: string,
+  totalPrice: number,
+  currency?: string,
+  pdfPath?: string
+) => emailService.sendQuoteToCustomer(customerEmail, customerName, enquiryId, destinations, totalPrice, currency, pdfPath)
+
+// Export types for use in other modules
+export type { EmailOptions, EmailResult, EmailAttachment }

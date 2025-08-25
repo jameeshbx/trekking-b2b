@@ -1,5 +1,6 @@
 import React from "react";
 import { render } from "@testing-library/react";
+import '@testing-library/jest-dom';
 import MapComponent from "./MapComponent";
 
 // Mock mapbox-gl to avoid issues in test environment

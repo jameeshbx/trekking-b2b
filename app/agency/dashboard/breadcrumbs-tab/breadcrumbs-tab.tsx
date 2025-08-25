@@ -58,12 +58,6 @@ const BreadcrumbNavigation = () => {
   }, [enquiryId])
 
   // Create query params string for sharing
-  const createQueryParams = () => {
-    const params = new URLSearchParams()
-    if (enquiryId) params.set("enquiryId", enquiryId)
-    if (itineraryId) params.set("itineraryId", itineraryId)
-    return params
-  }
 
   const navigationItems: NavigationItem[] = [
     {
@@ -82,37 +76,37 @@ const BreadcrumbNavigation = () => {
       id: "share-customer",
       label: "Share to Customer",
       icon: Share,
-      path: `/agency/dashboard/share-customer?${createQueryParams().toString()}`,
+      path: `/agency/dashboard/share-customer${enquiryId && itineraryId ? `?enquiryId=${enquiryId}&itineraryId=${itineraryId}` : ""}`,
     },
     {
       id: "share-dmc",
       label: "Share to DMC",
       icon: MessageSquare,
-      path: `/agency/dashboard/share-dmc?${createQueryParams().toString()}`,
+      path: `/agency/dashboard/share-dmc${enquiryId && itineraryId ? `?enquiryId=${enquiryId}&itineraryId=${itineraryId}` : ""}`,
     },
     {
       id: "customer-transaction",
       label: "Customer payment",
       icon: CreditCard,
-      path: `/agency/dashboard/customer-payment?${createQueryParams().toString()}`,
+      path: `/agency/dashboard/customer-payment${enquiryId && itineraryId ? `?enquiryId=${enquiryId}&itineraryId=${itineraryId}` : ""}`,
     },
     {
       id: "dmc-payout",
       label: "DMC payment",
       icon: Banknote,
-      path: `/agency/dashboard/dmc-payment?${createQueryParams().toString()}`,
+      path: `/agency/dashboard/dmc-payment${enquiryId && itineraryId ? `?enquiryId=${enquiryId}&itineraryId=${itineraryId}` : ""}`,
     },
     {
       id: "booking-details",
       label: "Booking details",
       icon: Download,
-      path: `/agency/dashboard/booking-details?${createQueryParams().toString()}`,
+      path: `/agency/dashboard/booking-details${enquiryId && itineraryId ? `?enquiryId=${enquiryId}&itineraryId=${itineraryId}` : ""}`,
     },
     {
       id: "feedbacks",
       label: "Feedbacks",
       icon: ThumbsUp,
-      path: `/agency/dashboard/feedback?${createQueryParams().toString()}`,
+      path: `/agency/dashboard/feedback${enquiryId && itineraryId ? `?enquiryId=${enquiryId}&itineraryId=${itineraryId}` : ""}`,
     },
   ]
 
