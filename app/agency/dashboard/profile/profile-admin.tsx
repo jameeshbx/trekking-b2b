@@ -1,5 +1,7 @@
 "use client"
 import { PlusCircle } from "lucide-react"
+import type React from "react"
+
 import { useEffect, useState } from "react"
 import Image from "next/image"
 import { Eye, Facebook, Twitter, Instagram } from "lucide-react"
@@ -7,6 +9,7 @@ import { Button } from "@/components/ui/button"
 import { useSession } from "next-auth/react"
 import { AgencyBankDetailsModal } from "./add-bank-details"
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog"
+import { Camera } from "lucide-react"
 
 interface ProfileData {
   name: string
@@ -59,6 +62,7 @@ interface CompanyInformation {
   headquarters: string
   yearsOfOperation: string
   landingPageColor: string
+  businessLicense?: string | null
 }
 
 interface ApiResponse {
@@ -71,13 +75,75 @@ interface ApiResponse {
 
 export default function ProfilePage() {
   const { data: session, status } = useSession()
-
   const [showComments, setShowComments] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
   const [commentText, setCommentText] = useState("")
   const [color, setColor] = useState("#0F9D58")
+  const [, setTempColor] = useState("#0F9D58") // Added tempColor state
   const [showColorPicker, setShowColorPicker] = useState(false)
-  const [showBankDetailsModal, setShowBankDetailsModal] = useState(false) // State for bank details modal
+  const [showBankDetailsModal, setShowBankDetailsModal] = useState(false)
+
+  const [isUploading, setIsUploading] = useState(false)
+  const [uploadError, setUploadError] = useState<string | null>(null)
+  const [uploadSuccess, setUploadSuccess] = useState<string | null>(null)
+
+  const handleProfileImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (!file) return
+
+    // Clear previous messages
+    setUploadError(null)
+    setUploadSuccess(null)
+
+    // Validate file type and size
+    const validImageTypes = ["image/jpeg", "image/png", "image/gif", "image/webp"]
+    if (!validImageTypes.includes(file.type)) {
+      setUploadError("Please select a valid image file (JPEG, PNG, GIF, WEBP)")
+      return
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      // 5MB limit
+      setUploadError("Image size must be less than 5MB")
+      return
+    }
+
+    setIsUploading(true)
+
+    try {
+      const formData = new FormData()
+      formData.append("profileImage", file)
+
+      const response = await fetch("/api/upload-profile-image", {
+        method: "POST",
+        body: formData,
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to upload image")
+      }
+
+      // Update the profile data with the new image URL
+      setProfileData((prev) => ({
+        ...prev,
+        avatarUrl: data.imageUrl,
+      }))
+
+      setUploadSuccess("Profile image updated successfully!")
+
+      // Clear success message after 3 seconds
+      setTimeout(() => setUploadSuccess(null), 3000)
+    } catch (error) {
+      console.error("Error uploading profile image:", error)
+      setUploadError(error instanceof Error ? error.message : "Failed to upload image. Please try again.")
+    } finally {
+      setIsUploading(false)
+      // Clear the file input
+      event.target.value = ""
+    }
+  }
 
   const [error, setError] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(true)
@@ -118,6 +184,7 @@ export default function ProfilePage() {
     headquarters: "",
     yearsOfOperation: "",
     landingPageColor: "#0F9D58",
+    businessLicense: null,
   })
 
   const handlePostComment = () => {
@@ -154,7 +221,6 @@ export default function ProfilePage() {
         if (cancelled) return
 
         console.log("Fetched data:", data)
-        console.log("Session data:", session)
 
         if (data.profileData) {
           setProfileData(data.profileData)
@@ -169,7 +235,7 @@ export default function ProfilePage() {
         if (data.companyInformation) {
           setCompanyInformation(data.companyInformation)
           setColor(data.companyInformation.landingPageColor || "#0F9D58")
-          
+          setTempColor(data.companyInformation.landingPageColor || "#0F9D58")
         }
       } catch (error) {
         console.error("Error fetching profile data:", error)
@@ -198,7 +264,19 @@ export default function ProfilePage() {
     }
   }, [session, status])
 
-  
+  const handleDownloadBusinessLicense = () => {
+    if (companyInformation.businessLicense) {
+      // Create a temporary link to download the file
+      const link = document.createElement("a")
+      link.href = companyInformation.businessLicense
+      link.download = "business-license.pdf"
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+    } else {
+      console.log("No business license available for download")
+    }
+  }
 
   if (isLoading) {
     return (
@@ -247,14 +325,40 @@ export default function ProfilePage() {
         <div className="absolute inset-0 backdrop-blur-[12px] bg-white/40"></div>
 
         <div className="flex items-center gap-4 relative z-10">
-          <div className="h-12 w-12 rounded-full overflow-hidden border-2 border-white/60 backdrop-blur-sm relative">
-            <Image
-              src={profileData.avatarUrl || "/placeholder.svg?height=48&width=48&query=user avatar"}
-              alt="Profile"
-              fill
-              className="object-cover"
-            />
+          {/* Profile Image with Upload Option */}
+          <div className="relative group">
+            <div className="h-12 w-12 rounded-full overflow-hidden border-2 border-white/60 backdrop-blur-sm relative">
+              <Image
+                src={profileData.avatarUrl || "/placeholder.svg?height=48&width=48&text=U"}
+                alt="Profile"
+                fill
+                className="object-cover"
+              />
+            </div>
+
+            {/* Upload Overlay */}
+            <div className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-full opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
+              <label htmlFor="profile-image-upload" className="cursor-pointer">
+                <Camera className="w-5 h-5 text-white" />
+              </label>
+              <input
+                id="profile-image-upload"
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={handleProfileImageUpload}
+                disabled={isUploading}
+              />
+            </div>
+
+            {/* Uploading Indicator */}
+            {isUploading && (
+              <div className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-full">
+                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+              </div>
+            )}
           </div>
+
           <div>
             <h1 className="font-medium text-lg text-gray-800 drop-shadow-[0_1px_1px_rgba(255,255,255,0.8)]">
               {profileData.name || "Loading..."}
@@ -262,8 +366,12 @@ export default function ProfilePage() {
             <p className="text-base text-gray-600 drop-shadow-[0_1px_1px_rgba(255,255,255,0.8)]">
               {profileData.email || "Loading..."}
             </p>
+
+            {uploadError && <p className="text-red-500 text-xs mt-1">{uploadError}</p>}
+            {uploadSuccess && <p className="text-green-500 text-xs mt-1">{uploadSuccess}</p>}
           </div>
         </div>
+
         <Button
           variant="outline"
           className="rounded-full bg-white/80 text-sm px-5 py-2 h-10 border-white/60 relative z-10 hover:bg-white backdrop-blur-sm transition-all shadow-[0_2px_8px_rgba(0,0,0,0.05)] hover:shadow-[0_4px_12px_rgba(0,0,0,0.1)]"
@@ -328,7 +436,7 @@ export default function ProfilePage() {
                 onClick={() => {
                   console.log("Opening bank details modal")
                   setShowBankDetailsModal(true)
-                }} // This should open the modal
+                }}
               >
                 <PlusCircle className="w-3 h-3" />
                 <span>Add bank details</span>
@@ -510,6 +618,57 @@ export default function ProfilePage() {
                     onClick={() => setShowColorPicker(!showColorPicker)}
                   />
                 </div>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-2">
+                <span className="text-sm font-medium">Country:</span>
+                <span className="text-sm text-gray-600">{companyInformation.country}</span>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2">
+                <span className="text-sm font-medium">Business license / Registration certificate:</span>
+                <button
+                  className="text-[#0F3F2F]"
+                  onClick={handleDownloadBusinessLicense}
+                  disabled={!companyInformation.businessLicense}
+                >
+                  <div className="w-5 h-5">
+                    <Image
+                      src="/avatar/line-md_file-download-filled (1).png"
+                      alt="Download business license"
+                      width={20}
+                      height={20}
+                      className="w-full h-full object-contain"
+                    />
+                  </div>
+                </button>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2">
+                <span className="text-sm font-medium">Year of registration:</span>
+                <span className="text-sm text-gray-600">{companyInformation.yearOfRegistration}</span>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2">
+                <span className="text-sm font-medium">PAN No.:</span>
+                <span className="text-sm text-gray-600">{companyInformation.panNo}</span>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2">
+                <span className="text-sm font-medium">PAN Type:</span>
+                <span className="text-sm text-gray-600">{companyInformation.panType}</span>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2">
+                <span className="text-sm font-medium">Headquarters:</span>
+                <span className="text-sm text-gray-600">{companyInformation.headquarters}</span>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2">
+                <span className="text-sm font-medium">Years of operation:</span>
+                <span className="text-sm text-gray-600">{companyInformation.yearsOfOperation}</span>
               </div>
             </div>
           </div>
