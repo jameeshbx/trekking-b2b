@@ -6,12 +6,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "@/components/ui/use-toast"
 import { Toaster } from "@/components/ui/toaster"
 import { Textarea } from "@/components/ui/textarea"
-import { QrCode, Plus, X } from "lucide-react"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { QrCode } from "lucide-react"
 
-interface StandaloneBankDetailsProps {
+interface AgencyBankDetailsModalProps {
   isOpen: boolean
   onClose: () => void
-  dmcId?: string | null
+  agencyId?: string | null
 }
 
 const countries = [
@@ -33,7 +34,7 @@ type Bank = {
   notes?: string
 }
 
-export function StandaloneBankDetails({ isOpen, onClose, dmcId = null }: StandaloneBankDetailsProps) {
+export function AgencyBankDetailsModal({ isOpen, onClose, agencyId = null }: AgencyBankDetailsModalProps) {
   const [banks, setBanks] = useState<Bank[]>([
     {
       accountHolderName: "",
@@ -56,191 +57,148 @@ export function StandaloneBankDetails({ isOpen, onClose, dmcId = null }: Standal
   const [loading, setLoading] = useState(false)
 
   useEffect(() => {
-    if (isOpen && dmcId) {
-      setLoading(true)
-      fetch(`/api/auth/standalone-payment?dmcId=${dmcId}`)
-        .then((res) => res.json())
-        .then((data) => {
-          if (data.success && data.data.methods) {
-            const bankDetails = data.data.methods.find((method: { type: string }) => method.type === "BANK_ACCOUNT")
-            const upiDetails = data.data.methods.find((method: { type: string }) => method.type === "UPI")
-            const gatewayDetails = data.data.methods.find(
-              (method: { type: string }) => method.type === "PAYMENT_GATEWAY",
-            )
-            const qrDetails = data.data.methods.find(
-              (method: { type: string; qrCode?: { url: string } }) => method.type === "QR_CODE",
-            )
+    if (isOpen && agencyId) {
+      loadExistingPaymentData()
+    }
+  }, [isOpen, agencyId])
 
-            if (bankDetails && bankDetails.bank && Array.isArray(bankDetails.bank) && bankDetails.bank.length > 0) {
-              setBanks(bankDetails.bank)
-              setIsUpdating(true)
-            } else {
-              // Reset to default empty bank if no existing data
-              setBanks([
-                {
-                  accountHolderName: "",
-                  bankName: "",
-                  branchName: "",
-                  accountNumber: "",
-                  ifscCode: "",
-                  bankCountry: "India",
-                  currency: "INR",
-                  notes: "",
-                },
-              ])
-            }
+  const loadExistingPaymentData = async () => {
+    if (!agencyId) return
 
-            if (upiDetails) {
-              setSelectedUpiProvider(upiDetails.upiProvider || "Google Pay UPI")
-              setUpiId(upiDetails.identifier || "")
-              setIsUpdating(true)
-            }
-            if (gatewayDetails) {
-              setPaymentLink(gatewayDetails.paymentLink || "")
-              setIsUpdating(true)
-            }
-            if (qrDetails && qrDetails.qrCode) {
-              setExistingQrCodeUrl(qrDetails.qrCode.url)
-              setIsUpdating(true)
-            }
-
-            if (bankDetails || upiDetails || gatewayDetails || qrDetails) {
-              setIsUpdating(true)
-            }
-          } else {
-            // No existing payment methods, set to saving mode
-            setIsUpdating(false)
+    setLoading(true)
+    try {
+      const res = await fetch(`/api/agency-bank-details?agencyId=${agencyId}`)
+      if (res.ok) {
+        const data = await res.json()
+        if (data.paymentMethod) {
+          const pm = data.paymentMethod
+          if (pm.bank) {
+            setBanks(Array.isArray(pm.bank) ? pm.bank : [pm.bank])
           }
-        })
-        .catch((error) => {
-          console.error("Error fetching payment methods:", error)
-          setIsUpdating(false)
-          toast({
-            title: "Error",
-            description: "Failed to load existing payment details",
-            variant: "destructive",
-          })
-        })
-        .finally(() => {
-          setLoading(false)
-        })
-    } else {
-      // Reset state when the form is closed or opened without a dmcId
-      setBanks([
-        {
-          accountHolderName: "",
-          bankName: "",
-          branchName: "",
-          accountNumber: "",
-          ifscCode: "",
-          bankCountry: "India",
-          currency: "INR",
-          notes: "",
-        },
-      ])
-      setSelectedUpiProvider("Google Pay UPI")
-      setUpiId("")
-      setPaymentLink("")
-      setQrFile(null)
-      setExistingQrCodeUrl(null)
-      setIsUpdating(false)
+          if (pm.upiProvider) setSelectedUpiProvider(pm.upiProvider)
+          if (pm.identifier) setUpiId(pm.identifier)
+          if (pm.paymentLink) setPaymentLink(pm.paymentLink)
+          if (pm.qrCode?.url) setExistingQrCodeUrl(pm.qrCode.url)
+          setIsUpdating(true)
+        }
+      }
+    } catch (error) {
+      console.error("Error loading payment data:", error)
+    } finally {
       setLoading(false)
     }
-  }, [isOpen, dmcId])
+  }
 
   const updateBank = (idx: number, key: keyof Bank, value: string) => {
-    setBanks(prevBanks => 
-      prevBanks.map((bank, i) => 
-        i === idx ? { ...bank, [key]: value } : bank
-      )
-    );
-  };
-
-  const addBankDetails = () => {
-    if (banks.length < 3) {
-      setBanks([
-        ...banks,
-        {
-          accountHolderName: "",
-          bankName: "",
-          branchName: "",
-          accountNumber: "",
-          ifscCode: "",
-          bankCountry: "India",
-          currency: "INR",
-          notes: "",
-        },
-      ]);
-    }
-  };
-
-  const removeBankDetails = (idx: number) => {
-    if (banks.length > 1) {
-      const next = banks.filter((_, index) => index !== idx);
-      setBanks(next);
-    }
-  };
+    const next = [...banks]
+    next[idx][key] = value
+    setBanks(next)
+  }
 
 
-  const handleSaveOrUpdate = async () => {
-    if (!dmcId) {
+ // In your handleSaveOrUpdate function, add proper error boundaries:
+ const handleSaveOrUpdate = async () => {
+  if (!agencyId) {
+    toast({
+      title: "Error",
+      description: "Agency ID is required",
+      variant: "destructive",
+    })
+    return
+  }
+
+  setSaving(true)
+  try {
+    const banksToSave = banks.filter((b) => 
+      b.accountHolderName.trim() || b.bankName.trim() || b.accountNumber.trim()
+    )
+
+    // Validate at least one payment method
+    if (banksToSave.length === 0 && !upiId.trim() && !paymentLink.trim() && !qrFile) {
       toast({
         title: "Error",
-        description: "DMC ID is required",
+        description: "Please add at least one payment method (bank, UPI, or payment link)",
         variant: "destructive",
       })
       return
     }
 
-    setSaving(true)
-    try {
-      const banksToSave = banks.filter((b) => b.accountHolderName.trim() || b.bankName.trim() || b.accountNumber.trim())
+    const formData = new FormData()
+    formData.append("agencyId", agencyId)
+    formData.append("bank", JSON.stringify(banksToSave))
+    formData.append("upiProvider", selectedUpiProvider)
+    formData.append("upiId", upiId)
+    formData.append("paymentLink", paymentLink)
+    if (qrFile) formData.append("qrCode", qrFile)
 
-      const formData = new FormData()
-      formData.append("dmcId", dmcId)
-      formData.append("bank", JSON.stringify(banksToSave))
-      formData.append("upiProvider", selectedUpiProvider)
-      formData.append("upiId", upiId)
-      formData.append("paymentLink", paymentLink)
-      if (qrFile) formData.append("qrCode", qrFile)
+    console.log("Sending request to API with:", {
+      agencyId,
+      banksCount: banksToSave.length,
+      hasUpi: !!upiId,
+      hasPaymentLink: !!paymentLink,
+      hasQrFile: !!qrFile
+    })
 
-      const res = await fetch("/api/auth/standalone-payment", {
-        method: isUpdating ? "PUT" : "POST",
-        body: formData,
-      })
+    const res = await fetch("/api/auth/add-bank-details", {
+      method: isUpdating ? "PUT" : "POST",
+      body: formData,
+    })
 
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.error || "Failed to save/update payment methods")
+    // Check if response is HTML (error page)
+    const contentType = res.headers.get("content-type") || ""
+    let data
 
-      toast({
-        title: "Success",
-        description: isUpdating ? "Payment methods updated successfully" : "Payment methods saved successfully",
-      })
-
-      onClose()
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: error instanceof Error ? error.message : "Failed to save/update payment methods",
-        variant: "destructive",
-      })
-    } finally {
-      setSaving(false)
+    if (contentType.includes("application/json")) {
+      data = await res.json()
+      console.log("API JSON response:", data)
+    } else {
+      // Handle HTML/error responses
+      const textContent = await res.text()
+      console.error("Non-JSON response from API:", textContent.substring(0, 500))
+      
+      // Check if it's a Next.js error page
+      if (textContent.includes("<!DOCTYPE html>") || textContent.includes("<html")) {
+        throw new Error("Server encountered an internal error. Please check the server logs.")
+      } else {
+        throw new Error(`Unexpected server response: ${textContent.substring(0, 200)}...`)
+      }
     }
-  }
 
-  if (!isOpen) return null
+    if (!res.ok) {
+      throw new Error(data.error || `HTTP ${res.status}: Failed to save/update payment methods`)
+    }
+
+    toast({
+      title: "Success",
+      description: isUpdating ? "Payment methods updated successfully" : "Payment methods saved successfully",
+    })
+
+    onClose()
+  } catch (error) {
+    console.error("Error in handleSaveOrUpdate:", error)
+    
+    let errorMessage = "Failed to save/update payment methods"
+    if (error instanceof Error) {
+      errorMessage = error.message
+    }
+    
+    toast({
+      title: "Error",
+      description: errorMessage,
+      variant: "destructive",
+    })
+  } finally {
+    setSaving(false)
+  }
+}
 
   return (
     <>
-      <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 overflow-y-auto">
-        <div className="bg-white rounded-lg w-full max-w-3xl max-h-[90vh] overflow-y-auto">
-          <div className="flex items-center justify-between p-4 border-b">
-            <h3 className="text-lg font-medium">Payment Methods</h3>
-            <Button variant="ghost" size="icon" onClick={onClose}>
-              ✕
-            </Button>
-          </div>
+      <Dialog open={isOpen} onOpenChange={onClose}>
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Agency Payment Methods</DialogTitle>
+          </DialogHeader>
 
           {loading ? (
             <div className="p-8 text-center">
@@ -251,50 +209,9 @@ export function StandaloneBankDetails({ isOpen, onClose, dmcId = null }: Standal
             <div className="p-4">
               {/* Bank Details Section */}
               <div className="mb-4">
-                <div className="flex items-center justify-between mb-4">
-                  <div className="flex items-center gap-2">
-                    <div className="bg-gray-100 p-2 rounded">
-                      <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"
-                        />
-                      </svg>
-                    </div>
-                    <h4 className="text-md font-semibold">Bank Details</h4>
-                  </div>
-                  {banks.length < 3 && (
-                    <Button
-                      type="button"
-                      onClick={addBankDetails}
-                      className="bg-green-500 hover:bg-green-600 text-white border-0 flex items-center gap-2"
-                      size="sm"
-                    >
-                      <Plus className="h-4 w-4" />
-                      Add more
-                    </Button>
-                  )}
-                </div>
-
+                <h4 className="text-md font-semibold mb-2">Bank Details</h4>
                 {banks.map((bank, idx) => (
-                  <div key={idx} className="border p-4 rounded-lg mb-4">
-                    <div className="flex items-center justify-between mb-4">
-                      <h5 className="font-medium text-gray-700">Bank Details {idx + 1}</h5>
-                      {banks.length > 1 && (
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => removeBankDetails(idx)}
-                          className="text-red-500 hover:text-red-700 hover:bg-red-50"
-                        >
-                          <X className="h-4 w-4" />
-                        </Button>
-                      )}
-                    </div>
-
+                  <div key={idx} className="border p-4 rounded-lg mb-2">
                     <div className="grid grid-cols-2 gap-4">
                       <div>
                         <label className="block text-sm font-medium text-gray-700">Account Holder Name</label>
@@ -315,7 +232,7 @@ export function StandaloneBankDetails({ isOpen, onClose, dmcId = null }: Standal
                         />
                       </div>
                       <div>
-                        <label className="block text-sm font-medium text-gray-700">Branch Name / Location</label>
+                        <label className="block text-sm font-medium text-gray-700">Branch Name</label>
                         <Input
                           value={bank.branchName}
                           onChange={(e) => updateBank(idx, "branchName", e.target.value)}
@@ -333,7 +250,7 @@ export function StandaloneBankDetails({ isOpen, onClose, dmcId = null }: Standal
                         />
                       </div>
                       <div>
-                        <label className="block text-sm font-medium text-gray-700">IFSC / SWIFT Code</label>
+                        <label className="block text-sm font-medium text-gray-700">IFSC Code</label>
                         <Input
                           value={bank.ifscCode}
                           onChange={(e) => updateBank(idx, "ifscCode", e.target.value)}
@@ -370,7 +287,7 @@ export function StandaloneBankDetails({ isOpen, onClose, dmcId = null }: Standal
                       </div>
                     </div>
                     <div className="mt-4">
-                      <label className="block text-sm font-medium text-gray-700">Enter any notes if required</label>
+                      <label className="block text-sm font-medium text-gray-700">Notes</label>
                       <Textarea
                         value={bank.notes}
                         onChange={(e) => updateBank(idx, "notes", e.target.value)}
@@ -424,7 +341,7 @@ export function StandaloneBankDetails({ isOpen, onClose, dmcId = null }: Standal
                 </div>
                 <div className="px-4 pb-4">
                   <input
-                    id="standalone-qrCode"
+                    id="agency-qrCode"
                     type="file"
                     accept="image/*"
                     className="hidden"
@@ -453,7 +370,7 @@ export function StandaloneBankDetails({ isOpen, onClose, dmcId = null }: Standal
                     <Button
                       variant="outline"
                       className="h-10 bg-green-500 hover:bg-green-600 text-white border-0"
-                      onClick={() => document.getElementById("standalone-qrCode")?.click()}
+                      onClick={() => document.getElementById("agency-qrCode")?.click()}
                       type="button"
                     >
                       {existingQrCodeUrl ? "Change" : "Upload"}
@@ -491,8 +408,8 @@ export function StandaloneBankDetails({ isOpen, onClose, dmcId = null }: Standal
               </div>
             </div>
           )}
-        </div>
-      </div>
+        </DialogContent>
+      </Dialog>
       <Toaster />
     </>
   )

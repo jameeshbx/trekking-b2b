@@ -40,8 +40,10 @@ model User {
   password       String
   name           String?
   companyName    String
+  phone          String?
+   
   businessType   BusinessType
-  createdAt      DateTime       @default(now())
+  createdAt      DateTime       @default(now()) 
   updatedAt      DateTime       @updatedAt
   role           Role           @default(USER)
   userType       UserType
@@ -70,6 +72,8 @@ model Agency {
   users         User[]
   paymentMethods AgencyPaymentMethod[]
 
+
+ 
 
   @@index([name])
 }
@@ -202,8 +206,7 @@ model DMCForm {
   registrationCertificate   File?           @relation("DMCRegistrationCertificate", fields: [registrationCertificateId], references: [id])
   paymentMethods            PaymentMethod[]
   commissions               Commission[]
-  dmcPayments    DmcPayment[]
-
+  dmcPayments               DmcPayment[]
 
   @@index([name])
   @@index([email])
@@ -316,12 +319,36 @@ model enquiries {
 
 
   sharedDMCs SharedDMC[] @relation("EnquirySharedDMCs")
+ 
 
   @@index([status])
   @@index([enquiryDate])
   @@index([customerId])
   @@index([email])
 }
+
+model Feedback {
+  id                   String   @id @default(uuid())
+  enquiryId            String   @unique
+  name                 String
+  phone                String
+  email                String
+  destination          String
+  dateRange            String
+  overallExperience    Int      // Rating for overall experience
+  accommodationQuality Int      // Rating for accommodation quality
+  transportTransfers   Int      // Rating for transport & transfers
+  serviceFromTeam      Int      // Rating for service from our team
+  travelAgain          Boolean  // Would you travel with us again?
+  additionalComments   String?  // Any additional comments
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  enquiry              enquiries @relation(fields: [enquiryId], references: [id], onDelete: Cascade)
+
+  @@map("feedbacks")
+}
+
 
 model itineraries {
   id                         String                    @id @default(uuid())
@@ -372,7 +399,9 @@ model itineraries {
   sentItineraries            sent_itineraries[]
   agencyCancellationPolicy   AgencyCancellationPolicy? @relation(fields: [agencyCancellationPolicyId], references: [id])
   sharedCustomerPdfs         SharedCustomerPdf[]
- 
+
+
+  bookingProgress            BookingProgress[]
   bookingFeedbacks           BookingFeedback[]
   bookingReminders           BookingReminder[]
 
@@ -457,27 +486,7 @@ model EmailLog {
   @@map("email_logs")
 }
 
-model Feedback {
-  id                   String   @id @default(uuid())
-  enquiryId            String   @unique
-  name                 String
-  phone                String
-  email                String
-  destination          String
-  dateRange            String
-  overallExperience    Int // Rating for overall experience
-  accommodationQuality Int // Rating for accommodation quality
-  transportTransfers   Int // Rating for transport & transfers
-  serviceFromTeam      Int // Rating for service from our team
-  travelAgain          Boolean // Would you travel with us again?
-  additionalComments   String? // Any additional comments
-  createdAt            DateTime @default(now())
-  updatedAt            DateTime @updatedAt
 
-  enquiry enquiries @relation(fields: [enquiryId], references: [id], onDelete: Cascade)
-
-  @@map("feedbacks")
-}
 
 model customers {
   id                 String               @id @default(cuid())
@@ -678,6 +687,47 @@ model Admin {
   @@map("admins")
 }
 
+
+
+model AgencyPaymentMethod {
+  id          String            @id @default(uuid())
+  agencyId    String
+  agency      Agency?           @relation(fields: [agencyId], references: [id])
+  type        PaymentMethodType
+
+  // Common fields
+  name        String?
+  identifier  String? // Account number, UPI ID, etc.
+ 
+  // Card-specific fields 
+  cardHolder  String?
+  expiryDate  String?
+
+  // UPI-specific fields
+  upiProvider String?
+
+    // QR Code relation - FIXED: Added relation name
+  qrCodeId    String?  @unique
+  qrCode      File?    @relation("AgencyPaymentMethodQRCode", fields: [qrCodeId], references: [id], onDelete: Cascade)
+
+  // Payment Gateway
+  paymentLink String?
+  
+
+  // Metadata
+  notes       String?
+  isActive    Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  // Bank details stored as JSON
+  bank        Json?
+
+  @@index([agencyId])
+  @@index([type])
+}
+
+
 model Commission {
   id               String   @id @default(cuid())
   enquiryId        String?
@@ -695,6 +745,13 @@ model Commission {
 
   @@unique([enquiryId, dmcId], name: "enquiryId_dmcId")
   @@map("commissions")
+}  
+
+
+
+enum CommissionType {
+  FLAT
+  PERCENTAGE
 }
 
 // Updated booking progress models with proper types
@@ -708,6 +765,8 @@ model BookingProgress {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
+
+ itinerary   itineraries @relation(fields: [itineraryId], references: [id])
   @@map("BookingProgress")
 }
   
@@ -770,50 +829,16 @@ model DmcPayment {
   @@index([enquiryId])
   @@map("dmc_payments")
 }
-model AgencyPaymentMethod {
-  id          String            @id @default(uuid())
-  agencyId    String
-  agency      Agency?           @relation(fields: [agencyId], references: [id])
-  type        PaymentMethodType
-
-  // Common fields
-  name        String?
-  identifier  String? // Account number, UPI ID, etc.
- 
-  // Card-specific fields 
-  cardHolder  String?
-  expiryDate  String?
-
-  // UPI-specific fields
-  upiProvider String?
-
-    // QR Code relation - FIXED: Added relation name
-  qrCodeId    String?  @unique
-  qrCode      File?    @relation("AgencyPaymentMethodQRCode", fields: [qrCodeId], references: [id], onDelete: Cascade)
-
-  // Payment Gateway
-  paymentLink String?
-  
-
-  // Metadata
-  notes       String?
-  isActive    Boolean   @default(true)
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-
-  // Bank details stored as JSON
-  bank        Json?
-
-  @@index([agencyId])
-  @@index([type])
-}
 
 
-enum PaymentStatus {
-  PENDING
-  PARTIAL
-  PAID
-  FAILED
+
+enum AgencyPayment  {
+
+  BANK
+  UPI
+  CARD
+  QR_CODE
+  PAYMENT_GATEWAY
 }
 
 
@@ -880,10 +905,7 @@ enum DMCStatus {
   DEACTIVE
 }
 
-enum CommissionType {
-  FLAT
-  PERCENTAGE
-}
+
 
 enum DMCRequestStatusEnum {
   PENDING
@@ -961,6 +983,14 @@ enum EmailStatus {
   BOUNCED
 }
 
+
+
+enum PaymentStatus {
+  PENDING
+  PARTIAL
+  PAID
+  FAILED
+}
 // New enum for booking status
 enum BookingStatus {
   PENDING

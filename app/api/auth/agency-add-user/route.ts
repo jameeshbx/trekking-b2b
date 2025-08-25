@@ -51,17 +51,38 @@ export async function POST(req: Request) {
 
     const formData = await req.formData();
     
-    // Extract form data
+    // Debug: Log all form data fields
+    console.log("Received form data fields:");
+    for (const [key, value] of formData.entries()) {
+      console.log(`${key}: ${value instanceof File ? value.name : value}`);
+    }
+    
+    // Extract form data correctly
     const name = formData.get("name") as string;
-    const phoneNumber = formData.get("phone") as string;
+    const phoneNumber = formData.get("phoneNumber") as string;
     const phoneExtension = formData.get("phoneExtension") as string || "+91";
     const email = formData.get("email") as string;
     const username = formData.get("username") as string;
     const password = formData.get("password") as string;
     const profileImage = formData.get("profile") as File | null;
 
+    // Debug: Log extracted values
+    console.log("Extracted values:", {
+      name, phoneNumber, phoneExtension, email, username, 
+      password: password ? "***" : "MISSING",
+      profileImage: profileImage ? profileImage.name : "None"
+    });
+
     // Validate required fields
     if (!name || !phoneNumber || !email || !username || !password) {
+      console.log("Missing fields:", {
+        name: !name, 
+        phoneNumber: !phoneNumber, 
+        email: !email, 
+        username: !username, 
+        password: !password
+      });
+      
       return NextResponse.json(
         { error: "All fields are required" },
         { status: 400 }
@@ -114,23 +135,27 @@ export async function POST(req: Request) {
     // Hash password
     const hashedPassword = await hash(password, 12);
 
-    // Handle file upload if exists
-    let fileId = null;
-    if (profileImage) {
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        const fileBuffer = await profileImage.arrayBuffer();
-      // In a real app, you'd upload this to storage (S3, etc.)
-      // Here we just create a record with the filename
-      const fileRecord = await prisma.file.create({
-        data: {
-          name: profileImage.name,
-          size: profileImage.size,
-          type: profileImage.type,
-          url: `/uploads/${profileImage.name}`,
+      // Handle file upload if exists
+      let fileId = null;
+      if (profileImage && profileImage.size > 0) {
+        try {
+          // Remove the unused fileBuffer assignment
+          // In a real app, you'd upload this to storage (S3, etc.)
+          // Here we just create a record with the filename
+          const fileRecord = await prisma.file.create({
+            data: {
+              name: profileImage.name,
+              size: profileImage.size,
+              type: profileImage.type,
+              url: `/uploads/${Date.now()}-${profileImage.name}`,
+            }
+          });
+          fileId = fileRecord.id;
+        } catch (fileError) {
+          console.error("Error processing profile image:", fileError);
+          // Continue without the profile image if there's an error
         }
-      });
-      fileId = fileRecord.id;
-    }
+      }
 
     // Create user
     const user = await prisma.userForm.create({
@@ -163,8 +188,8 @@ export async function POST(req: Request) {
     console.error("Error creating user:", error);
     const message = error instanceof Error ? error.message : "Failed to create user";
     return NextResponse.json({
-    error: message
-  }, { status: 500 });
+      error: message
+    }, { status: 500 });
   } finally {
     await prisma.$disconnect();
   }
@@ -197,7 +222,7 @@ export async function GET() {
      const message = error instanceof Error ? error.message : "Failed to fetch users";
       return NextResponse.json({
       error: message
-  }, { status: 500 });
+    }, { status: 500 });
   } finally {
     await prisma.$disconnect();
   }
@@ -240,8 +265,8 @@ export async function DELETE(req: Request) {
     console.error("Error deleting user:", error);
     const message = error instanceof Error ? error.message : "Failed to delete user";
     return NextResponse.json({
-    error: message
-  }, { status: 500 });
+      error: message
+    }, { status: 500 });
   } finally {
     await prisma.$disconnect();
   }
@@ -284,7 +309,7 @@ export async function PATCH(req: Request) {
     console.error("Error revealing password:", error);
     const message = error instanceof Error ? error.message : "Failed to reveal password";
     return NextResponse.json({
-    error: message
+      error: message
     }, { status: 500 });
   } finally {
     await prisma.$disconnect();
