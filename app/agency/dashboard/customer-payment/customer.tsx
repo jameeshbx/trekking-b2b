@@ -21,12 +21,14 @@ interface PaymentData {
   remainingBalance: string
   paymentStatus: string
   shareMethod: "whatsapp" | "email"
+
   paymentLink: string
   currency: string
 }
 
 interface PaymentHistory {
   id: string
+  sharepayment: "Bank Transfer" | "UPI Method" | "Cash" | "Payment Link"
   paidDate: string
   amountPaid: number
   pendingAmount: number
@@ -43,8 +45,11 @@ interface PaymentReminder {
   status: "RECENT" | "SENT" | "PENDING"
 }
 
+type PaymentMethodType = "Bank Transfer" | "UPI Method" | "Cash" | "Payment Link"
+
 const PaymentOverviewForm: React.FC<{ paymentId: string }> = ({ paymentId }) => {
   const [paymentData, setPaymentData] = useState<PaymentData | null>(null)
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<PaymentMethodType>("Bank Transfer")
   const [paymentHistory, setPaymentHistory] = useState<PaymentHistory[]>([])
   const [reminders, setReminders] = useState<PaymentReminder[]>([])
   const [loading, setLoading] = useState(true)
@@ -60,6 +65,21 @@ const PaymentOverviewForm: React.FC<{ paymentId: string }> = ({ paymentId }) => 
     whatsappNumber: "",
     notes: "",
   })
+
+  const getHeadingText = () => {
+    switch (selectedPaymentMethod) {
+      case "Bank Transfer":
+        return "Payment Overview & Bank Transfer"
+      case "UPI Method":
+        return "Payment Overview & UPI Payment"
+      case "Cash":
+        return "Payment Overview & Cash Payment"
+      case "Payment Link":
+        return "Payment Overview & Link Sharing"
+      default:
+        return "Payment Overview & Link Sharing"
+    }
+  }
 
   // Fetch payment data on component mount
   useEffect(() => {
@@ -80,6 +100,7 @@ const PaymentOverviewForm: React.FC<{ paymentId: string }> = ({ paymentId }) => 
           remainingBalance: "780.00",
           paymentStatus: "Partial",
           shareMethod: "whatsapp",
+
           paymentLink: "https://rzp-test.razorpay.com/l/abc123xyz",
           currency: "USD",
         })
@@ -87,6 +108,7 @@ const PaymentOverviewForm: React.FC<{ paymentId: string }> = ({ paymentId }) => 
           {
             id: "1",
             paidDate: "12 - 04 - 25",
+            sharepayment: "Bank Transfer",
             amountPaid: 500.0,
             pendingAmount: 780.0,
             status: "PARTIALLY PAID",
@@ -140,6 +162,10 @@ const PaymentOverviewForm: React.FC<{ paymentId: string }> = ({ paymentId }) => 
 
       return updated
     })
+  }
+
+  const handlePaymentMethodChange = (method: PaymentMethodType) => {
+    setSelectedPaymentMethod(method)
   }
 
   const handleShareInputChange = (field: string, value: string) => {
@@ -298,9 +324,57 @@ const PaymentOverviewForm: React.FC<{ paymentId: string }> = ({ paymentId }) => 
           {/* Left Column - Payment Overview */}
           <div className="bg-white rounded-lg shadow-sm">
             <div className="p-4 sm:p-6">
+              <div className="mb-4">
+                <div className="flex space-x-4">
+                  <label className="flex items-center">
+                    <input
+                      type="radio"
+                      name="paymentMethod"
+                      value="Bank Transfer"
+                      checked={selectedPaymentMethod === "Bank Transfer"}
+                      onChange={(e) => handlePaymentMethodChange(e.target.value as PaymentMethodType)}
+                      className="mr-2 text-green-600 focus:ring-green-500"
+                    />
+                    <span className="text-sm">Bank Transfer</span>
+                  </label>
+                  <label className="flex items-center">
+                    <input
+                      type="radio"
+                      name="paymentMethod"
+                      value="Cash"
+                      checked={selectedPaymentMethod === "Cash"}
+                      onChange={(e) => handlePaymentMethodChange(e.target.value as PaymentMethodType)}
+                      className="mr-2 text-green-600 focus:ring-green-500"
+                    />
+                    <span className="text-sm">Cash</span>
+                  </label>
+                  <label className="flex items-center">
+                    <input
+                      type="radio"
+                      name="paymentMethod"
+                      value="UPI Method"
+                      checked={selectedPaymentMethod === "UPI Method"}
+                      onChange={(e) => handlePaymentMethodChange(e.target.value as PaymentMethodType)}
+                      className="mr-2 text-green-600 focus:ring-green-500"
+                    />
+                    <span className="text-sm">UPI Method</span>
+                  </label>
+                  <label className="flex items-center">
+                    <input
+                      type="radio"
+                      name="paymentMethod"
+                      value="Payment Link"
+                      checked={selectedPaymentMethod === "Payment Link"}
+                      onChange={(e) => handlePaymentMethodChange(e.target.value as PaymentMethodType)}
+                      className="mr-2 text-green-600 focus:ring-green-500"
+                    />
+                    <span className="text-sm">Payment Link</span>
+                  </label>
+                </div>
+              </div>
               {/* Progress Bar */}
               <div className="mb-6">
-                <h2 className="text-base sm:text-lg font-semibold mb-4">Payment Overview & Link Sharing</h2>
+                <h2 className="text-base sm:text-lg font-semibold mb-4">{getHeadingText()}</h2>
                 <div className="flex items-center">
                   <div className="flex-1 bg-gray-200 rounded-full h-2">
                     <div
@@ -460,7 +534,7 @@ const PaymentOverviewForm: React.FC<{ paymentId: string }> = ({ paymentId }) => 
             {/* Share Payment Link */}
             <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6">
               <div className="flex items-center justify-between mb-4">
-                <h3 className="text-base sm:text-lg font-semibold">Share Payment Link</h3>
+                <h3 className="text-base sm:text-lg font-semibold">Share Payment Method</h3>
                 <Button
                   onClick={() => setShowShareModal(true)}
                   className="bg-[#183F30] hover:bg-emerald-800 text-white px-4 py-2 rounded-md flex items-center gap-2"
@@ -509,7 +583,7 @@ const PaymentOverviewForm: React.FC<{ paymentId: string }> = ({ paymentId }) => 
               <div className="text-center text-gray-500 text-sm mb-4">or</div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Copy link</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Paste link</label>
                 <div className="flex">
                   <input
                     type="text"
@@ -521,7 +595,7 @@ const PaymentOverviewForm: React.FC<{ paymentId: string }> = ({ paymentId }) => 
                     onClick={handleCopyLink}
                     className="px-3 sm:px-4 py-2 bg-yellow-500 text-white rounded-r-md hover:bg-yellow-600 focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:ring-offset-2 transition-colors text-sm"
                   >
-                    Copy
+                    Save
                   </button>
                 </div>
               </div>
@@ -601,8 +675,9 @@ const PaymentOverviewForm: React.FC<{ paymentId: string }> = ({ paymentId }) => 
                           </td>
                           <td className="px-4 py-4 whitespace-nowrap">
                             <span
-                              className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${payment.status === "PAID" ? "bg-green-500 text-white" : "bg-yellow-500 text-white"
-                                }`}
+                              className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                                payment.status === "PAID" ? "bg-green-500 text-white" : "bg-yellow-500 text-white"
+                              }`}
                             >
                               {payment.status}
                             </span>
@@ -659,8 +734,9 @@ const PaymentOverviewForm: React.FC<{ paymentId: string }> = ({ paymentId }) => 
                         <div className="flex justify-between items-center">
                           <span className="text-gray-600 font-medium">Status:</span>
                           <span
-                            className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${payment.status === "PAID" ? "bg-green-500 text-white" : "bg-yellow-500 text-white"
-                              }`}
+                            className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                              payment.status === "PAID" ? "bg-green-500 text-white" : "bg-yellow-500 text-white"
+                            }`}
                           >
                             {payment.status}
                           </span>

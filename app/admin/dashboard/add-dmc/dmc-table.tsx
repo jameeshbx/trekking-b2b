@@ -38,7 +38,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Badge } from "@/components/ui/badge";
+
 import { toast } from "@/components/ui/use-toast";
 import { Toaster } from "@/components/ui/toaster";
 import { StandaloneBankDetails } from "./standalone-bank-details"
@@ -396,16 +396,7 @@ export function DMCTable({ refreshTrigger }: DMCTableProps) {
                       {dmc.joinSource || "Direct"}
                     </TableCell>
                     <TableCell className="py-3">
-                      <Badge
-                        variant="outline"
-                        className={`px-3 py-1 rounded-full text-xs font-medium ${
-                          dmc.status === "Active"
-                            ? "bg-custom-green hover:bg-green-800 text-white border-0"
-                            : "bg-gray-200 hover:bg-gray-200 text-gray-700 border-0"
-                        }`}
-                      >
-                        {dmc.status}
-                      </Badge>
+                     
                     </TableCell>
                     <TableCell className="py-3">
                       <Button

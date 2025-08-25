@@ -3,28 +3,29 @@ import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
-// GET: Fetch feedback details
+
 export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams;
     const enquiryId = searchParams.get("enquiryId");
 
-    if (!enquiryId) {
-      return NextResponse.json({ error: "Enquiry ID is required" }, { status: 400 });
+    if (enquiryId) {
+      // Fetch specific feedback for an enquiry
+      const feedback = await prisma.feedback.findUnique({
+        where: { enquiryId },
+      });
+
+      if (!feedback) {
+        return NextResponse.json([], { status: 200 });
+      }
+
+      return NextResponse.json([feedback]); // Wrap single feedback in array
+    } else {
+       return NextResponse.json([], { status: 200 }); // Return empty array if no enquiryId provided
     }
-
-    const feedback = await prisma.feedback.findUnique({
-      where: { enquiryId },
-    });
-
-    if (!feedback) {
-      return NextResponse.json({ error: "Feedback not found" }, { status: 404 });
-    }
-
-    return NextResponse.json(feedback);
   } catch (error) {
     console.error("GET /api/feedbacks error:", error);
-    return NextResponse.json({ error: String(error) }, { status: 500 });
+    return NextResponse.json([], { status: 500 }); // Return empty array on error
   }
 }
 

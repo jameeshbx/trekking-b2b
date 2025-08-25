@@ -1,4 +1,5 @@
- export interface CreateDMCInput {
+// lib/api.ts
+export interface CreateDMCInput {
   name: string
   contactPerson?: string
   designation?: string
@@ -24,29 +25,47 @@
   createdBy: string
 }
 
- export const fetchDMCs = async (params: {
+export const fetchDMCs = async (params: {
   search?: string
   sortBy?: string
   sortOrder?: string
   page?: number
   limit?: number
 }) => {
-  const query = new URLSearchParams()
-  
-  if (params.search) query.set('search', params.search)
-  if (params.sortBy) query.set('sortBy', params.sortBy)
-  if (params.sortOrder) query.set('sortOrder', params.sortOrder)
-  if (params.page) query.set('page', params.page.toString())
-  if (params.limit) query.set('limit', params.limit.toString())
+  try {
+    const query = new URLSearchParams()
+    
+    if (params.search) query.set('search', params.search)
+    if (params.sortBy) query.set('sortBy', params.sortBy)
+    if (params.sortOrder) query.set('sortOrder', params.sortOrder)
+    if (params.page) query.set('page', params.page.toString())
+    if (params.limit) query.set('limit', params.limit.toString())
 
-  const response = await fetch(`/api/dmc?${query.toString()}`)
-  if (!response.ok) {
-    throw new Error('Failed to fetch DMCs')
+    const response = await fetch(`/api/dmc?${query.toString()}`)
+    
+    if (!response.ok) {
+      // Get error details from response
+      let errorMessage = 'Failed to fetch DMCs'
+      try {
+        const errorData = await response.json()
+        errorMessage = errorData.error || errorMessage
+      } catch {
+        // If response is not JSON, use status text
+        errorMessage = `${response.status}: ${response.statusText}`
+      }
+      throw new Error(errorMessage)
+    }
+    
+    return response.json()
+  } catch (error) {
+    console.error('fetchDMCs error:', error)
+    if (error instanceof TypeError && error.message === 'Failed to fetch') {
+      throw new Error('Network error - please check your connection')
+    }
+    throw error
   }
-  return response.json()
 }
 
-// Define a type for the DMC data
 type DMCCreateData = {
   dmcName: string
   primaryContact: string
@@ -72,15 +91,32 @@ type DMCCreateData = {
 }
 
 export const createDMC = async (data: DMCCreateData) => {
-  const response = await fetch('/api/dmc', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(data),
-  })
-  if (!response.ok) {
-    throw new Error('Failed to create DMC')
+  try {
+    const response = await fetch('/api/dmc', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(data),
+    })
+    
+    if (!response.ok) {
+      let errorMessage = 'Failed to create DMC'
+      try {
+        const errorData = await response.json()
+        errorMessage = errorData.error || errorMessage
+      } catch {
+        errorMessage = `${response.status}: ${response.statusText}`
+      }
+      throw new Error(errorMessage)
+    }
+    
+    return response.json()
+  } catch (error) {
+    console.error('createDMC error:', error)
+    if (error instanceof TypeError && error.message === 'Failed to fetch') {
+      throw new Error('Network error - please check your connection')
+    }
+    throw error
   }
-  return response.json()
 }

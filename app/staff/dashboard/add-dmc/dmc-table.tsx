@@ -559,7 +559,6 @@ export function DMCTable() {
           </div>
         )}
       </div>
-
       {showPaymentsModal && (
         <StandaloneBankDetails
           isOpen={showPaymentsModal}
