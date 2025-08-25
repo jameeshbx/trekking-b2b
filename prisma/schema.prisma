@@ -26,8 +26,10 @@ model File {
   paymentMethodQRCode        PaymentMethod? @relation("PaymentMethodQRCode")
   adminProfile               Admin?         @relation("AdminProfile")
 
-  // QR Code relation
+   // QR Code relation
   agencyPaymentMethodQRCode  AgencyPaymentMethod? @relation("AgencyPaymentMethodQRCode")
+
+
   @@map("file")
 }
 
@@ -38,7 +40,7 @@ model User {
   password       String
   name           String?
   companyName    String
-   phone          String?  
+  phone          String?
    
   businessType   BusinessType
   createdAt      DateTime       @default(now()) 
@@ -68,8 +70,10 @@ model Agency {
   updatedAt     DateTime       @updatedAt
   subscriptions Subscription[]
   users         User[]
+  paymentMethods AgencyPaymentMethod[]
 
-  paymentMethods AgencyPaymentMethod[] 
+
+ 
 
   @@index([name])
 }
@@ -309,11 +313,13 @@ model enquiries {
   itineraries        itineraries[]
   sharedCustomerPdfs SharedCustomerPdf[]
   feedback           Feedback?
-  commissions        Commission[]  
-  dmcPayments        DmcPayment[]
+  commissions        Commission[]
+  dmcPayments    DmcPayment[]
+  
+
 
   sharedDMCs SharedDMC[] @relation("EnquirySharedDMCs")
-  dmcPayments    DmcPayment[]
+ 
 
   @@index([status])
   @@index([enquiryDate])
@@ -393,9 +399,7 @@ model itineraries {
   sentItineraries            sent_itineraries[]
   agencyCancellationPolicy   AgencyCancellationPolicy? @relation(fields: [agencyCancellationPolicyId], references: [id])
   sharedCustomerPdfs         SharedCustomerPdf[]
-  bookingProgress            BookingProgress[]
-  bookingFeedbacks           BookingFeedback[]
-  bookingReminders           BookingReminder[]
+
 
   bookingProgress            BookingProgress[]
   bookingFeedbacks           BookingFeedback[]
@@ -497,6 +501,7 @@ model customers {
   feedbacks          customer_feedbacks[]
   sentItineraries    sent_itineraries[]
   sharedCustomerPdfs SharedCustomerPdf[]
+ 
 }
 
 model customer_feedbacks {
@@ -508,9 +513,9 @@ model customer_feedbacks {
   createdAt    DateTime     @default(now())
   updatedAt    DateTime     @updatedAt
   customerId   String
-  documentName String?      @map("document_name")
-  documentUrl  String?      @map("document_url")
-  itineraryId  String?      @map("itinerary_id")
+  documentName String?
+  documentUrl  String?
+  itineraryId  String?
   customer     customers?   @relation(fields: [customerId], references: [id], onDelete: Cascade)
   itinerary    itineraries? @relation(fields: [itineraryId], references: [id], onDelete: SetNull)
 
@@ -743,96 +748,6 @@ model Commission {
 }  
 
 
-model BookingProgress {
-  id           String        @id @default(uuid())
-  itineraryId  String
-  date         DateTime
-  service      String
-  status       BookingStatus @default(PENDING)
-  dmcNotes     String?
-  createdAt    DateTime      @default(now())
-  updatedAt    DateTime      @updatedAt
-  createdBy    String?
-
-  itinerary itineraries @relation(fields: [itineraryId], references: [id], onDelete: Cascade)
-
-  @@index([itineraryId])
-  @@index([status])
-  @@index([date])
-  @@map("booking_progress")
-}
-
-model BookingFeedback {
-  id          String      @id @default(uuid())
-  itineraryId String
-  note        String
-  createdAt   DateTime    @default(now())
-  updatedAt   DateTime    @updatedAt
-  createdBy   String?
-
-  itinerary itineraries @relation(fields: [itineraryId], references: [id], onDelete: Cascade)
-
-  @@index([itineraryId])
-  @@index([createdAt])
-  @@map("booking_feedback")
-}
-
-model BookingReminder {
-  id          String      @id @default(uuid())
-  itineraryId String
-  date        DateTime
-  note        String
-  isCompleted Boolean     @default(false)
-  createdAt   DateTime    @default(now())
-  updatedAt   DateTime    @updatedAt
-  createdBy   String?
-
-  itinerary itineraries @relation(fields: [itineraryId], references: [id], onDelete: Cascade)
-
-  @@index([itineraryId])
-  @@index([date])
-  @@index([isCompleted])
-  @@map("booking_reminder")
-}   
-
-model DmcPayment {
-  id                 String        @id @default(uuid())
-  dmcId              String
-  enquiryId          String
-  itineraryReference String
-  totalCost          Float
-  amountPaid         Float
-  paymentDate        DateTime
-  remainingBalance   Float
-  paymentStatus      PaymentStatus @default(PENDING)
-  paymentChannel     String
-  transactionId      String?
-  selectedBank       String?
-  receiptUrl         String?       // For external storage URLs
-  receiptFileId      String?       @unique // For internal file storage
-  createdAt          DateTime      @default(now())
-  updatedAt          DateTime      @updatedAt
-
-  dmc         DMCForm   @relation(fields: [dmcId], references: [id], onDelete: Cascade)
-  enquiry     enquiries @relation(fields: [enquiryId], references: [id], onDelete: Cascade)
-  receiptFile File?     @relation("DmcPaymentReceipt", fields: [receiptFileId], references: [id])
-
-  @@index([dmcId])
-  @@index([enquiryId])
-  @@map("dmc_payments")
-}
-
-
-
-enum BookingStatus {
-  PENDING
-  CONFIRMED
-  CANCELLED
-  NOT_INCLUDED
-  IN_PROGRESS
-  COMPLETED
-}
-
 
 enum CommissionType {
   FLAT
@@ -841,24 +756,21 @@ enum CommissionType {
 
 // Updated booking progress models with proper types
 model BookingProgress {
-  id           String        @id @default(uuid())
-  itineraryId  String
-  date         DateTime
-  service      String
-  status       BookingStatus @default(PENDING)
-  dmcNotes     String?
-  createdAt    DateTime      @default(now())
-  updatedAt    DateTime      @updatedAt
-  createdBy    String?
+  id          String   @id @default(cuid())
+  itineraryId String
+  date        DateTime
+  service     String
+  status      String
+  dmcNotes    String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
-  itinerary itineraries @relation(fields: [itineraryId], references: [id], onDelete: Cascade)
 
-  @@index([itineraryId])
-  @@index([status])
-  @@index([date])
-  @@map("booking_progress")
+ itinerary   itineraries @relation(fields: [itineraryId], references: [id])
+  @@map("BookingProgress")
 }
-
+  
+  
 model BookingFeedback {
   id          String      @id @default(uuid())
   itineraryId String
@@ -918,12 +830,7 @@ model DmcPayment {
   @@map("dmc_payments")
 }
 
-enum PaymentStatus {
-  PENDING
-  PARTIAL
-  PAID
-  FAILED
-}
+
 
 enum AgencyPayment  {
 
@@ -1076,30 +983,7 @@ enum EmailStatus {
   BOUNCED
 }
 
-model DmcPayment {
-  id                 String        @id @default(uuid())
-  dmcId              String
-  enquiryId          String
-  itineraryReference String
-  totalCost          Float
-  amountPaid         Float
-  paymentDate        DateTime
-  remainingBalance   Float
-  paymentStatus      PaymentStatus @default(PENDING)
-  paymentChannel     String
-  transactionId      String?
-  selectedBank       String?
-  receiptUrl         String?
-  createdAt          DateTime      @default(now())
-  updatedAt          DateTime      @updatedAt
 
-  dmc     DMCForm   @relation(fields: [dmcId], references: [id], onDelete: Cascade)
-  enquiry enquiries @relation(fields: [enquiryId], references: [id], onDelete: Cascade)
-
-  @@index([dmcId])
-  @@index([enquiryId])
-  @@map("dmc_payments")
-}
 
 enum PaymentStatus {
   PENDING
