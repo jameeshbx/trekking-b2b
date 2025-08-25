@@ -13,37 +13,31 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // Handle FormData
-    const formData = await req.formData();
     
-    // Convert FormData to a plain object
-    const formValues: Record<string, unknown> = {};
+    // Check if the content type is multipart/form-data
+    const contentType = req.headers.get("content-type") || "";
     
-    // Debug logging
-    console.log("Received form data entries:");
-    for (const [key, value] of formData.entries()) {
-      console.log(`${key}: ${value instanceof File ? `File: ${value.name}` : value}`);
+    if (contentType.includes("multipart/form-data")) {
+      // Handle FormData
+      const formData = await req.formData();
       
-      // Handle file fields separately
-      if (key === 'logo' || key === 'businessLicense') {
-        const file = value as File;
-        if (file.size > 0) {
-          formValues[key] = file;
+      // Convert FormData to a plain object
+      const formValues: Record<string, unknown> = {};
+      
+      for (const [key, value] of formData.entries()) {
+        // Handle file fields
+        if (key === 'logo' || key === 'businessLicense') {
+          const file = value as File;
+          if (file.size > 0) {
+            formValues[key] = file;
+          }
+        } else {
+          // Convert string values to proper types
+          formValues[key] = value;
         }
-      } else if (key === 'gstRegistered') {
-        // Ensure boolean conversion is correct
-        formValues[key] = value === 'true';
-      } else {
-        // Convert string values to proper types
-        formValues[key] = value;
       }
-    }
 
-    console.log("Processed form values:", formValues);
-
-    // Validate the form data
-    try {
-      // Since agencyFormSchemaBase is already a ZodObject with refine, we can use omit directly
+      // Validate the form data (excluding files)
       const validationSchema = agencyFormSchemaBase.omit({ 
         logo: true, 
         businessLicense: true 
@@ -52,18 +46,10 @@ export async function POST(req: Request) {
       const validatedData = validationSchema.parse(formValues);
       
       // Handle file uploads (in a real app, upload to S3 or similar)
-      const logoFileName = formValues.logo ? (formValues.logo as File).name : null;
-      const licenseFileName = formValues.businessLicense ? (formValues.businessLicense as File).name : null;
-
-      console.log("Creating agency with data:", {
-        ...validatedData,
-        logoUrl: logoFileName,
-        businessLicenseUrl: licenseFileName,
-        createdBy: session.user.id,
-      });
+      // Note: File handling logic would go here in a real implementation
 
       // Create agency record in database
-       const agency = await prisma.agencyForm.create({
+      const agency = await prisma.agencyForm.create({
         data: {
           name: validatedData.name,
           contactPerson: validatedData.contactPerson,
@@ -90,19 +76,55 @@ export async function POST(req: Request) {
       });
 
       return NextResponse.json(agency, { status: 201 });
-    } catch (validationError) {
-      console.error("Validation error:", validationError);
-      if (validationError instanceof z.ZodError) {
-        // In newer versions of Zod, use issues instead of errors
-        return NextResponse.json(
-          { error: validationError.issues[0].message },
-          { status: 400 }
-        );
-      }
-      throw validationError;
+    } else {
+      // Handle JSON data (for development/testing)
+      const jsonData = await req.json();
+      
+      // Validate the JSON data
+      const validatedData = agencyFormSchemaBase.parse(jsonData);
+      
+      // Create agency record in database
+      const agency = await prisma.agencyForm.create({
+        data: {
+          name: validatedData.name,
+          contactPerson: validatedData.contactPerson,
+          agencyType: validatedData.agencyType,
+          designation: validatedData.designation,
+          phoneNumber: validatedData.phoneNumber,
+          phoneCountryCode: validatedData.phoneCountryCode,
+          ownerName: validatedData.ownerName,
+          email: validatedData.email,
+          companyPhone: validatedData.companyPhone,
+          companyPhoneCode: validatedData.companyPhoneCode,
+          website: validatedData.website,
+          landingPageColor: validatedData.landingPageColor,
+          gstRegistered: validatedData.gstRegistered,
+          gstNumber: validatedData.gstNumber,
+          yearOfRegistration: validatedData.yearOfRegistration,
+          panNumber: validatedData.panNumber,
+          panType: validatedData.panType,
+          headquarters: validatedData.headquarters,
+          country: validatedData.country,
+          yearsOfOperation: validatedData.yearsOfOperation,
+          createdBy: session.user.id,
+        },
+      });
+
+      return NextResponse.json(agency, { status: 201 });
     }
   } catch (error) {
     console.error("Error creating agency:", error);
+    
+    if (error instanceof z.ZodError) {
+      return NextResponse.json(
+        { 
+          error: "Validation failed", 
+          details: error.issues // Changed from error.errors to error.issues
+        },
+        { status: 400 }
+      );
+    }
+    
     return NextResponse.json(
       { error: "Failed to create agency. Please try again." },
       { status: 500 }
