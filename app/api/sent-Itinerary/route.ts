@@ -1,7 +1,24 @@
 import { type NextRequest, NextResponse } from "next/server"
+import { PrismaClient } from "@prisma/client"
 import { sendEmail } from "@/lib/email"
 import fs from "fs/promises"
 import path from "path"
+
+const prisma = new PrismaClient()
+
+interface SentItineraryData {
+  itineraryId: string;
+  customerName: string;
+  email: string;
+  whatsappNumber: string;
+  notes: string;
+  documentUrl: string | null;
+  documentName: string | null;
+  status: string;
+  sentDate: Date;
+  customerId: string;
+
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -31,6 +48,10 @@ export async function POST(request: NextRequest) {
 
     if (!customerId && !enquiryId) {
       return NextResponse.json({ error: "Either customerId or enquiryId is required" }, { status: 400 })
+    }
+
+    if (!itineraryId) {
+      return NextResponse.json({ error: "itineraryId is required" }, { status: 400 })
     }
 
     const generatedPdfsDir = path.join(process.cwd(), "public", "generated-pdfs")
@@ -125,28 +146,29 @@ export async function POST(request: NextRequest) {
 
       console.log("[v0] Email sent successfully:", emailResult)
 
-      // Create a sent itinerary record
-      const sentItinerary = {
-        id: `sent-${Date.now()}`,
-        customerId: customerId || enquiryId,
-        itineraryId,
-        enquiryId,
-        customerName,
-        email,
-        whatsappNumber,
-        notes,
-        documentUrl,
-        documentName,
-        pdfUrl,
-        sentAt: new Date().toISOString(),
-        status: "sent",
-      }
+      // Persist a sent itinerary record
+     const finalCustomerId: string = customerId || enquiryId || "";
+      const dataToCreate: SentItineraryData = {
+  itineraryId,
+  customerName: customerName || "",
+  email,
+  whatsappNumber: whatsappNumber || "",
+  notes: notes || "",
+  documentUrl: documentUrl || null,
+  documentName: documentName || null,
+  status: "sent",
+  sentDate: new Date(),
+  customerId: finalCustomerId, // Now always present
+}
+
+      const created = await prisma.sent_itineraries.create({ data: dataToCreate })
 
       return NextResponse.json({
         success: true,
         message: "Itinerary sent successfully",
-        sentItinerary,
+        sentItinerary: created,
         emailResult,
+        pdfUrl,
       })
     } catch (emailError) {
       console.error("[v0] Email sending failed:", emailError)
@@ -179,6 +201,8 @@ export async function POST(request: NextRequest) {
       },
       { status: 500 },
     )
+  } finally {
+    await prisma.$disconnect()
   }
 }
 

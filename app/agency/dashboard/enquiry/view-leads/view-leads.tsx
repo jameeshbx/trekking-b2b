@@ -36,7 +36,6 @@ interface Enquiry {
   leadSource: string
   tags: string
   mustSeeSpots: string
-  pacePreference: string
   status: string
   enquiryDate: string
   createdAt?: string

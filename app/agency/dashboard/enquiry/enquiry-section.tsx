@@ -45,7 +45,6 @@ interface Enquiry {
   leadSource: string
   tags: string
   mustSeeSpots: string
-  pacePreference: string
   status: string
   enquiryDate: string
   createdAt?: string
@@ -57,6 +56,16 @@ interface Column {
   title: string
   icon: string
   enquiries: Enquiry[]
+}
+interface StaffUser {
+  id: string;
+  name: string;
+  status?: string;
+}
+
+interface StaffApiResponse {
+  success: boolean;
+  data: StaffUser[];
 }
 
 const generateUniqueId = () => {
@@ -102,6 +111,21 @@ export default function Enquiry() {
   const [columns, setColumns] = useState<Column[]>(initialColumns)
   const [isClient, setIsClient] = useState(false)
   const [loading, setLoading] = useState(true)
+  const [staffUsers, setStaffUsers] = useState<{ id: string; name: string; status?: string }[]>([])
+  const getCurrencySymbol = (code: string) => {
+    switch (code) {
+      case "USD":
+        return "$"
+      case "EUR":
+        return "€"
+      case "GBP":
+        return "£"
+      case "INR":
+        return "₹"
+      default:
+        return code || "$"
+    }
+  }
   const scrollContainerRef = useRef<HTMLDivElement>(null)
   const [hoveredEnquiry, setHoveredEnquiry] = useState<string | null>(null)
   const [searchTerm, setSearchTerm] = useState("")
@@ -136,13 +160,35 @@ export default function Enquiry() {
     leadSource: "Direct",
     tags: "sightseeing",
     mustSeeSpots: "",
-    pacePreference: "relaxed",
+    
   })
 
   useEffect(() => {
     setIsClient(true)
     fetchEnquiries()
+    fetchStaffUsers()
   }, [])
+
+  const fetchStaffUsers = async () => {
+    try {
+      const response = await fetch("/api/auth/agency-add-user", {
+        method: "GET",
+        headers: { "Content-Type": "application/json" },
+      })
+      const data: StaffApiResponse = await response.json()
+    if (response.ok && data?.success && Array.isArray(data.data)) {
+      const mapped = data.data
+       .map((u: StaffUser) => ({ id: u.id, name: u.name, status: u.status }))
+        .filter((u: { status?: string }) => (u.status ? u.status === "ACTIVE" : true))
+      setStaffUsers(mapped)
+    } else {
+      setStaffUsers([])
+    }
+    } catch (e) {
+      console.error("Failed to fetch staff users", e)
+      setStaffUsers([])
+    }
+  }
 
   const fetchEnquiries = async () => {
     try {
@@ -245,7 +291,7 @@ export default function Enquiry() {
       leadSource: "Direct",
       tags: "sightseeing",
       mustSeeSpots: "",
-      pacePreference: "relaxed",
+      
     })
     setDateRange({
       from: undefined,
@@ -345,38 +391,7 @@ export default function Enquiry() {
               className="min-h-[80px] text-sm sm:text-base"
             />
           </div>
-          <div className="col-span-3 space-y-1 sm:space-y-2">
-            <label className="text-xs sm:text-sm font-medium font-poppins text-gray-600">
-              Pace preference <span className="text-gray-400">(optional)</span>
-            </label>
-            <RadioGroup
-              value={newEnquiry.pacePreference}
-              onValueChange={(value: string) => handleInputChange("pacePreference", value)}
-            >
-              <div className="flex gap-6">
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem
-                    value="relaxed"
-                    id="pace-relaxed"
-                    className="h-4 w-4 text-green-600 border-gray-300 focus:ring-green-600"
-                  />
-                  <Label htmlFor="pace-relaxed" className="text-sm">
-                    Relaxed
-                  </Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem
-                    value="packed"
-                    id="pace-packed"
-                    className="h-4 w-4 text-green-600 border-gray-300 focus:ring-green-600"
-                  />
-                  <Label htmlFor="pace-packed" className="text-sm">
-                    Packed
-                  </Label>
-                </div>
-              </div>
-            </RadioGroup>
-          </div>
+         
         </>
       )
     } else if (newEnquiry.tags === "full-package") {
@@ -812,9 +827,11 @@ export default function Enquiry() {
                     onValueChange={(value: number[]) => handleInputChange("budget", value[0])}
                   />
                   <div className="flex justify-between mt-2 text-xs sm:text-sm text-gray-500">
-                    <span>$100</span>
-                    <div className="bg-green-100 px-2 py-1 rounded text-green-800">${newEnquiry.budget || 1000}</div>
-                    <span>$50000</span>
+                    <span>{getCurrencySymbol(newEnquiry.currency)}100</span>
+                    <div className="bg-green-100 px-2 py-1 rounded text-green-800">
+                      {getCurrencySymbol(newEnquiry.currency)}{newEnquiry.budget || 1000}
+                    </div>
+                    <span>{getCurrencySymbol(newEnquiry.currency)}50000</span>
                   </div>
                 </div>
               </div>
@@ -1001,21 +1018,17 @@ export default function Enquiry() {
                     <SelectValue placeholder="Select staff member" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="Kevin Blake" className="text-sm sm:text-base">
-                      Kevin Blake
-                    </SelectItem>
-                    <SelectItem value="Maria Rodriguez" className="text-sm sm:text-base">
-                      Maria Rodriguez
-                    </SelectItem>
-                    <SelectItem value="Priya Sharma" className="text-sm sm:text-base">
-                      Priya Sharma
-                    </SelectItem>
-                    <SelectItem value="Ahmed Khan" className="text-sm sm:text-base">
-                      Ahmed Khan
-                    </SelectItem>
-                    <SelectItem value="Emily Johnson" className="text-sm sm:text-base">
-                      Emily Johnson
-                    </SelectItem>
+                    {staffUsers.length > 0 ? (
+                      staffUsers.map((user) => (
+                        <SelectItem key={user.id} value={user.name} className="text-sm sm:text-base">
+                          {user.name}
+                        </SelectItem>
+                      ))
+                    ) : (
+                      <SelectItem value="no-staff" disabled className="text-sm sm:text-base">
+                        No staff available
+                      </SelectItem>
+                    )}
                   </SelectContent>
                 </Select>
               </div>

@@ -20,7 +20,6 @@ export interface Enquiry {
   leadSource: string
   tags: string
   mustSeeSpots: string
-  pacePreference: string
   status:
     | "enquiry"
     | "itinerary_creation"

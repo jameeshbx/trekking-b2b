@@ -50,7 +50,6 @@ export async function POST(req: NextRequest) {
         tags: data.tags || "sightseeing",
         flightsRequired: data.flightsRequired || "no",
         mustSeeSpots: data.mustSeeSpots || null,
-        pacePreference: data.pacePreference || "relaxed",
       },
     })
 

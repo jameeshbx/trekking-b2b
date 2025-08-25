@@ -30,7 +30,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
             pickupLocation: true,
             dropLocation: true,
             mustSeeSpots: true,
-            pacePreference: true,
+            
           },
         },
         customer: {
@@ -110,7 +110,7 @@ function generateItineraryPDF(itinerary: {
     pickupLocation?: string | null
     dropLocation?: string | null
     mustSeeSpots?: string | null
-    pacePreference?: string | null
+   
   } | null
   customer?: {
     name: string

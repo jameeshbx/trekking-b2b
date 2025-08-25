@@ -2,6 +2,7 @@
 
 import type React from "react"
 import { useState, useEffect } from "react"
+import { useRouter, useSearchParams } from "next/navigation"
 import { Download, Upload, Plus, X, AlertCircle, CheckCircle, Clock, FileText, Eye } from "lucide-react"
 import { LoadingSpinner } from "@/components/ui/loading-spinner"
 import { useToast } from "@/hooks/use-toast"
@@ -17,6 +18,8 @@ import type {
 } from "@/types/customer"
 
 const ShareCustomerDashboard = () => {
+  const router = useRouter()
+  const searchParams = useSearchParams()
   const [formData, setFormData] = useState<FormData>({
     name: "",
     email: "",
@@ -50,24 +53,57 @@ const ShareCustomerDashboard = () => {
   const [selectedItinerary, setSelectedItinerary] = useState<Itinerary | null>(null)
   const { toast } = useToast()
 
-  // Fetch data on component mount
+  // Keep URL and state in sync; restore from localStorage if URL lacks params
   useEffect(() => {
-    const urlParams = new URLSearchParams(window.location.search)
-    const customerIdParam = urlParams.get("customerId")
-    const enquiryIdParam = urlParams.get("enquiryId")
-    const itineraryIdParam = urlParams.get("itineraryId")
+    const customerIdParam = searchParams.get("customerId")
+    const enquiryIdParam = searchParams.get("enquiryId")
+    const itineraryIdParam = searchParams.get("itineraryId")
 
-    setCustomerId(customerIdParam)
-    setEnquiryId(enquiryIdParam)
-    setItineraryId(itineraryIdParam)
-
-    if (enquiryIdParam || customerIdParam) {
+    if (customerIdParam || enquiryIdParam) {
+      setCustomerId(customerIdParam)
+      setEnquiryId(enquiryIdParam)
+      setItineraryId(itineraryIdParam)
       fetchCustomerData(customerIdParam, enquiryIdParam, itineraryIdParam)
-    } else {
-      setError("Either Customer ID or Enquiry ID is required")
-      setLoading(false)
+      // Persist context
+      if (typeof window !== "undefined") {
+        localStorage.setItem(
+          "shareCustomerContext",
+          JSON.stringify({ customerId: customerIdParam, enquiryId: enquiryIdParam, itineraryId: itineraryIdParam })
+        )
+      }
+      return
     }
-  }, [])
+
+    // Fallback to last context from localStorage
+    if (typeof window !== "undefined") {
+      try {
+        const stored = localStorage.getItem("shareCustomerContext")
+        if (stored) {
+          const ctx = JSON.parse(stored) as { customerId?: string | null; enquiryId?: string | null; itineraryId?: string | null }
+          const restoreCustomerId = ctx.customerId || null
+          const restoreEnquiryId = ctx.enquiryId || null
+          const restoreItineraryId = ctx.itineraryId || null
+
+          setCustomerId(restoreCustomerId)
+          setEnquiryId(restoreEnquiryId)
+          setItineraryId(restoreItineraryId)
+
+          // Update URL to reflect restored context without adding history entry
+          const params = new URLSearchParams()
+          if (restoreCustomerId) params.set("customerId", restoreCustomerId)
+          if (restoreEnquiryId) params.set("enquiryId", restoreEnquiryId)
+          if (restoreItineraryId) params.set("itineraryId", restoreItineraryId)
+          router.replace(`/agency/dashboard/share-customer?${params.toString()}`)
+
+          fetchCustomerData(restoreCustomerId, restoreEnquiryId, restoreItineraryId)
+          return
+        }
+      } catch {}
+    }
+
+    setError("Either Customer ID or Enquiry ID is required")
+    setLoading(false)
+  }, [searchParams])
 
   const fetchCustomerData = async (
     customerIdParam: string | null,
@@ -355,7 +391,8 @@ const ShareCustomerDashboard = () => {
       }
 
       if (result.success && result.sentItinerary) {
-        setSentItineraries((prev) => [result.sentItinerary, ...prev])
+        // Refresh full dashboard data to ensure persistence and show existing entries
+        await fetchCustomerData(customerId, enquiryId, itineraryId)
         setFormData((prev) => ({
           ...prev,
           notes: "",
@@ -369,6 +406,13 @@ const ShareCustomerDashboard = () => {
         })
 
         setSelectedItinerary(null)
+
+        // Redirect to Share DMC section after success, preserving context
+        const dmcParams = new URLSearchParams()
+        if (customerId) dmcParams.set("customerId", customerId)
+        if (enquiryId) dmcParams.set("enquiryId", enquiryId)
+        if (itineraryId) dmcParams.set("itineraryId", itineraryId)
+        router.push(`/agency/dashboard/share-dmc?${dmcParams.toString()}`)
       } else {
         throw new Error(result.error || "Failed to send itinerary")
       }

@@ -63,7 +63,6 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
         additionalRequests: data.additionalRequests,
         moreDetails: data.moreDetails,
         mustSeeSpots: data.mustSeeSpots,
-        pacePreference: data.pacePreference,
         status: data.status || "draft",
         dailyItinerary: data.dailyItinerary, // Handle as JSON
         accommodation: data.accommodation, // Handle as JSON

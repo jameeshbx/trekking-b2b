@@ -36,7 +36,6 @@ export async function GET(request: NextRequest) {
           notes: true,
           tags: true,
           mustSeeSpots: true,
-          pacePreference: true,
           flightsRequired: true,
           numberOfTravellers: true,
           numberOfKids: true,

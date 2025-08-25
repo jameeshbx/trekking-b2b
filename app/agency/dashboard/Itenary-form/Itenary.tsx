@@ -73,7 +73,6 @@ interface TravelFormData {
   additionalRequests: string
   moreDetails: string
   mustSeeSpots: string
-  pacePreference: string
   dailyItinerary: DayItinerary[]
   accommodation: Accommodation[]
   cancellationPolicyType: string
@@ -104,7 +103,7 @@ interface EnquiryData {
   notes?: string
   tags?: string
   mustSeeSpots?: string
-  pacePreference?: string
+  
   customerId?: string
 }
 
@@ -144,7 +143,7 @@ interface ItineraryData {
   additionalRequests: string | null
   moreDetails: string | null
   mustSeeSpots: string | null
-  pacePreference: string | null
+ 
   status: string
   createdAt: string
   updatedAt: string
@@ -164,7 +163,7 @@ interface ItineraryData {
     notes: string | null
     tags: string | null
     mustSeeSpots: string | null
-    pacePreference: string | null
+  
     flightsRequired: string | null
   }
 }
@@ -247,7 +246,7 @@ function ItineraryFormContent() {
     additionalRequests: "",
     moreDetails: "",
     mustSeeSpots: "",
-    pacePreference: "relaxed",
+    
     dailyItinerary: [],
     accommodation: [],
     cancellationPolicyType: "DEFAULT",
@@ -262,6 +261,20 @@ function ItineraryFormContent() {
   const [isGenerating, setIsGenerating] = useState(false)
   const router = useRouter()
   const searchParams = useSearchParams()
+  const getCurrencySymbol = (code: string) => {
+    switch (code) {
+      case "USD":
+        return "$"
+      case "EUR":
+        return "€"
+      case "GBP":
+        return "£"
+      case "INR":
+        return "₹"
+      default:
+        return code || "$"
+    }
+  }
 
   useEffect(() => {
     const loadData = async () => {
@@ -369,7 +382,7 @@ function ItineraryFormContent() {
         const additionalRequests = existingItinerary?.additionalRequests || ""
         let moreDetails = existingItinerary?.moreDetails || enquiry?.notes || ""
         const mustSeeSpots = existingItinerary?.mustSeeSpots || enquiry?.mustSeeSpots || ""
-        const pacePreference = existingItinerary?.pacePreference || enquiry?.pacePreference || "relaxed"
+        
         const dailyItinerary = existingItinerary?.dailyItinerary || []
         const accommodation = existingItinerary?.accommodation || []
 
@@ -403,9 +416,7 @@ function ItineraryFormContent() {
           if (enquiry.mustSeeSpots && !moreDetails.includes("Must-see spots:")) {
             moreDetails += `\n\nMust-see spots: ${enquiry.mustSeeSpots}`
           }
-          if (enquiry.pacePreference && !moreDetails.includes("Pace preference:")) {
-            moreDetails += `\n\nPace preference: ${enquiry.pacePreference}`
-          }
+          
         }
 
         const baseFormData: TravelFormData = {
@@ -431,7 +442,7 @@ function ItineraryFormContent() {
           additionalRequests,
           moreDetails,
           mustSeeSpots,
-          pacePreference,
+         
           dailyItinerary,
           accommodation,
           cancellationPolicyType,
@@ -702,39 +713,8 @@ function ItineraryFormContent() {
               rows={3}
             />
           </div>
-          {/* Pace preference */}
-          <div>
-            <Label className="text-sm font-medium text-black mb-3 block text-lg font-semibold font-poppins">
-              Pace preference <span className="text-gray-400">(optional)</span>
-            </Label>
-            <RadioGroup
-              value={formData.pacePreference}
-              onValueChange={(value: string) => updateFormData("pacePreference", value)}
-            >
-              <div className="flex gap-4">
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem
-                    value="relaxed"
-                    id="pace-relaxed-itinerary"
-                    className="h-4 w-4 text-emerald-700 border-gray-300 focus:ring-emerald-700"
-                  />
-                  <Label htmlFor="pace-relaxed-itinerary" className="text-xs">
-                    Relaxed
-                  </Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem
-                    value="packed"
-                    id="pace-packed-itinerary"
-                    className="h-4 w-4 text-emerald-700 border-gray-300 focus:ring-emerald-700"
-                  />
-                  <Label htmlFor="pace-packed-itinerary" className="text-xs">
-                    Packed
-                  </Label>
-                </div>
-              </div>
-            </RadioGroup>
-          </div>
+         
+         
         </>
       )
     } else if (enquiryData?.tags === "full-package") {
@@ -1187,11 +1167,11 @@ function ItineraryFormContent() {
                         className="mb-3"
                       />
                       <div className="flex justify-between text-xs text-gray-500 font-poppins">
-                        <span>$100</span>
+                        <span>{getCurrencySymbol(formData.currency)}100</span>
                         <div className="bg-green-100 px-2 py-1 rounded text-green-800 font-medium text-xs">
-                          ${formData.budget}
+                          {getCurrencySymbol(formData.currency)}{formData.budget}
                         </div>
-                        <span>$50000</span>
+                        <span>{getCurrencySymbol(formData.currency)}50000</span>
                       </div>
                     </div>
                   </div>
@@ -1462,7 +1442,7 @@ function ItineraryFormContent() {
                   <div className="flex">
                     <span className="text-gray-700 font-medium w-20">Budget :</span>
                     <span className="text-gray-900">
-                      {enquiryData?.currency || "$"}
+                      {getCurrencySymbol(enquiryData?.currency || "USD")}
                       {enquiryData?.budget || "1000"}
                     </span>
                   </div>

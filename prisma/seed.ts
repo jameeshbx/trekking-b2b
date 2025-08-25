@@ -45,7 +45,6 @@ async function main() {
       leadSource: "Website",
       tags: "luxury, cultural, couples",
       mustSeeSpots: "Eiffel Tower, Colosseum, Sagrada Familia",
-      pacePreference: "relaxed",
       flightsRequired: "yes",
       notes: "Prefer 4-star hotels, interested in food tours",
       customerId: customer1.id,
@@ -68,7 +67,7 @@ async function main() {
       leadSource: "Referral",
       tags: "adventure, solo, photography",
       mustSeeSpots: "Mount Fuji, Fushimi Inari, Osaka Castle",
-      pacePreference: "active",
+     
       flightsRequired: "yes",
       notes: "Photography enthusiast, vegetarian meals",
       customerId: customer2.id,
@@ -105,7 +104,7 @@ async function main() {
       additionalRequests: "Room with view, Late checkout",
       moreDetails: "Honeymoon trip, prefer romantic experiences",
       mustSeeSpots: "Eiffel Tower, Colosseum, Sagrada Familia",
-      pacePreference: "relaxed",
+      
       status: "confirmed",
       dailyItinerary: [
         {
@@ -175,7 +174,7 @@ async function main() {
       additionalRequests: "Photography equipment storage",
       moreDetails: "Solo traveler, interested in traditional culture",
       mustSeeSpots: "Mount Fuji, Fushimi Inari, Osaka Castle",
-      pacePreference: "active",
+      
       status: "draft",
       dailyItinerary: [
         {

@@ -126,7 +126,6 @@ interface ItineraryData {
   additionalRequests: string | null;
   moreDetails: string | null;
   mustSeeSpots: string | null;
-  pacePreference: string | null;
   status: string;
   createdAt: string;
   updatedAt: string;

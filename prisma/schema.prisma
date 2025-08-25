@@ -305,7 +305,6 @@ model enquiries {
   enquiryDate        String              @default("now()")
   tags               String?             @default("sightseeing")
   mustSeeSpots       String?
-  pacePreference     String?             @default("relaxed")
   createdAt          DateTime            @default(now())
   updatedAt          DateTime            @updatedAt
   customerId         String?
@@ -378,7 +377,6 @@ model itineraries {
   createdAt                  DateTime                  @default(now())
   updatedAt                  DateTime                  @updatedAt
   mustSeeSpots               String?
-  pacePreference             String?
   accommodation              Json?
   dailyItinerary             Json?
   customerId                 String?
@@ -942,10 +940,6 @@ enum FlightRequirement {
   NO
 }
 
-enum PacePreference {
-  RELAXED
-  PACKED
-}
 
 enum TravelTag {
   FLIGHTS

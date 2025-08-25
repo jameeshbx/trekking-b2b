@@ -41,7 +41,7 @@ CREATE TYPE "UserStatus" AS ENUM ('ACTIVE', 'INACTIVE');
 CREATE TYPE "FlightRequirement" AS ENUM ('YES', 'NO');
 
 -- CreateEnum
-CREATE TYPE "PacePreference" AS ENUM ('RELAXED', 'PACKED');
+
 
 -- CreateEnum
 CREATE TYPE "TravelTag" AS ENUM ('FLIGHTS', 'ACCOMMODATION', 'FULL_PACKAGE', 'SIGHTSEEING');
@@ -316,7 +316,6 @@ CREATE TABLE "enquiries" (
     "enquiryDate" TEXT NOT NULL DEFAULT 'now()',
     "tags" TEXT DEFAULT 'sightseeing',
     "mustSeeSpots" TEXT,
-    "pacePreference" TEXT DEFAULT 'relaxed',
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
     "customerId" TEXT,
@@ -353,7 +352,6 @@ CREATE TABLE "itineraries" (
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
     "mustSeeSpots" TEXT,
-    "pacePreference" TEXT,
     "accommodation" JSONB,
     "dailyItinerary" JSONB,
     "customerId" TEXT,

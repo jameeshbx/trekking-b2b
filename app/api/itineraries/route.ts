@@ -96,7 +96,6 @@ export async function POST(request: NextRequest) {
       additionalRequests: data.additionalRequests || null,
       moreDetails: data.moreDetails || null,
       mustSeeSpots: data.mustSeeSpots || null,
-      pacePreference: data.pacePreference || null,
       status: data.status || "draft",
       dailyItinerary: data.dailyItinerary || [],
       accommodation: data.accommodation || [],
@@ -177,7 +176,7 @@ export async function PUT(request: NextRequest) {
       additionalRequests: updateData.additionalRequests || null,
       moreDetails: updateData.moreDetails || null,
       mustSeeSpots: updateData.mustSeeSpots || null,
-      pacePreference: updateData.pacePreference || null,
+      
       status: updateData.status || "draft",
       dailyItinerary: updateData.dailyItinerary || [],
       accommodation: updateData.accommodation || [],

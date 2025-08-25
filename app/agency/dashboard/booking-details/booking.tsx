@@ -61,6 +61,7 @@ interface NewRow {
   service: string;
   status: string;
   dmcNotes: string;
+  customService?: string;
 }
 
 interface NewFeedback {
@@ -95,9 +96,23 @@ interface MockItineraryData {
   services: MockServiceRow[];
 }
 
-interface MockDataStructure {
-  [key: string]: MockItineraryData;
+interface EnquiryData {
+  data?: {
+    locations?: string;
+    assignedStaff?: string;
+  };
 }
+
+interface ShareDmcResponse {
+  data?: Array<{
+    activeStatus?: boolean;
+    selectedDMCs?: Array<{
+      dmc?: { name?: string };
+      dmcName?: string;
+    }>;
+  }>;
+}
+
 
 const statusOptions = ["PENDING", "CONFIRMED", "CANCELLED", "NOT_INCLUDED", "IN_PROGRESS", "COMPLETED"];
 
@@ -110,13 +125,27 @@ const BookingProgressDashboard = () => {
     }
     return 'KASH001';
   });
+  const [enquiryId] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const urlParams = new URLSearchParams(window.location.search);
+      return urlParams.get('enquiryId');
+    }
+    return null as string | null;
+  });
+  const [locationParam] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const urlParams = new URLSearchParams(window.location.search);
+      return urlParams.get('location');
+    }
+    return null as string | null;
+  });
 
   const [progressData, setProgressData] = useState<ProgressData[]>([]);
   const [itineraryData, setItineraryData] = useState<ItineraryData | null>(null);
   const [itineraryServices, setItineraryServices] = useState<ItineraryService[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [saving, setSaving] = useState<boolean>(false);
-  const [newRow, setNewRow] = useState<NewRow>({ date: "", service: "", status: "PENDING", dmcNotes: "" });
+  const [newRow, setNewRow] = useState<NewRow>({ date: "", service: "", status: "PENDING", dmcNotes: "", customService: "" });
   const [showAddProgressModal, setShowAddProgressModal] = useState<boolean>(false);
   const [editingRow, setEditingRow] = useState<string | null>(null);
 
@@ -132,69 +161,80 @@ const BookingProgressDashboard = () => {
   const [reminders, setReminders] = useState<Reminder[]>([]);
   const [showReminderModal, setShowReminderModal] = useState<boolean>(false);
   const [newReminder, setNewReminder] = useState<NewReminder>({ date: "", note: "" });
+  // Context persistence and overview extras
+  const [assignedStaffName, setAssignedStaffName] = useState<string>("");
+  const [selectedDmcName, setSelectedDmcName] = useState<string>("");
 
-  // Mock data based on itinerary ID
+  const getCsvFilenameForLocation = (loc: string): string => {
+    const normalized = (loc || '').toLowerCase();
+    if (normalized.includes('goa')) return 'GOA001.csv';
+    if (normalized.includes('kerala')) return 'KER001.csv';
+    return 'GOA001.csv';
+  };
+
+  const parseCsvServices = (csvText: string): { meta: Partial<MockItineraryData>, services: MockServiceRow[] } => {
+    const lines = csvText.split(/\r?\n/).filter(l => l.trim().length > 0);
+    const metaLine = lines[1];
+    const servicesHeaderIndex = lines.findIndex(l => l.toLowerCase().startsWith('day,time,activity'));
+    const serviceLines = servicesHeaderIndex >= 0 ? lines.slice(servicesHeaderIndex + 1) : [];
+
+    let meta: Partial<MockItineraryData> = {};
+    try {
+      const metaValues = metaLine.split(',');
+      meta = {
+        quoteId: metaValues[0],
+        name: metaValues[1],
+        days: Number(metaValues[2]),
+        nights: Number(metaValues[3]),
+        startDate: metaValues[4],
+        costINR: Number(metaValues[5]),
+        costUSD: Number(metaValues[6]),
+        guests: Number(metaValues[7]),
+        adults: Number(metaValues[8]),
+        kids: Number(metaValues[9] || 0),
+      } as Partial<MockItineraryData>;
+    } catch {}
+
+    const services: MockServiceRow[] = serviceLines.map(line => {
+      const [day, time, activity] = line.split(',');
+      return { day: day || '', time: time || '', activity: activity || '' };
+    }).filter(row => row.activity);
+
+    return { meta, services };
+  };
+
+  // Load itinerary/services from CSV using location from enquiry or URL
   const loadItineraryFromMockData = useCallback(async () => {
     try {
-      // Mock data based on the provided CSV files
-      const mockData: MockDataStructure = {
-        'KASH001': {
-          quoteId: 'KASH001',
-          name: 'Kashmir Family',
-          days: 3,
-          nights: 2,
-          startDate: '2025-08-11',
-          costINR: 38500,
-          costUSD: 500,
-          guests: 5,
-          adults: 2,
-          kids: 3,
-          services: [
-            { day: 1, time: '8:00 AM', activity: 'Breakfast', type: 'meal', description: 'Start your day with traditional Kashmiri breakfast' },
-            { day: 1, time: '10:00 AM', activity: 'Pickup for trekking', type: 'transfer', description: 'Hotel pickup for exciting trekking adventure' },
-            { day: 1, time: '12:30 PM', activity: 'Lunch', type: 'meal', description: 'Enjoy local cuisine with mountain views' },
-            { day: 1, time: '2:00 PM', activity: 'Adventure activities', type: 'adventure', description: 'Thrilling outdoor adventure activities' },
-            { day: 1, time: '4:30 PM', activity: 'Tea Tasting', type: 'activity', description: 'Experience authentic Kashmiri tea culture' },
-            { day: 1, time: '5:00 PM', activity: 'Horse riding', type: 'adventure', description: 'Scenic horse riding through valleys' },
-            { day: 1, time: '7:00 PM', activity: 'Cultural Activities', type: 'activity', description: 'Traditional Kashmiri cultural performances' },
-            { day: 1, time: '9:00 PM', activity: 'Dinner', type: 'meal', description: 'Delicious dinner with local specialties' },
-            { day: 2, time: '8:00 AM', activity: 'Breakfast', type: 'meal', description: 'Fresh morning breakfast' },
-            { day: 2, time: '10:00 AM', activity: 'Pickup for Sight Seeing', type: 'sightseeing', description: 'Explore famous Kashmir attractions' },
-            { day: 2, time: '12:30 PM', activity: 'Lunch', type: 'meal', description: 'Midday meal at scenic location' },
-            { day: 2, time: '2:00 PM', activity: 'Skiing', type: 'adventure', description: 'Exciting skiing experience' },
-            { day: 2, time: '4:30 PM', activity: 'Tea Tasting', type: 'activity', description: 'Afternoon tea break' },
-            { day: 2, time: '5:00 PM', activity: 'Rafting', type: 'adventure', description: 'White water rafting adventure' },
-            { day: 2, time: '7:00 PM', activity: 'Leisure Activities', type: 'activity', description: 'Relaxing evening activities' },
-            { day: 2, time: '9:00 PM', activity: 'Dinner', type: 'meal', description: 'Evening dinner' },
-            { day: 3, time: '8:00 AM', activity: 'Breakfast', type: 'meal', description: 'Final day breakfast' },
-            { day: 3, time: '10:00 AM', activity: 'Pickup for trekking', type: 'adventure', description: 'Last trekking experience' },
-            { day: 3, time: '12:30 PM', activity: 'Lunch', type: 'meal', description: 'Farewell lunch' },
-            { day: 3, time: '2:00 PM', activity: 'Camping', type: 'adventure', description: 'Short camping experience' },
-            { day: 3, time: '4:30 PM', activity: 'Tea Tasting', type: 'activity', description: 'Final tea session' },
-            { day: 3, time: '5:00 PM', activity: 'Departure', type: 'transfer', description: 'Check out and departure preparation' },
-            { day: 3, time: '7:00 PM', activity: 'Airport Drop', type: 'transfer', description: 'Safe transfer to airport' }
-          ]
-        },
-        'THAI001': {
-          quoteId: 'THAI001',
-          name: 'Exotic Thailand',
-          days: 4,
-          nights: 3,
-          startDate: '2025-08-11',
-          costINR: 60000,
-          costUSD: 750,
-          guests: 5,
-          adults: 2,
-          kids: 3,
-          services: []
-        }
-      };
-
-      const data = mockData[itineraryId];
-      if (!data) {
-        console.error('Itinerary not found:', itineraryId);
-        return;
+      // Determine location: explicit param > enquiry lookup > fallback
+      let selectedLocation = locationParam || '';
+      if (!selectedLocation && enquiryId) {
+        try {
+          const res = await fetch(`/api/enquiries/${enquiryId}`);
+          if (res.ok) {
+            const json :EnquiryData  = await res.json();
+            selectedLocation = json?.data?.locations || '';
+          }
+        } catch {}
       }
+
+      const filename = getCsvFilenameForLocation(selectedLocation);
+      const resCsv = await fetch(`/Itinerary/${filename}`);
+      const csvText = await resCsv.text();
+      const parsed = parseCsvServices(csvText);
+      const data: MockItineraryData = {
+        quoteId: parsed.meta.quoteId || itineraryId,
+        name: parsed.meta.name || (selectedLocation ? `${selectedLocation} Package` : 'Itinerary'),
+        days: (parsed.meta.days as number) || 3,
+        nights: (parsed.meta.nights as number) || Math.max(((parsed.meta.days as number) || 3) - 1, 0),
+        startDate: parsed.meta.startDate || new Date().toISOString().split('T')[0],
+        costINR: (parsed.meta.costINR as number) || 0,
+        costUSD: (parsed.meta.costUSD as number) || 0,
+        guests: (parsed.meta.guests as number) || 0,
+        adults: (parsed.meta.adults as number) || 0,
+        kids: (parsed.meta.kids as number) || 0,
+        services: parsed.services,
+      };
 
       const startDate = new Date(data.startDate);
 
@@ -317,12 +357,51 @@ const BookingProgressDashboard = () => {
       setLoading(true);
 
       try {
+        // Persist context to URL/localStorage so refresh/back retains state
+        try {
+          if (typeof window !== 'undefined') {
+            const params = new URLSearchParams(window.location.search);
+            if (enquiryId && !params.get('enquiryId')) {
+              params.set('enquiryId', enquiryId);
+              window.history.replaceState({}, '', `${window.location.pathname}?${params.toString()}`);
+            }
+            localStorage.setItem('bookingContext', JSON.stringify({ enquiryId, itineraryId, location: locationParam }));
+          }
+        } catch {}
+
         await loadItineraryFromMockData();
         await Promise.all([
           loadProgressData(),
           loadFeedbackData(),
           loadReminderData()
         ]);
+
+        // Fetch assigned staff and selected DMC for overview
+        try {
+          if (enquiryId) {
+            const res = await fetch(`/api/enquiries/${enquiryId}`);
+            if (res.ok) {
+              const json = await res.json();
+              setAssignedStaffName(json?.data?.assignedStaff || "");
+            }
+          }
+        } catch {}
+
+        try {
+          const params = new URLSearchParams();
+          if (enquiryId) params.append('enquiryId', enquiryId);
+          const sharedRes = await fetch(`/api/share-dmc?${params.toString()}`);
+          if (sharedRes.ok) {
+            const data: ShareDmcResponse = await sharedRes.json();
+            const list = Array.isArray(data?.data) ? data.data : [];
+            const active = list.find((it) => it.activeStatus) || list[0];
+            const chosen = active?.selectedDMCs?.[0];
+            if (chosen) {
+              const name = chosen?.dmc?.name || chosen?.dmcName || '';
+              setSelectedDmcName(name);
+            }
+          }
+        } catch {}
       } catch (error) {
         console.error('Error loading data:', error);
       }
@@ -344,7 +423,7 @@ const BookingProgressDashboard = () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           date: newRow.date,
-          service: newRow.service,
+          service: newRow.service === 'custom' ? (newRow.customService || '') : newRow.service,
           status: newRow.status,
           dmcNotes: newRow.dmcNotes || null
         })
@@ -358,7 +437,7 @@ const BookingProgressDashboard = () => {
             date: new Date(result.data.date).toISOString().split('T')[0]
           };
           setProgressData(prev => [...prev, formattedData]);
-          setNewRow({ date: "", service: "", status: "PENDING", dmcNotes: "" });
+          setNewRow({ date: "", service: "", status: "PENDING", dmcNotes: "", customService: "" });
           setShowAddProgressModal(false);
         }
       } else {
@@ -564,7 +643,8 @@ const BookingProgressDashboard = () => {
                 type="text"
                 className="w-full p-3 border border-gray-300 rounded-lg mt-2 focus:ring-2 focus:ring-green-500 focus:border-transparent"
                 placeholder="Enter custom service"
-                onChange={e => setNewRow({ ...newRow, service: e.target.value })}
+                value={newRow.customService}
+                onChange={e => setNewRow({ ...newRow, customService: e.target.value })}
                 disabled={saving}
               />
             )}
@@ -719,7 +799,7 @@ const BookingProgressDashboard = () => {
             Booking Progress Dashboard
           </h1>
           <p className="text-gray-600">
-            {itineraryData?.package || 'Loading...'} - {itineraryId}
+            {itineraryData?.package || 'Loading...'} - {itineraryData?.id || itineraryId}
           </p>
         </div>
 
@@ -1019,13 +1099,13 @@ const BookingProgressDashboard = () => {
                   <div className="flex items-center gap-2">
                     <User className="w-4 h-4 text-gray-500 flex-shrink-0" />
                     <span className="text-gray-600 font-medium">DMC:</span>
-                    <span className="text-gray-900">Maple Trails DMC</span>
+                    <span className="text-gray-900">{selectedDmcName || '—'}</span>
                   </div>
 
                   <div className="flex items-center gap-2">
                     <User className="w-4 h-4 text-gray-500 flex-shrink-0" />
                     <span className="text-gray-600 font-medium">Staff:</span>
-                    <span className="text-gray-900">Afsalfa</span>
+                    <span className="text-gray-900">{assignedStaffName || '—'}</span>
                   </div>
                 </div>
               </div>

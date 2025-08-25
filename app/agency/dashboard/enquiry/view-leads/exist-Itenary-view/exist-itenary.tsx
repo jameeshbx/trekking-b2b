@@ -38,7 +38,6 @@ interface Itinerary {
     leadSource: string
     tags: string
     mustSeeSpots: string
-    pacePreference: string
     flightsRequired: string
     notes: string
   }
