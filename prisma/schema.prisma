@@ -26,6 +26,8 @@ model File {
   paymentMethodQRCode        PaymentMethod? @relation("PaymentMethodQRCode")
   adminProfile               Admin?         @relation("AdminProfile")
 
+  // QR Code relation
+  agencyPaymentMethodQRCode  AgencyPaymentMethod? @relation("AgencyPaymentMethodQRCode")
   @@map("file")
 }
 
@@ -36,8 +38,10 @@ model User {
   password       String
   name           String?
   companyName    String
+   phone          String?  
+   
   businessType   BusinessType
-  createdAt      DateTime       @default(now())
+  createdAt      DateTime       @default(now()) 
   updatedAt      DateTime       @updatedAt
   role           Role           @default(USER)
   userType       UserType
@@ -64,6 +68,8 @@ model Agency {
   updatedAt     DateTime       @updatedAt
   subscriptions Subscription[]
   users         User[]
+
+  paymentMethods AgencyPaymentMethod[] 
 
   @@index([name])
 }
@@ -304,9 +310,8 @@ model enquiries {
   itineraries        itineraries[]
   sharedCustomerPdfs SharedCustomerPdf[]
   feedback           Feedback?
-  commissions        Commission[]
-  dmcPayments    DmcPayment[]
-
+  commissions        Commission[]  
+  dmcPayments        DmcPayment[]
 
   sharedDMCs SharedDMC[] @relation("EnquirySharedDMCs")
 
@@ -315,6 +320,29 @@ model enquiries {
   @@index([customerId])
   @@index([email])
 }
+
+model Feedback {
+  id                   String   @id @default(uuid())
+  enquiryId            String   @unique
+  name                 String
+  phone                String
+  email                String
+  destination          String
+  dateRange            String
+  overallExperience    Int      // Rating for overall experience
+  accommodationQuality Int      // Rating for accommodation quality
+  transportTransfers   Int      // Rating for transport & transfers
+  serviceFromTeam      Int      // Rating for service from our team
+  travelAgain          Boolean  // Would you travel with us again?
+  additionalComments   String?  // Any additional comments
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  enquiry              enquiries @relation(fields: [enquiryId], references: [id], onDelete: Cascade)
+
+  @@map("feedbacks")
+}
+
 
 model itineraries {
   id                         String                    @id @default(uuid())
@@ -365,6 +393,10 @@ model itineraries {
   sentItineraries            sent_itineraries[]
   agencyCancellationPolicy   AgencyCancellationPolicy? @relation(fields: [agencyCancellationPolicyId], references: [id])
   sharedCustomerPdfs         SharedCustomerPdf[]
+  bookingProgress            BookingProgress[]
+  bookingFeedbacks           BookingFeedback[]
+  bookingReminders           BookingReminder[]
+
   bookingProgress            BookingProgress[]
   bookingFeedbacks           BookingFeedback[]
   bookingReminders           BookingReminder[]
@@ -450,27 +482,7 @@ model EmailLog {
   @@map("email_logs")
 }
 
-model Feedback {
-  id                   String   @id @default(uuid())
-  enquiryId            String   @unique
-  name                 String
-  phone                String
-  email                String
-  destination          String
-  dateRange            String
-  overallExperience    Int // Rating for overall experience
-  accommodationQuality Int // Rating for accommodation quality
-  transportTransfers   Int // Rating for transport & transfers
-  serviceFromTeam      Int // Rating for service from our team
-  travelAgain          Boolean // Would you travel with us again?
-  additionalComments   String? // Any additional comments
-  createdAt            DateTime @default(now())
-  updatedAt            DateTime @updatedAt
 
-  enquiry enquiries @relation(fields: [enquiryId], references: [id], onDelete: Cascade)
-
-  @@map("feedbacks")
-}
 
 model customers {
   id                 String               @id @default(cuid())
@@ -670,6 +682,47 @@ model Admin {
   @@map("admins")
 }
 
+
+
+model AgencyPaymentMethod {
+  id          String            @id @default(uuid())
+  agencyId    String
+  agency      Agency?           @relation(fields: [agencyId], references: [id])
+  type        PaymentMethodType
+
+  // Common fields
+  name        String?
+  identifier  String? // Account number, UPI ID, etc.
+ 
+  // Card-specific fields 
+  cardHolder  String?
+  expiryDate  String?
+
+  // UPI-specific fields
+  upiProvider String?
+
+    // QR Code relation - FIXED: Added relation name
+  qrCodeId    String?  @unique
+  qrCode      File?    @relation("AgencyPaymentMethodQRCode", fields: [qrCodeId], references: [id], onDelete: Cascade)
+
+  // Payment Gateway
+  paymentLink String?
+  
+
+  // Metadata
+  notes       String?
+  isActive    Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  // Bank details stored as JSON
+  bank        Json?
+
+  @@index([agencyId])
+  @@index([type])
+}
+
+
 model Commission {
   id               String   @id @default(cuid())
   enquiryId        String?
@@ -687,6 +740,103 @@ model Commission {
 
   @@unique([enquiryId, dmcId], name: "enquiryId_dmcId")
   @@map("commissions")
+}  
+
+
+model BookingProgress {
+  id           String        @id @default(uuid())
+  itineraryId  String
+  date         DateTime
+  service      String
+  status       BookingStatus @default(PENDING)
+  dmcNotes     String?
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  createdBy    String?
+
+  itinerary itineraries @relation(fields: [itineraryId], references: [id], onDelete: Cascade)
+
+  @@index([itineraryId])
+  @@index([status])
+  @@index([date])
+  @@map("booking_progress")
+}
+
+model BookingFeedback {
+  id          String      @id @default(uuid())
+  itineraryId String
+  note        String
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  createdBy   String?
+
+  itinerary itineraries @relation(fields: [itineraryId], references: [id], onDelete: Cascade)
+
+  @@index([itineraryId])
+  @@index([createdAt])
+  @@map("booking_feedback")
+}
+
+model BookingReminder {
+  id          String      @id @default(uuid())
+  itineraryId String
+  date        DateTime
+  note        String
+  isCompleted Boolean     @default(false)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  createdBy   String?
+
+  itinerary itineraries @relation(fields: [itineraryId], references: [id], onDelete: Cascade)
+
+  @@index([itineraryId])
+  @@index([date])
+  @@index([isCompleted])
+  @@map("booking_reminder")
+}   
+
+model DmcPayment {
+  id                 String        @id @default(uuid())
+  dmcId              String
+  enquiryId          String
+  itineraryReference String
+  totalCost          Float
+  amountPaid         Float
+  paymentDate        DateTime
+  remainingBalance   Float
+  paymentStatus      PaymentStatus @default(PENDING)
+  paymentChannel     String
+  transactionId      String?
+  selectedBank       String?
+  receiptUrl         String?       // For external storage URLs
+  receiptFileId      String?       @unique // For internal file storage
+  createdAt          DateTime      @default(now())
+  updatedAt          DateTime      @updatedAt
+
+  dmc         DMCForm   @relation(fields: [dmcId], references: [id], onDelete: Cascade)
+  enquiry     enquiries @relation(fields: [enquiryId], references: [id], onDelete: Cascade)
+  receiptFile File?     @relation("DmcPaymentReceipt", fields: [receiptFileId], references: [id])
+
+  @@index([dmcId])
+  @@index([enquiryId])
+  @@map("dmc_payments")
+}
+
+
+
+enum BookingStatus {
+  PENDING
+  CONFIRMED
+  CANCELLED
+  NOT_INCLUDED
+  IN_PROGRESS
+  COMPLETED
+}
+
+
+enum CommissionType {
+  FLAT
+  PERCENTAGE
 }
 
 // Updated booking progress models with proper types
@@ -775,6 +925,15 @@ enum PaymentStatus {
   FAILED
 }
 
+enum AgencyPayment  {
+
+  BANK
+  UPI
+  CARD
+  QR_CODE
+  PAYMENT_GATEWAY
+}
+
 
 enum AdminStatus {
   ACTIVE
@@ -839,10 +998,7 @@ enum DMCStatus {
   DEACTIVE
 }
 
-enum CommissionType {
-  FLAT
-  PERCENTAGE
-}
+
 
 enum DMCRequestStatusEnum {
   PENDING
