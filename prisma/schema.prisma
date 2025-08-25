@@ -202,8 +202,7 @@ model DMCForm {
   registrationCertificate   File?           @relation("DMCRegistrationCertificate", fields: [registrationCertificateId], references: [id])
   paymentMethods            PaymentMethod[]
   commissions               Commission[]
-  dmcPayments    DmcPayment[]
-
+  dmcPayments               DmcPayment[]
 
   @@index([name])
   @@index([email])
@@ -314,6 +313,7 @@ model enquiries {
   dmcPayments        DmcPayment[]
 
   sharedDMCs SharedDMC[] @relation("EnquirySharedDMCs")
+  dmcPayments    DmcPayment[]
 
   @@index([status])
   @@index([enquiryDate])
@@ -1076,6 +1076,37 @@ enum EmailStatus {
   BOUNCED
 }
 
+model DmcPayment {
+  id                 String        @id @default(uuid())
+  dmcId              String
+  enquiryId          String
+  itineraryReference String
+  totalCost          Float
+  amountPaid         Float
+  paymentDate        DateTime
+  remainingBalance   Float
+  paymentStatus      PaymentStatus @default(PENDING)
+  paymentChannel     String
+  transactionId      String?
+  selectedBank       String?
+  receiptUrl         String?
+  createdAt          DateTime      @default(now())
+  updatedAt          DateTime      @updatedAt
+
+  dmc     DMCForm   @relation(fields: [dmcId], references: [id], onDelete: Cascade)
+  enquiry enquiries @relation(fields: [enquiryId], references: [id], onDelete: Cascade)
+
+  @@index([dmcId])
+  @@index([enquiryId])
+  @@map("dmc_payments")
+}
+
+enum PaymentStatus {
+  PENDING
+  PARTIAL
+  PAID
+  FAILED
+}
 // New enum for booking status
 enum BookingStatus {
   PENDING

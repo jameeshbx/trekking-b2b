@@ -6,7 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "@/components/ui/use-toast"
 import { Toaster } from "@/components/ui/toaster"
 import { Textarea } from "@/components/ui/textarea"
-import { QrCode } from "lucide-react"
+import { QrCode, Plus, X } from "lucide-react"
 
 interface StandaloneBankDetailsProps {
   isOpen: boolean
@@ -64,8 +64,12 @@ export function StandaloneBankDetails({ isOpen, onClose, dmcId = null }: Standal
           if (data.success && data.data.methods) {
             const bankDetails = data.data.methods.find((method: { type: string }) => method.type === "BANK_ACCOUNT")
             const upiDetails = data.data.methods.find((method: { type: string }) => method.type === "UPI")
-            const gatewayDetails = data.data.methods.find((method: { type: string }) => method.type === "PAYMENT_GATEWAY")
-            const qrDetails = data.data.methods.find((method: { type: string; qrCode?: { url: string } }) => method.type === "QR_CODE")
+            const gatewayDetails = data.data.methods.find(
+              (method: { type: string }) => method.type === "PAYMENT_GATEWAY",
+            )
+            const qrDetails = data.data.methods.find(
+              (method: { type: string; qrCode?: { url: string } }) => method.type === "QR_CODE",
+            )
 
             if (bankDetails && bankDetails.bank && Array.isArray(bankDetails.bank) && bankDetails.bank.length > 0) {
               setBanks(bankDetails.bank)
@@ -145,10 +149,38 @@ export function StandaloneBankDetails({ isOpen, onClose, dmcId = null }: Standal
   }, [isOpen, dmcId])
 
   const updateBank = (idx: number, key: keyof Bank, value: string) => {
-    const next = [...banks]
-    next[idx][key] = value
-    setBanks(next)
-  }
+    setBanks(prevBanks => 
+      prevBanks.map((bank, i) => 
+        i === idx ? { ...bank, [key]: value } : bank
+      )
+    );
+  };
+
+  const addBankDetails = () => {
+    if (banks.length < 3) {
+      setBanks([
+        ...banks,
+        {
+          accountHolderName: "",
+          bankName: "",
+          branchName: "",
+          accountNumber: "",
+          ifscCode: "",
+          bankCountry: "India",
+          currency: "INR",
+          notes: "",
+        },
+      ]);
+    }
+  };
+
+  const removeBankDetails = (idx: number) => {
+    if (banks.length > 1) {
+      const next = banks.filter((_, index) => index !== idx);
+      setBanks(next);
+    }
+  };
+
 
   const handleSaveOrUpdate = async () => {
     if (!dmcId) {
@@ -219,9 +251,50 @@ export function StandaloneBankDetails({ isOpen, onClose, dmcId = null }: Standal
             <div className="p-4">
               {/* Bank Details Section */}
               <div className="mb-4">
-                <h4 className="text-md font-semibold mb-2">Bank Details</h4>
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-2">
+                    <div className="bg-gray-100 p-2 rounded">
+                      <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"
+                        />
+                      </svg>
+                    </div>
+                    <h4 className="text-md font-semibold">Bank Details</h4>
+                  </div>
+                  {banks.length < 3 && (
+                    <Button
+                      type="button"
+                      onClick={addBankDetails}
+                      className="bg-green-500 hover:bg-green-600 text-white border-0 flex items-center gap-2"
+                      size="sm"
+                    >
+                      <Plus className="h-4 w-4" />
+                      Add more
+                    </Button>
+                  )}
+                </div>
+
                 {banks.map((bank, idx) => (
-                  <div key={idx} className="border p-4 rounded-lg mb-2">
+                  <div key={idx} className="border p-4 rounded-lg mb-4">
+                    <div className="flex items-center justify-between mb-4">
+                      <h5 className="font-medium text-gray-700">Bank Details {idx + 1}</h5>
+                      {banks.length > 1 && (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => removeBankDetails(idx)}
+                          className="text-red-500 hover:text-red-700 hover:bg-red-50"
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      )}
+                    </div>
+
                     <div className="grid grid-cols-2 gap-4">
                       <div>
                         <label className="block text-sm font-medium text-gray-700">Account Holder Name</label>
@@ -242,7 +315,7 @@ export function StandaloneBankDetails({ isOpen, onClose, dmcId = null }: Standal
                         />
                       </div>
                       <div>
-                        <label className="block text-sm font-medium text-gray-700">Branch Name</label>
+                        <label className="block text-sm font-medium text-gray-700">Branch Name / Location</label>
                         <Input
                           value={bank.branchName}
                           onChange={(e) => updateBank(idx, "branchName", e.target.value)}
@@ -260,7 +333,7 @@ export function StandaloneBankDetails({ isOpen, onClose, dmcId = null }: Standal
                         />
                       </div>
                       <div>
-                        <label className="block text-sm font-medium text-gray-700">IFSC Code</label>
+                        <label className="block text-sm font-medium text-gray-700">IFSC / SWIFT Code</label>
                         <Input
                           value={bank.ifscCode}
                           onChange={(e) => updateBank(idx, "ifscCode", e.target.value)}
@@ -297,7 +370,7 @@ export function StandaloneBankDetails({ isOpen, onClose, dmcId = null }: Standal
                       </div>
                     </div>
                     <div className="mt-4">
-                      <label className="block text-sm font-medium text-gray-700">Notes</label>
+                      <label className="block text-sm font-medium text-gray-700">Enter any notes if required</label>
                       <Textarea
                         value={bank.notes}
                         onChange={(e) => updateBank(idx, "notes", e.target.value)}
