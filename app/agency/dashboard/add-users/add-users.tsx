@@ -253,32 +253,32 @@ export default function AddUsers() {
       });
       return;
     }
-
+  
     setIsLoading(true);
     
     try {
       const formDataToSend = new FormData();
       formDataToSend.append("name", formData.name);
-      formDataToSend.append("phoneNumber", formData.phone);
-      formDataToSend.append("phoneExtension", phoneExtension);
+      formDataToSend.append("phoneNumber", formData.phone); // Changed from "phone"
+      formDataToSend.append("phoneExtension", phoneExtension); // Added this line
       formDataToSend.append("email", formData.email);
       formDataToSend.append("username", formData.username);
       formDataToSend.append("password", formData.password);
       if (formData.profile) {
         formDataToSend.append("profile", formData.profile);
       }
-
+  
       const response = await fetch('/api/auth/agency-add-user', {
         method: 'POST',
         body: formDataToSend,
       });
-
+  
       const data = await response.json();
-
+  
       if (!response.ok) {
         throw new Error(data.error || "Failed to add user");
       }
-
+  
       toast({
         title: "Success",
         description: "User has been added successfully",
@@ -310,6 +310,7 @@ export default function AddUsers() {
     }
   };
 
+  
   const togglePasswordVisibility = async (id: string) => {
     try {
       if (!showPassword[id]) {
