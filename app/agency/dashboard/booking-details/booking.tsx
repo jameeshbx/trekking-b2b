@@ -120,6 +120,9 @@ const BookingProgressDashboard = () => {
   const [showAddProgressModal, setShowAddProgressModal] = useState<boolean>(false);
   const [editingRow, setEditingRow] = useState<string | null>(null);
 
+  // Store edited values separately to avoid losing focus
+  const [editingValues, setEditingValues] = useState<{ [key: string]: ProgressData }>({});
+
   // Feedback state
   const [feedbacks, setFeedbacks] = useState<Feedback[]>([]);
   const [showAddNoteModal, setShowAddNoteModal] = useState<boolean>(false);
@@ -130,7 +133,7 @@ const BookingProgressDashboard = () => {
   const [showReminderModal, setShowReminderModal] = useState<boolean>(false);
   const [newReminder, setNewReminder] = useState<NewReminder>({ date: "", note: "" });
 
-  // Mock data based on itinerary ID (replace with your actual data loading logic)
+  // Mock data based on itinerary ID
   const loadItineraryFromMockData = useCallback(async () => {
     try {
       // Mock data based on the provided CSV files
@@ -194,7 +197,7 @@ const BookingProgressDashboard = () => {
       }
 
       const startDate = new Date(data.startDate);
-      
+
       const itinerary: ItineraryData = {
         id: data.quoteId,
         name: data.name,
@@ -208,25 +211,25 @@ const BookingProgressDashboard = () => {
         kids: data.kids,
         costINR: data.costINR,
         costUSD: data.costUSD,
-        locations: data.name?.includes('Kashmir') ? 'Kashmir' : 
-                  data.name?.includes('Kerala') ? 'Kerala' : 
-                  data.name?.includes('Goa') ? 'Goa' : 
-                  data.name?.includes('Rajasthan') ? 'Rajasthan' : 
-                  data.name?.includes('Thailand') ? 'Thailand' : 'India',
+        locations: data.name?.includes('Kashmir') ? 'Kashmir' :
+          data.name?.includes('Kerala') ? 'Kerala' :
+            data.name?.includes('Goa') ? 'Goa' :
+              data.name?.includes('Rajasthan') ? 'Rajasthan' :
+                data.name?.includes('Thailand') ? 'Thailand' : 'India',
         package: data.name
       };
-      
+
       setItineraryData(itinerary);
-      
+
       // Create services data
       const servicesByDay: { [key: number]: Service[] } = {};
-      
+
       data.services.forEach((row: MockServiceRow) => {
         const day = typeof row.day === 'string' ? parseInt(row.day) : row.day;
         if (!servicesByDay[day]) {
           servicesByDay[day] = [];
         }
-        
+
         servicesByDay[day].push({
           time: row.time,
           activity: row.activity,
@@ -234,97 +237,85 @@ const BookingProgressDashboard = () => {
           description: row.description || row.activity
         });
       });
-      
+
       // Convert to ItineraryService array
       const services: ItineraryService[] = [];
       for (let day = 1; day <= data.days; day++) {
         const dayDate = new Date(startDate);
         dayDate.setDate(dayDate.getDate() + (day - 1));
-        
+
         services.push({
           day,
           date: dayDate,
           services: servicesByDay[day] || []
         });
       }
-      
+
       setItineraryServices(services);
-      
+
     } catch (error) {
       console.error('Error loading mock data:', error);
     }
   }, [itineraryId]);
 
-  // Load booking progress from API (mock for now)
-  const loadProgressData = async () => {
+  // Load booking progress from API
+  const loadProgressData = useCallback(async () => {
     try {
-      // Mock API call - replace with actual API endpoint
-      // const response = await fetch(`/api/booking-progress/${itineraryId}`);
-      // if (response.ok) {
-      //   const result = await response.json();
-      //   if (result.success) {
-      //     const formattedData = result.data.map((item: ProgressData) => ({
-      //       ...item,
-      //       date: new Date(item.date).toISOString().split('T')[0]
-      //     }));
-      //     setProgressData(formattedData);
-      //   }
-      // }
-      
-      // For now, start with empty array - data will be added through UI
-      setProgressData([]);
+      const response = await fetch(`/api/booking-progress/${itineraryId}`);
+      if (response.ok) {
+        const result = await response.json();
+        if (result.success && result.data) {
+          const formattedData = result.data.map((item: ProgressData) => ({
+            ...item,
+            date: new Date(item.date).toISOString().split('T')[0]
+          }));
+          setProgressData(formattedData);
+        }
+      }
     } catch (error) {
       console.error('Error loading progress data:', error);
     }
-  };
+  }, [itineraryId]);
 
-  // Load feedback data from API (mock for now)
-  const loadFeedbackData = async () => {
+  // Load feedback data from API
+  const loadFeedbackData = useCallback(async () => {
     try {
-      // Mock API call - replace with actual API endpoint
-      // const response = await fetch(`/api/booking-feedback/${itineraryId}`);
-      // if (response.ok) {
-      //   const result = await response.json();
-      //   if (result.success) {
-      //     setFeedbacks(result.data);
-      //   }
-      // }
-      
-      // For now, start with empty array - data will be added through UI
-      setFeedbacks([]);
+      const response = await fetch(`/api/booking-feedback/${itineraryId}`);
+      if (response.ok) {
+        const result = await response.json();
+        if (result.success && result.data) {
+          setFeedbacks(result.data);
+        }
+      }
     } catch (error) {
       console.error('Error loading feedback data:', error);
     }
-  };
+  }, [itineraryId]);
 
-  // Load reminder data from API (mock for now)
-  const loadReminderData = async () => {
+  // Load reminder data from API
+  const loadReminderData = useCallback(async () => {
     try {
-      // Mock API call - replace with actual API endpoint
-      // const response = await fetch(`/api/booking-reminder/${itineraryId}`);
-      // if (response.ok) {
-      //   const result = await response.json();
-      //   if (result.success) {
-      //     const formattedData = result.data.map((item: Reminder) => ({
-      //       ...item,
-      //       date: new Date(item.date).toISOString().split('T')[0]
-      //     }));
-      //     setReminders(formattedData);
-      //   }
-      // }
-      
-      // For now, start with empty array - data will be added through UI
-      setReminders([]);
+      const response = await fetch(`/api/booking-reminder/${itineraryId}`);
+      if (response.ok) {
+        const result = await response.json();
+        if (result.success && result.data) {
+          const formattedData = result.data.map((item: Reminder) => ({
+            ...item,
+            date: new Date(item.date).toISOString().split('T')[0]
+          }));
+          setReminders(formattedData);
+        }
+      }
     } catch (error) {
       console.error('Error loading reminder data:', error);
     }
-  };
+  }, [itineraryId]);
 
   // Load data on component mount
   useEffect(() => {
     const loadData = async () => {
       setLoading(true);
-      
+
       try {
         await loadItineraryFromMockData();
         await Promise.all([
@@ -335,194 +326,183 @@ const BookingProgressDashboard = () => {
       } catch (error) {
         console.error('Error loading data:', error);
       }
-      
+
       setLoading(false);
     };
-    
-    loadData();
-  }, [itineraryId, loadItineraryFromMockData]);
 
-  // Add new progress row (mock for now - replace with API call)
+    loadData();
+  }, [loadItineraryFromMockData, loadProgressData, loadFeedbackData, loadReminderData]);
+
+  // Add new progress row
   const handleAddProgress = async () => {
     if (!newRow.date || !newRow.service) return;
-    
+
     setSaving(true);
     try {
-      // Simulate API call delay
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // Mock API call - replace with actual API endpoint
-      // const response = await fetch(`/api/booking-progress/${itineraryId}`, {
-      //   method: 'POST',
-      //   headers: { 'Content-Type': 'application/json' },
-      //   body: JSON.stringify({
-      //     date: newRow.date,
-      //     service: newRow.service,
-      //     status: newRow.status,
-      //     dmcNotes: newRow.dmcNotes || null
-      //   })
-      // });
-      
-      // if (response.ok) {
-      //   const result = await response.json();
-      //   if (result.success) {
-      //     const formattedData = {
-      //       ...result.data,
-      //       date: new Date(result.data.date).toISOString().split('T')[0]
-      //     };
-      //     setProgressData(prev => [...prev, formattedData]);
-      //   }
-      // }
+      const response = await fetch(`/api/booking-progress/${itineraryId}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          date: newRow.date,
+          service: newRow.service,
+          status: newRow.status,
+          dmcNotes: newRow.dmcNotes || null
+        })
+      });
 
-      // For now, add to local state with mock ID
-      const newProgress: ProgressData = {
-        id: Date.now().toString(),
-        date: newRow.date,
-        service: newRow.service,
-        status: newRow.status,
-        dmcNotes: newRow.dmcNotes || null,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
-      };
-      
-      setProgressData(prev => [...prev, newProgress]);
-      setNewRow({ date: "", service: "", status: "PENDING", dmcNotes: "" });
-      setShowAddProgressModal(false);
-      
+      if (response.ok) {
+        const result = await response.json();
+        if (result.success) {
+          const formattedData = {
+            ...result.data,
+            date: new Date(result.data.date).toISOString().split('T')[0]
+          };
+          setProgressData(prev => [...prev, formattedData]);
+          setNewRow({ date: "", service: "", status: "PENDING", dmcNotes: "" });
+          setShowAddProgressModal(false);
+        }
+      } else {
+        console.error('Failed to add progress');
+      }
+
     } catch (error) {
       console.error('Error adding progress:', error);
     }
     setSaving(false);
   };
 
-  // Update progress row
-  const handleUpdateProgress = (id: string, field: string, value: string) => {
-    setProgressData(prev => prev.map(item => 
-      item.id === id ? { ...item, [field]: value } : item
-    ));
+  // Start editing - create a copy of the item to edit
+  const handleStartEdit = (item: ProgressData) => {
+    setEditingRow(item.id);
+    setEditingValues({
+      ...editingValues,
+      [item.id]: { ...item }
+    });
   };
 
-  // Save progress row (mock for now - replace with API call)
+  // Update editing values
+  const handleUpdateEditingValue = (id: string, field: string, value: string) => {
+    setEditingValues(prev => ({
+      ...prev,
+      [id]: {
+        ...prev[id],
+        [field]: value
+      }
+    }));
+  };
+
+  // Save progress row
   const handleSaveProgress = async (id: string) => {
-    const item = progressData.find(p => p.id === id);
-    if (!item) return;
+    const editedItem = editingValues[id];
+    if (!editedItem) return;
 
     setSaving(true);
     try {
-      // Simulate API call delay
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
-      // Mock API call - replace with actual API endpoint
-      // const response = await fetch(`/api/booking-progress/${itineraryId}/${id}`, {
-      //   method: 'PUT',
-      //   headers: { 'Content-Type': 'application/json' },
-      //   body: JSON.stringify({
-      //     date: item.date,
-      //     service: item.service,
-      //     status: item.status,
-      //     dmcNotes: item.dmcNotes
-      //   })
-      // });
-      
-      // if (response.ok) {
-      //   setEditingRow(null);
-      // }
-      
-      // For now, just update the local state
-      setProgressData(prev => prev.map(p => 
-        p.id === id ? { ...p, updatedAt: new Date().toISOString() } : p
-      ));
-      setEditingRow(null);
-      
+      const response = await fetch(`/api/booking-progress/${itineraryId}/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          date: editedItem.date,
+          service: editedItem.service,
+          status: editedItem.status,
+          dmcNotes: editedItem.dmcNotes
+        })
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        if (result.success) {
+          // Update the main progress data with saved values
+          setProgressData(prev => prev.map(p =>
+            p.id === id ? {
+              ...result.data,
+              date: new Date(result.data.date).toISOString().split('T')[0]
+            } : p
+          ));
+
+          // Clear editing state
+          setEditingRow(null);
+          const newEditingValues = { ...editingValues };
+          delete newEditingValues[id];
+          setEditingValues(newEditingValues);
+        }
+      } else {
+        console.error('Failed to save progress');
+      }
+
     } catch (error) {
       console.error('Error saving progress:', error);
     }
     setSaving(false);
   };
 
-  // Add new feedback (mock for now - replace with API call)
+  // Cancel editing
+  const handleCancelEdit = (id: string) => {
+    setEditingRow(null);
+    const newEditingValues = { ...editingValues };
+    delete newEditingValues[id];
+    setEditingValues(newEditingValues);
+  };
+
+  // Add new feedback
   const handleAddFeedback = async () => {
     if (!newFeedback.note.trim()) return;
-    
+
     setSaving(true);
     try {
-      // Simulate API call delay
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
-      // Mock API call - replace with actual API endpoint
-      // const response = await fetch(`/api/booking-feedback/${itineraryId}`, {
-      //   method: 'POST',
-      //   headers: { 'Content-Type': 'application/json' },
-      //   body: JSON.stringify({ note: newFeedback.note })
-      // });
-      
-      // if (response.ok) {
-      //   const result = await response.json();
-      //   if (result.success) {
-      //     setFeedbacks(prev => [...prev, result.data]);
-      //   }
-      // }
+      const response = await fetch(`/api/booking-feedback/${itineraryId}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ note: newFeedback.note })
+      });
 
-      // For now, add to local state with mock ID
-      const newFeedbackItem: Feedback = {
-        id: Date.now().toString(),
-        note: newFeedback.note,
-        createdAt: new Date().toISOString()
-      };
-      
-      setFeedbacks(prev => [...prev, newFeedbackItem]);
-      setNewFeedback({ note: "" });
-      setShowAddNoteModal(false);
-      
+      if (response.ok) {
+        const result = await response.json();
+        if (result.success) {
+          setFeedbacks(prev => [...prev, result.data]);
+          setNewFeedback({ note: "" });
+          setShowAddNoteModal(false);
+        }
+      } else {
+        console.error('Failed to add feedback');
+      }
+
     } catch (error) {
       console.error('Error adding feedback:', error);
     }
     setSaving(false);
   };
 
-  // Add new reminder (mock for now - replace with API call)
+  // Add new reminder
   const handleAddReminder = async () => {
     if (!newReminder.date || !newReminder.note.trim()) return;
-    
+
     setSaving(true);
     try {
-      // Simulate API call delay
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
-      // Mock API call - replace with actual API endpoint
-      // const response = await fetch(`/api/booking-reminder/${itineraryId}`, {
-      //   method: 'POST',
-      //   headers: { 'Content-Type': 'application/json' },
-      //   body: JSON.stringify({
-      //     date: newReminder.date,
-      //     note: newReminder.note
-      //   })
-      // });
-      
-      // if (response.ok) {
-      //   const result = await response.json();
-      //   if (result.success) {
-      //     const formattedData = {
-      //       ...result.data,
-      //       date: new Date(result.data.date).toISOString().split('T')[0]
-      //     };
-      //     setReminders(prev => [...prev, formattedData]);
-      //   }
-      // }
+      const response = await fetch(`/api/booking-reminder/${itineraryId}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          date: newReminder.date,
+          note: newReminder.note
+        })
+      });
 
-      // For now, add to local state with mock ID
-      const newReminderItem: Reminder = {
-        id: Date.now().toString(),
-        date: newReminder.date,
-        note: newReminder.note,
-        isCompleted: false,
-        createdAt: new Date().toISOString()
-      };
-      
-      setReminders(prev => [...prev, newReminderItem]);
-      setNewReminder({ date: "", note: "" });
-      setShowReminderModal(false);
-      
+      if (response.ok) {
+        const result = await response.json();
+        if (result.success) {
+          const formattedData = {
+            ...result.data,
+            date: new Date(result.data.date).toISOString().split('T')[0]
+          };
+          setReminders(prev => [...prev, formattedData]);
+          setNewReminder({ date: "", note: "" });
+          setShowReminderModal(false);
+        }
+      } else {
+        console.error('Failed to add reminder');
+      }
+
     } catch (error) {
       console.error('Error adding reminder:', error);
     }
@@ -546,7 +526,7 @@ const BookingProgressDashboard = () => {
       <div className="bg-white rounded-lg p-6 w-full max-w-md mx-4">
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-lg font-semibold text-gray-800">Add Progress</h2>
-          <button 
+          <button
             onClick={() => setShowAddProgressModal(false)}
             className="text-gray-400 hover:text-gray-600"
             disabled={saving}
@@ -633,7 +613,7 @@ const BookingProgressDashboard = () => {
       <div className="bg-white rounded-lg p-6 w-full max-w-md mx-4">
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-lg font-semibold text-gray-800">Add Customer Feedback</h2>
-          <button 
+          <button
             onClick={() => setShowAddNoteModal(false)}
             className="text-gray-400 hover:text-gray-600"
             disabled={saving}
@@ -642,13 +622,13 @@ const BookingProgressDashboard = () => {
           </button>
         </div>
         <div className="space-y-4">
-            <textarea
+          <textarea
             className="w-full p-3 border border-gray-300 rounded-lg h-32 focus:ring-2 focus:ring-green-500 focus:border-transparent resize-vertical"
             placeholder="Enter customer feedback or notes..."
             value={newFeedback.note}
             onChange={e => setNewFeedback({ ...newFeedback, note: e.target.value })}
             disabled={saving}
-            />
+          />
         </div>
         <div className="mt-8">
           <button
@@ -670,7 +650,7 @@ const BookingProgressDashboard = () => {
       <div className="bg-white rounded-lg p-6 w-full max-w-md mx-4">
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-lg font-semibold text-gray-800">Set Reminder</h2>
-          <button 
+          <button
             onClick={() => setShowReminderModal(false)}
             className="text-gray-400 hover:text-gray-600"
             disabled={saving}
@@ -751,7 +731,7 @@ const BookingProgressDashboard = () => {
               <div className="p-6 border-b border-gray-200">
                 <div className="flex justify-between items-center">
                   <h2 className="text-xl font-semibold text-gray-800">Booking Progress Monitor</h2>
-                  <button 
+                  <button
                     onClick={() => setShowAddProgressModal(true)}
                     className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-colors disabled:bg-gray-400"
                     disabled={saving}
@@ -791,93 +771,110 @@ const BookingProgressDashboard = () => {
                         </td>
                       </tr>
                     ) : (
-                      progressData.map((item) => (
-                        <tr key={item.id} className="hover:bg-gray-50">
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                            {editingRow === item.id ? (
-                              <input
-                                type="date"
-                                value={item.date}
-                                onChange={e => handleUpdateProgress(item.id, 'date', e.target.value)}
-                                className="w-full p-2 border border-gray-300 rounded text-sm"
-                                disabled={saving}
-                              />
-                            ) : (
-                              item.date ? new Date(item.date).toLocaleDateString() : ""
-                            )}
-                          </td>
-                          <td className="px-6 py-4 text-sm text-gray-900 font-medium">
-                            {editingRow === item.id ? (
-                              <select
-                                value={item.service}
-                                onChange={e => handleUpdateProgress(item.id, 'service', e.target.value)}
-                                className="w-full p-2 border border-gray-300 rounded text-sm"
-                                disabled={saving}
-                              >
-                                {getAvailableServices().map((service, idx) => (
-                                  <option key={idx} value={service}>{service}</option>
-                                ))}
-                              </select>
-                            ) : (
-                              item.service
-                            )}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            {editingRow === item.id ? (
-                              <select
-                                value={item.status}
-                                onChange={e => handleUpdateProgress(item.id, 'status', e.target.value)}
-                                className="w-full p-2 border border-gray-300 rounded text-sm"
-                                disabled={saving}
-                              >
-                                {statusOptions.map(opt => (
-                                  <option key={opt} value={opt}>{formatStatusDisplay(opt)}</option>
-                                ))}
-                              </select>
-                            ) : (
-                              <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusBadgeColor(item.status)}`}>
-                                {formatStatusDisplay(item.status)}
-                              </span>
-                            )}
-                          </td>
-                          <td className="px-6 py-4 text-sm text-gray-600 max-w-xs">
-                            {editingRow === item.id ? (
-                              <textarea
-                                value={item.dmcNotes || ''}
-                                onChange={e => handleUpdateProgress(item.id, 'dmcNotes', e.target.value)}
-                                className="w-full p-2 border border-gray-300 rounded text-sm h-20 resize-vertical"
-                                placeholder="Enter DMC notes..."
-                                disabled={saving}
-                              />
-                            ) : (
-                              <div className="truncate" title={item.dmcNotes || ''}>
-                                {item.dmcNotes || "—"}
-                              </div>
-                            )}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                            {editingRow === item.id ? (
-                              <button
-                                onClick={() => handleSaveProgress(item.id)}
-                                className="text-green-600 hover:text-green-900 flex items-center gap-1 disabled:text-gray-400"
-                                disabled={saving}
-                              >
-                                {saving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
-                                Save
-                              </button>
-                            ) : (
-                              <button
-                                onClick={() => setEditingRow(item.id)}
-                                className="text-blue-600 hover:text-blue-900 flex items-center gap-1 disabled:text-gray-400"
-                                disabled={saving}
-                              >
-                                <Edit2 size={16} />
-                                Edit
-                              </button>
-                            )}
-                          </td>
-                        </tr>
-                      ))
+                      progressData.map((item) => {
+                        const isEditing = editingRow === item.id;
+                        const editedItem = editingValues[item.id] || item;
+
+                        return (
+                          <tr key={item.id} className="hover:bg-gray-50">
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                              {isEditing ? (
+                                <input
+                                  type="date"
+                                  value={editedItem.date}
+                                  onChange={e => handleUpdateEditingValue(item.id, 'date', e.target.value)}
+                                  className="w-full p-2 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                                  disabled={saving}
+                                />
+                              ) : (
+                                item.date ? new Date(item.date).toLocaleDateString() : ""
+                              )}
+                            </td>
+                            <td className="px-6 py-4 text-sm text-gray-900 font-medium">
+                              {isEditing ? (
+                                <select
+                                  value={editedItem.service}
+                                  onChange={e => handleUpdateEditingValue(item.id, 'service', e.target.value)}
+                                  className="w-full p-2 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                                  disabled={saving}
+                                >
+                                  {getAvailableServices().map((service, idx) => (
+                                    <option key={idx} value={service}>{service}</option>
+                                  ))}
+                                </select>
+                              ) : (
+                                <div className="truncate max-w-xs" title={item.service}>
+                                  {item.service}
+                                </div>
+                              )}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              {isEditing ? (
+                                <select
+                                  value={editedItem.status}
+                                  onChange={e => handleUpdateEditingValue(item.id, 'status', e.target.value)}
+                                  className="w-full p-2 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                                  disabled={saving}
+                                >
+                                  {statusOptions.map(opt => (
+                                    <option key={opt} value={opt}>{formatStatusDisplay(opt)}</option>
+                                  ))}
+                                </select>
+                              ) : (
+                                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusBadgeColor(item.status)}`}>
+                                  {formatStatusDisplay(item.status)}
+                                </span>
+                              )}
+                            </td>
+                            <td className="px-6 py-4 text-sm text-gray-600 max-w-xs">
+                              {isEditing ? (
+                                <textarea
+                                  value={editedItem.dmcNotes || ''}
+                                  onChange={e => handleUpdateEditingValue(item.id, 'dmcNotes', e.target.value)}
+                                  className="w-full p-2 border border-gray-300 rounded text-sm h-20 resize-vertical focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                                  placeholder="Enter DMC notes..."
+                                  disabled={saving}
+                                />
+                              ) : (
+                                <div className="truncate" title={item.dmcNotes || ''}>
+                                  {item.dmcNotes || "—"}
+                                </div>
+                              )}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                              {isEditing ? (
+                                <div className="flex gap-2">
+                                  <button
+                                    onClick={() => handleSaveProgress(item.id)}
+                                    className="text-green-600 hover:text-green-900 flex items-center gap-1 disabled:text-gray-400"
+                                    disabled={saving}
+                                  >
+                                    {saving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
+                                    Save
+                                  </button>
+                                  <button
+                                    onClick={() => handleCancelEdit(item.id)}
+                                    className="text-gray-600 hover:text-gray-900 flex items-center gap-1 disabled:text-gray-400"
+                                    disabled={saving}
+                                  >
+                                    <X size={16} />
+                                    Cancel
+                                  </button>
+                                </div>
+                              ) : (
+                                <button
+                                  onClick={() => handleStartEdit(item)}
+                                  className="text-blue-600 hover:text-blue-900 flex items-center gap-1 disabled:text-gray-400"
+                                  disabled={saving}
+                                >
+                                  <Edit2 size={16} />
+                                  Edit
+                                </button>
+                              )}
+                            </td>
+                          </tr>
+                        );
+                      })
                     )}
                   </tbody>
                 </table>
@@ -891,7 +888,7 @@ const BookingProgressDashboard = () => {
                 <div className="p-6 border-b border-gray-200">
                   <div className="flex justify-between items-center">
                     <h3 className="text-lg font-semibold text-gray-800">Customer Feedback</h3>
-                    <button 
+                    <button
                       onClick={() => setShowAddNoteModal(true)}
                       className="bg-green-600 hover:bg-green-700 text-white px-3 py-1.5 rounded-full text-sm flex items-center gap-1 transition-colors disabled:bg-gray-400"
                       disabled={saving}
@@ -924,7 +921,7 @@ const BookingProgressDashboard = () => {
                 <div className="p-6 border-b border-gray-200">
                   <div className="flex justify-between items-center">
                     <h3 className="text-lg font-semibold text-gray-800">Reminders</h3>
-                    <button 
+                    <button
                       onClick={() => setShowReminderModal(true)}
                       className="bg-green-600 hover:bg-green-700 text-white px-3 py-1.5 rounded-full text-sm flex items-center gap-1 transition-colors disabled:bg-gray-400"
                       disabled={saving}
@@ -956,7 +953,7 @@ const BookingProgressDashboard = () => {
                   </div>
                 </div>
               </div>
-           
+
             </div>
           </div>
 
@@ -969,20 +966,20 @@ const BookingProgressDashboard = () => {
                   <MapPin className="w-5 h-5 text-green-600" />
                   Itinerary Overview
                 </h3>
-                
+
                 <div className="mb-4">
                   <div className="bg-green-800 text-white px-4 py-2 rounded-lg text-sm font-medium text-center">
                     Start Date: {itineraryData?.startDate || 'Loading...'}
                   </div>
                 </div>
-                
+
                 <div className="space-y-3 text-sm">
                   <div className="flex items-center gap-2">
                     <Calendar className="w-4 h-4 text-gray-500 flex-shrink-0" />
                     <span className="text-gray-600 font-medium">Package:</span>
                     <span className="text-gray-900">{itineraryData?.name || 'Loading...'}</span>
                   </div>
-                  
+
                   <div className="flex items-center gap-2">
                     <Calendar className="w-4 h-4 text-gray-500 flex-shrink-0" />
                     <span className="text-gray-600 font-medium">Duration:</span>
@@ -990,7 +987,7 @@ const BookingProgressDashboard = () => {
                       {itineraryData ? `${itineraryData.days} Days, ${itineraryData.nights} Nights` : 'Loading...'}
                     </span>
                   </div>
-                  
+
                   <div className="flex items-center gap-2">
                     <Users className="w-4 h-4 text-gray-500 flex-shrink-0" />
                     <span className="text-gray-600 font-medium">Travelers:</span>
@@ -998,7 +995,7 @@ const BookingProgressDashboard = () => {
                       {itineraryData ? `${itineraryData.adults} Adults${itineraryData.kids ? `, ${itineraryData.kids} Kids` : ''}` : 'Loading...'}
                     </span>
                   </div>
-                  
+
                   <div className="flex items-center gap-2">
                     <div className="w-4 h-4 flex-shrink-0">💰</div>
                     <span className="text-gray-600 font-medium">Cost:</span>
@@ -1006,25 +1003,25 @@ const BookingProgressDashboard = () => {
                       {itineraryData ? `₹${itineraryData.costINR?.toLocaleString()} / ${itineraryData.costUSD}` : 'Loading...'}
                     </span>
                   </div>
-                  
+
                   <div className="flex items-center gap-2">
                     <div className="w-3 h-3 bg-yellow-400 rounded-full flex-shrink-0"></div>
                     <span className="text-gray-600 font-medium">Status:</span>
                     <span className="text-gray-900">Booking in progress</span>
                   </div>
-                  
+
                   <div className="flex items-center gap-2">
                     <Phone className="w-4 h-4 text-gray-500 flex-shrink-0" />
                     <span className="text-gray-600 font-medium">Quote ID:</span>
                     <span className="text-gray-900">{itineraryData?.id || 'Loading...'}</span>
                   </div>
-                  
+
                   <div className="flex items-center gap-2">
                     <User className="w-4 h-4 text-gray-500 flex-shrink-0" />
                     <span className="text-gray-600 font-medium">DMC:</span>
                     <span className="text-gray-900">Maple Trails DMC</span>
                   </div>
-                  
+
                   <div className="flex items-center gap-2">
                     <User className="w-4 h-4 text-gray-500 flex-shrink-0" />
                     <span className="text-gray-600 font-medium">Staff:</span>
@@ -1033,7 +1030,7 @@ const BookingProgressDashboard = () => {
                 </div>
               </div>
             </div>
-            
+
             {/* WhatsApp Promotion */}
             <div className="bg-gradient-to-br from-green-600 to-green-800 text-white rounded-lg shadow-lg overflow-hidden">
               <div className="p-6">
@@ -1048,7 +1045,7 @@ const BookingProgressDashboard = () => {
           </div>
         </div>
       </div>
-      
+
       {/* Modals */}
       {showAddProgressModal && <AddProgressModal />}
       {showAddNoteModal && <AddNoteModal />}

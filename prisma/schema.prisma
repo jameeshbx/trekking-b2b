@@ -19,6 +19,7 @@ model File {
   agencyLicense              AgencyForm?    @relation("AgencyBusinessLicense")
   agencyLogo                 AgencyForm?    @relation("AgencyLogo")
   dmcRegistrationCertificate DMCForm?       @relation("DMCRegistrationCertificate")
+  dmcPaymentReceipt          DmcPayment?    @relation("DmcPaymentReceipt")
   managerProfile             Manager?       @relation("ManagerProfile")
   userProfile                UserForm?      @relation("UserProfileImage")
   userProfileImage           User?          @relation("UserProfileImage")
@@ -27,6 +28,7 @@ model File {
 
   @@map("file")
 }
+
 
 model User {
   id             String         @id @default(cuid())
@@ -194,6 +196,8 @@ model DMCForm {
   registrationCertificate   File?           @relation("DMCRegistrationCertificate", fields: [registrationCertificateId], references: [id])
   paymentMethods            PaymentMethod[]
   commissions               Commission[]
+  dmcPayments    DmcPayment[]
+
 
   @@index([name])
   @@index([email])
@@ -301,6 +305,8 @@ model enquiries {
   sharedCustomerPdfs SharedCustomerPdf[]
   feedback           Feedback?
   commissions        Commission[]
+  dmcPayments    DmcPayment[]
+
 
   sharedDMCs SharedDMC[] @relation("EnquirySharedDMCs")
 
@@ -735,6 +741,40 @@ model BookingReminder {
   @@index([isCompleted])
   @@map("booking_reminder")
 }
+model DmcPayment {
+  id                 String        @id @default(uuid())
+  dmcId              String
+  enquiryId          String
+  itineraryReference String
+  totalCost          Float
+  amountPaid         Float
+  paymentDate        DateTime
+  remainingBalance   Float
+  paymentStatus      PaymentStatus @default(PENDING)
+  paymentChannel     String
+  transactionId      String?
+  selectedBank       String?
+  receiptUrl         String?       // For external storage URLs
+  receiptFileId      String?       @unique // For internal file storage
+  createdAt          DateTime      @default(now())
+  updatedAt          DateTime      @updatedAt
+
+  dmc         DMCForm   @relation(fields: [dmcId], references: [id], onDelete: Cascade)
+  enquiry     enquiries @relation(fields: [enquiryId], references: [id], onDelete: Cascade)
+  receiptFile File?     @relation("DmcPaymentReceipt", fields: [receiptFileId], references: [id])
+
+  @@index([dmcId])
+  @@index([enquiryId])
+  @@map("dmc_payments")
+}
+
+enum PaymentStatus {
+  PENDING
+  PARTIAL
+  PAID
+  FAILED
+}
+
 
 enum AdminStatus {
   ACTIVE
